@@ -2,14 +2,16 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { requireAppContext } from '@/lib/context';
 import { must } from '@/lib/data/members';
-import { relativeTime } from '@/lib/format';
+
 import { Card, EmptyState } from '@/components/ui';
 import { MarkAllRead } from '@/components/profile/MarkAllRead';
 import type { Notification } from '@/lib/types';
+import { getFormat } from '@/lib/locale/server';
 
 export const metadata: Metadata = { title: 'Notifications' };
 
 export default async function NotificationsPage() {
+  const fmt = await getFormat();
   const { supabase, user } = await requireAppContext();
   const items = must(await supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(100), 'notifications') as Notification[];
   const unread = items.filter((n) => !n.read_at).length;
@@ -28,7 +30,7 @@ export default async function NotificationsPage() {
                   <span className={`mt-2 h-2 w-2 shrink-0 rounded-full ${n.read_at ? 'bg-transparent' : 'bg-primary-container'}`} aria-hidden />
                   <span className="min-w-0"><span className="block text-label-md">{n.title}{!n.read_at && <span className="sr-only"> (unread)</span>}</span>
                     {n.body && <span className="block text-body-sm text-on-surface-variant">{n.body}</span>}
-                    <span className="block text-body-sm text-outline">{relativeTime(n.created_at)}</span></span>
+                    <span className="block text-body-sm text-outline">{fmt.relative(n.created_at)}</span></span>
                 </Link>
               </li>
             ))}

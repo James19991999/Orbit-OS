@@ -4,10 +4,12 @@ import { useRouter } from 'next/navigation';
 import { Button, EmptyState, useToast } from '@/components/ui';
 import { requireBrowserClient } from '@/lib/supabase/client';
 import { errorMessage } from '@/hooks/useAction';
-import { formatMoney } from '@/lib/format';
+
 import type { FinanceEntry } from '@/lib/types';
+import { useFormat } from '@/lib/locale/client';
 
 export function Approvals({ items, people, userId, canApprove }: { items: FinanceEntry[]; people: Record<string, { name: string }>; userId: string; canApprove: boolean }) {
+  const fmt = useFormat();
   const [busy, setBusy] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
@@ -32,8 +34,8 @@ export function Approvals({ items, people, userId, canApprove }: { items: Financ
         return (
           <li key={e.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
             <div className="min-w-0">
-              <p className="text-label-md">{e.vendor ?? e.category ?? 'Expense'} · <span className="tnum">{formatMoney(e.amount_minor, e.currency)}</span></p>
-              <p className="text-body-sm text-on-surface-variant">{e.note ?? '—'} · logged by {e.created_by ? people[e.created_by]?.name ?? 'member' : 'system'} on {e.occurred_on}</p>
+              <p className="text-label-md">{e.vendor ?? e.category ?? 'Expense'} · <span className="tnum">{fmt.money(e.amount_minor, e.currency)}</span></p>
+              <p className="text-body-sm text-on-surface-variant">{e.note ?? '—'} · logged by {e.created_by ? people[e.created_by]?.name ?? 'member' : 'system'} on {fmt.date(e.occurred_on)}</p>
             </div>
             {canApprove && (
               <div className="flex gap-2">

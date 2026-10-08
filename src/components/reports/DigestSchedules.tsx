@@ -1,10 +1,10 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Dialog, Input, Select, Switch, InlineError, EmptyState, Icon, useToast } from '@/components/ui';
+import { Button, Dialog, Input, Select, Switch, InlineError, EmptyState, Icon, useToast, TimeAgo } from '@/components/ui';
 import { requireBrowserClient } from '@/lib/supabase/client';
 import { useAction, unwrap, errorMessage } from '@/hooks/useAction';
-import { relativeTime } from '@/lib/format';
+
 import type { ReportSchedule } from '@/lib/types';
 
 const DAYS = ['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays'];
@@ -49,7 +49,7 @@ export function DigestSchedules({ orgId, items, canManage, defaultEmail, allowed
           {items.map((s) => (
             <li key={s.id} className="py-3">
               <Switch label={s.name} description={describeSchedule(s)} checked={s.enabled} onChange={(v) => toggle(s, v)} disabled={!canManage} />
-              <p className="mt-1 text-body-sm text-on-surface-variant">{s.last_run_at ? `Last dispatch ${relativeTime(s.last_run_at)}${s.last_status ? ` · ${s.last_status}` : ''}` : 'Not sent yet'}</p>
+              <p className="mt-1 text-body-sm text-on-surface-variant">{s.last_run_at ? <>Last dispatch <TimeAgo date={s.last_run_at} />{s.last_status ? ` · ${s.last_status}` : ''}</> : 'Not sent yet'}</p>
               {canManage && (
                 <div className="mt-2 flex gap-2">
                   <Button size="sm" variant="secondary" icon="refresh" loading={running === s.id} onClick={() => run(s)}>Run test dispatch</Button>

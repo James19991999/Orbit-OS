@@ -10,3 +10,4 @@ export * from './Tabs';
 export * from './Kpi';
 export * from './Icon';
 export { cn } from './cn';
+export { TimeAgo } from './TimeAgo';

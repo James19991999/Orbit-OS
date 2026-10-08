@@ -1,46 +1,48 @@
 import type { Report } from './load';
 import type { PdfDoc } from './pdf';
 import { formatMoney, signed } from '@/lib/format';
+import { localeForCurrency } from '@/lib/locale';
 import { formatRunway } from '@/lib/metrics/finance';
 import { formatInTimeZone } from 'date-fns-tz';
 
 const pc = (v: number | null, d = 0) => (v === null ? '-' : `${(v * 100).toFixed(d)}%`);
 const chg = (v: number | null) => (v === null ? 'n/a' : signed(v, 1, '%'));
 
-export function reportHeadline(r: Report) {
+/** `locale` = the viewer's (exports); digests have no viewer, so they use the currency's region. */
+export function reportHeadline(r: Report, locale = localeForCurrency(r.org.currency)) {
   const cur = r.org.currency;
   return [
     ['Velocity index', r.eng.velocityIndex === null ? 'No sprints closed' : `${r.eng.velocityIndex} / 100`],
     ['Points completed', `${r.eng.donePoints} (${chg(r.eng.pointsChangePct)} vs previous period)`],
     ['Meeting hours (person-hours)', `${r.sync.meetingHours.toFixed(1)} (${r.sync.hoursSaved >= 0 ? `${r.sync.hoursSaved.toFixed(1)} fewer` : `${(-r.sync.hoursSaved).toFixed(1)} more`} than previous)`],
-    ['Sync cost difference', formatMoney(Math.abs(r.sync.costDiffMinor), cur) + (r.sync.costDiffMinor >= 0 ? ' saved' : ' added')],
+    ['Sync cost difference', formatMoney(Math.abs(r.sync.costDiffMinor), cur, { locale }) + (r.sync.costDiffMinor >= 0 ? ' saved' : ' added')],
     ['Async-first meetings', pc(r.sync.asyncRate)],
-    ['Burn this period', `${formatMoney(r.finance.periodBurn, cur)} (${chg(r.finance.burnChangePct)})`],
+    ['Burn this period', `${formatMoney(r.finance.periodBurn, cur, { locale })} (${chg(r.finance.burnChangePct)})`],
     ['Runway', formatRunway(r.finance.runwayMonths)],
     ['Check-in completion', pc(r.people.checkinRate)],
     ['Controls passing', r.infosec.controls.total ? `${r.infosec.controls.passing}/${r.infosec.controls.total} (${r.infosec.controls.pct}%)` : 'No frameworks'],
   ] as [string, string][];
 }
 
-export function reportToPdf(r: Report): PdfDoc {
+export function reportToPdf(r: Report, locale = localeForCurrency(r.org.currency)): PdfDoc {
   const cur = r.org.currency;
   return {
     title: `${r.org.name} — Executive intelligence`,
     subtitle: `${r.period.label} · generated ${r.generatedAt.toISOString().slice(0, 16).replace('T', ' ')} UTC`,
     footer: `${r.org.name} · board & exec`,
     sections: [
-      { heading: 'Headline metrics', kv: reportHeadline(r) },
+      { heading: 'Headline metrics', kv: reportHeadline(r, locale) },
       { heading: 'Engineering & product', kv: [
         ['Sprints closed', `${r.eng.sprintsClosed} (${r.eng.onTarget} on target)`],
         ['Average task cycle time', r.eng.avgCycleDays === null ? '-' : `${r.eng.avgCycleDays.toFixed(1)} days`],
       ] },
       { heading: 'Finance & treasury', kv: [
-        ['Cash balance', r.finance.cashBalance === null ? '-' : formatMoney(r.finance.cashBalance, cur)],
-        ['Average monthly burn (3 mo)', formatMoney(r.finance.monthlyBurn, cur)],
-        ['Revenue this period', formatMoney(r.finance.periodRevenue, cur)],
+        ['Cash balance', r.finance.cashBalance === null ? '-' : formatMoney(r.finance.cashBalance, cur, { locale })],
+        ['Average monthly burn (3 mo)', formatMoney(r.finance.monthlyBurn, cur, { locale })],
+        ['Revenue this period', formatMoney(r.finance.periodRevenue, cur, { locale })],
         ['Payroll territories', r.finance.payrollTerritories === null ? '-' : String(r.finance.payrollTerritories)],
       ], table: r.finance.months.length ? { head: ['Month', 'Burn', 'Revenue', 'Net'], widths: [120, 125, 125, 129],
-        rows: r.finance.months.map((m) => [m.month, formatMoney(m.burn, cur), formatMoney(m.revenue, cur), formatMoney(m.net, cur)]) } : undefined },
+        rows: r.finance.months.map((m) => [m.month, formatMoney(m.burn, cur, { locale }), formatMoney(m.revenue, cur, { locale }), formatMoney(m.net, cur, { locale })]) } : undefined },
       { heading: 'People & culture', kv: [
         ['Members', String(r.people.members)], ['eNPS', r.people.enps === null ? 'No eNPS poll' : signed(r.people.enps, 0)],
         ['Average mood', r.people.mood === null ? '-' : `${r.people.mood.toFixed(1)} / 5`], ['Burnout risk', pc(r.people.burnoutRisk, 1)],

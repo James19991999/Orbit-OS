@@ -3,15 +3,18 @@ import Link from 'next/link';
 import { requireAppContext, isWritable } from '@/lib/context';
 import { must } from '@/lib/data/members';
 import { PLANS } from '@/lib/billing/plans';
-import { formatMoney } from '@/lib/format';
+
 import { isIntaSendConfigured } from '@/lib/intasend/client';
 import { Card, CardHeader, Icon, Pill, EmptyState, Banner } from '@/components/ui';
 import { BillingPlans } from '@/components/billing/BillingPlans';
+import { cardCurrencyFor } from '@/lib/intasend/currencies';
 import type { BillingPayment } from '@/lib/types';
+import { getFormat } from '@/lib/locale/server';
 
 export const metadata: Metadata = { title: 'Billing' };
 
 export default async function BillingPage() {
+  const fmt = await getFormat();
   const { supabase, org, role } = await requireAppContext();
   const canSee = role === 'owner' || role === 'auditor';
   const [paysRes, membersRes] = await Promise.all([
@@ -27,12 +30,12 @@ export default async function BillingPage() {
       <div>
         <h1 className="text-headline-lg-mobile md:text-headline-lg">Plan & billing</h1>
         <p className="text-body-md text-on-surface-variant">
-          {PLANS[org.plan].name}{org.plan_period === 'trial' ? ' trial' : ''} · {org.seat_limit} seats · {daysLeft >= 0 ? `paid through ${expires.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} (${daysLeft} days)` : `expired ${-daysLeft} days ago`}
+          {PLANS[org.plan].name}{org.plan_period === 'trial' ? ' trial' : ''} · {org.seat_limit} seats · {daysLeft >= 0 ? `paid through ${fmt.date(expires, 'long')} (${daysLeft} days)` : `expired ${-daysLeft} days ago`}
         </p>
       </div>
       {!isWritable(org) && <Banner tone="warning">The workspace is read-only until the plan is renewed.</Banner>}
       {role !== 'owner' && <Banner tone="info">Only workspace owners can change the plan.</Banner>}
-      <BillingPlans currentPlan={org.plan} currency={org.currency} activeMembers={membersRes.count ?? 0} canPay={role === 'owner'} configured={isIntaSendConfigured()} />
+      <BillingPlans currentPlan={org.plan} currency={cardCurrencyFor(org.currency)} activeMembers={membersRes.count ?? 0} canPay={role === 'owner'} configured={isIntaSendConfigured()} />
       {canSee && (
         <Card>
           <CardHeader title="Payment history" icon="receipt_long" subtitle="Processed by IntaSend" />
@@ -48,7 +51,7 @@ export default async function BillingPage() {
                       <td className="py-2 pr-3 tnum">{p.created_at.slice(0, 10)}</td>
                       <td className="py-2 pr-3">{PLANS[p.plan].name} · {p.period} · {p.seats} seats</td>
                       <td className="py-2 pr-3">{p.method === 'MPESA' ? 'M-Pesa' : 'Card'}</td>
-                      <td className="py-2 pr-3 text-right tnum">{formatMoney(p.amount_minor, p.currency)}</td>
+                      <td className="py-2 pr-3 text-right tnum">{fmt.money(p.amount_minor, p.currency)}</td>
                       <td className="py-2 pr-3"><Pill tone={p.state === 'COMPLETE' ? 'healthy' : p.state === 'FAILED' ? 'alert' : 'warning'}>{p.state.toLowerCase()}</Pill></td>
                       <td className="py-2">{p.state === 'COMPLETE' && <a href={`/api/billing/receipt/${p.id}`} className="text-primary hover:underline">Receipt</a>}</td>
                     </tr>

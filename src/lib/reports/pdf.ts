@@ -9,7 +9,7 @@ export function winAnsi(s: string): string {
   return s
     .replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-')
     .replace(/→/g, '->').replace(/…/g, '...').replace(/ /g, ' ').replace(/•/g, '-')
-    .replace(/[^\x20-\x7E\xA0-\xFF\n]/g, '');
+    .replace(/[^\x20-\x7E\xA0-\xFF€\n]/g, ''); // Latin-1 + € (both in Helvetica's WinAnsi encoding)
 }
 
 const A4 = { w: 595.28, h: 841.89 };

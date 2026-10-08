@@ -3,7 +3,9 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { createCheckout, isIntaSendConfigured, IntaSendError } from '@/lib/intasend/client';
 import { sendEmail, emailLayout, escapeHtml } from '@/lib/email';
 import { formatMoney } from '@/lib/format';
+import { formatDate, localeForCurrency } from '@/lib/locale';
 import { appUrl } from '@/lib/env';
+import { cardCurrencies } from '@/lib/intasend/currencies';
 import type { Invoice } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -21,7 +23,8 @@ export const POST = handler<{ params: Promise<{ id: string }> }>(async (req, rou
 
   let paymentUrl = invoice.payment_url;
   let paymentLink: 'created' | 'reused' | 'not_configured' = paymentUrl ? 'reused' : 'not_configured';
-  if (!paymentUrl && isIntaSendConfigured()) {
+  // A client invoice can't be converted, so if IntaSend can't take its currency the email asks for a bank transfer.
+  if (!paymentUrl && isIntaSendConfigured() && cardCurrencies().includes(invoice.currency)) {
     try {
       const co = await createCheckout({
         amountMinor: invoice.amount_minor, currency: invoice.currency, email: invoice.client_email,
@@ -38,11 +41,13 @@ export const POST = handler<{ params: Promise<{ id: string }> }>(async (req, rou
   const { error: upErr } = await admin.from('invoices').update({ payment_url: paymentUrl, status: 'sent' }).eq('id', invoice.id);
   if (upErr) throw new ApiError(500, upErr.message);
 
+  // The client isn't a user, so format for the invoice's currency region (USD → US style, GBP → UK style…).
+  const clientLocale = localeForCurrency(invoice.currency);
   const email = await sendEmail({
     to: invoice.client_email,
     subject: `Invoice ${invoice.number} from ${ctx.org.legal_name || ctx.org.name}`,
     html: emailLayout(`Invoice ${invoice.number}`,
-      `<p>Hello ${escapeHtml(invoice.client_name)},</p><p>${escapeHtml(ctx.org.legal_name || ctx.org.name)} has sent you an invoice for <strong>${formatMoney(invoice.amount_minor, invoice.currency)}</strong>, due <strong>${invoice.due_on}</strong>.</p>${invoice.description ? `<p>${escapeHtml(invoice.description)}</p>` : ''}${paymentUrl ? '<p>You can pay securely by M-Pesa or card.</p>' : '<p>Please pay using the bank details agreed with us.</p>'}`,
+      `<p>Hello ${escapeHtml(invoice.client_name)},</p><p>${escapeHtml(ctx.org.legal_name || ctx.org.name)} has sent you an invoice for <strong>${formatMoney(invoice.amount_minor, invoice.currency, { locale: clientLocale })}</strong>, due <strong>${formatDate(`${invoice.due_on}T12:00:00Z`, 'long', clientLocale)}</strong>.</p>${invoice.description ? `<p>${escapeHtml(invoice.description)}</p>` : ''}${paymentUrl ? (invoice.currency === 'KES' ? '<p>You can pay securely by M-Pesa or card.</p>' : '<p>You can pay securely by card.</p>') : '<p>Please pay using the bank details agreed with us.</p>'}`,
       paymentUrl ? { label: 'Pay invoice', url: paymentUrl } : undefined),
   });
   await audit(req, ctx.org.id, ctx.user.id, 'invoice.sent', { type: 'invoice', id: invoice.id }, { paymentLink, emailed: email.sent });

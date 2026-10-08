@@ -3,8 +3,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button, Dialog, Input, Banner, Icon, Segmented, InlineError, cn } from '@/components/ui';
 import { PLANS, priceFor, seatsFor, SEAT_BLOCK, type PlanId, type BillingPeriod } from '@/lib/billing/plans';
-import { formatMoney, type Currency } from '@/lib/format';
+import { type Currency } from '@/lib/format';
 import { postJson, errorMessage } from '@/hooks/useAction';
+import { useFormat } from '@/lib/locale/client';
 
 const POLL_MS = 3000;
 const POLL_LIMIT_MS = 90_000;
@@ -12,12 +13,14 @@ type Phase = { kind: 'idle' } | { kind: 'waiting'; ref: string; method: 'MPESA' 
 
 /** Plan picker + IntaSend checkout. M-Pesa status polling is bounded to 90s, then falls back to the webhook. */
 export function BillingPlans({ currentPlan, currency, activeMembers, canPay, configured }: { currentPlan: PlanId; currency: Currency; activeMembers: number; canPay: boolean; configured: boolean }) {
+  const fmt = useFormat();
   const router = useRouter();
   const sp = useSearchParams();
   const [period, setPeriod] = useState<BillingPeriod>('annual');
   const [blocks, setBlocks] = useState(0);
   const [chosen, setChosen] = useState<PlanId | null>(null);
-  const [method, setMethod] = useState<'MPESA' | 'CARD'>('MPESA');
+  // Workspaces outside Kenya default to card; M-Pesa stays available (charged in KES).
+  const [method, setMethod] = useState<'MPESA' | 'CARD'>(currency === 'KES' ? 'MPESA' : 'CARD');
   const [phone, setPhone] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -88,8 +91,8 @@ export function BillingPlans({ currentPlan, currency, activeMembers, canPay, con
             <li key={id} className={cn('card flex flex-col p-5', current && 'border-primary-container shadow-glow')}>
               <div className="flex items-center justify-between"><h3 className="text-headline-sm">{p.name}</h3>{current && <span className="rounded-full bg-primary-container/15 px-2 py-0.5 text-label-xs text-primary">CURRENT</span>}</div>
               <p className="text-body-sm text-on-surface-variant">{p.tagline}</p>
-              <p className="mt-4 text-headline-lg tnum">{formatMoney(priceFor(id, period, currency), currency, { decimals: false })}<span className="text-body-sm text-on-surface-variant"> /{period === 'annual' ? 'year' : 'month'}</span></p>
-              {currency !== 'KES' && <p className="text-body-sm text-on-surface-variant">M-Pesa: {formatMoney(priceFor(id, period, 'KES'), 'KES', { decimals: false })}</p>}
+              <p className="mt-4 text-headline-lg tnum">{fmt.money(priceFor(id, period, currency), currency, { decimals: false })}<span className="text-body-sm text-on-surface-variant"> /{period === 'annual' ? 'year' : 'month'}</span></p>
+              {currency !== 'KES' && <p className="text-body-sm text-on-surface-variant">M-Pesa: {fmt.money(priceFor(id, period, 'KES'), 'KES', { decimals: false })}</p>}
               <ul className="mt-4 flex-1 space-y-1.5 text-body-md">
                 {p.features.map((f) => <li key={f} className="flex gap-2"><Icon name="check" className="text-[18px] text-healthy" />{f}</li>)}
               </ul>
@@ -103,7 +106,7 @@ export function BillingPlans({ currentPlan, currency, activeMembers, canPay, con
 
       <Dialog open={!!chosen} onClose={() => setChosen(null)} title={chosen ? `${PLANS[chosen].name} · ${period}` : ''}
         footer={<><Button variant="ghost" onClick={() => setChosen(null)}>Cancel</Button><Button loading={busy} onClick={pay}>
-          {chosen ? `Pay ${formatMoney(priceFor(chosen, period, payCurrency, chosen === 'enterprise' ? blocks : 0), payCurrency)}` : 'Pay'}</Button></>}>
+          {chosen ? `Pay ${fmt.money(priceFor(chosen, period, payCurrency, chosen === 'enterprise' ? blocks : 0), payCurrency)}` : 'Pay'}</Button></>}>
         {chosen && (
           <div className="grid gap-4">
             {chosen === 'enterprise' && (

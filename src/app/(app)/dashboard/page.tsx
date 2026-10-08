@@ -4,12 +4,13 @@ import { requireAppContext } from '@/lib/context';
 import { loadDashboard } from '@/lib/data/dashboard';
 import { HEALTH_FORMULA } from '@/lib/metrics/health';
 import { formatRunway } from '@/lib/metrics/finance';
-import { formatMoney, firstName, signed } from '@/lib/format';
+import { firstName, signed } from '@/lib/format';
 import { greeting, quarterDay, fmtUtcTime } from '@/lib/time-of-day';
 import { can } from '@/lib/roles';
 import { planAllows } from '@/lib/billing/plans';
 import { Card, CardHeader, Icon, Pill, KpiTile, LinkButton, EmptyState, Banner, ProgressBar } from '@/components/ui';
 import { LiveSync } from '@/components/dashboard/LiveSync';
+import { getFormat } from '@/lib/locale/server';
 
 export const metadata: Metadata = { title: 'Dashboard' };
 
@@ -17,6 +18,7 @@ const statusTone = { optimal: 'healthy', watch: 'warning', at_risk: 'alert' } as
 const statusText = { optimal: 'Optimal', watch: 'Watch', at_risk: 'At risk' } as const;
 
 export default async function DashboardPage(props: { searchParams: Promise<{ welcome?: string }> }) {
+  const fmt = await getFormat();
   const searchParams = await props.searchParams;
   const ctx = await requireAppContext();
   const d = await loadDashboard(ctx.supabase, ctx.org, ctx.role, ctx.user.id);
@@ -82,7 +84,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ wel
               sub={d.sprintInfo ? `${d.sprintInfo.done}/${d.sprintInfo.committed} pts · day ${d.sprintInfo.day}/${d.sprintInfo.totalDays}` : 'No active sprint'} />
             <KpiTile label="Runway" icon="account_balance" href={can.seeFinance(ctx.role) ? '/operations?tab=finance' : undefined}
               value={formatRunway(d.finance.runwayMonths)}
-              sub={d.finance.cashBalance !== null ? `Burn ${formatMoney(d.finance.monthlyBurn, cur, { compact: true })}/mo` : 'Add a cash balance'} />
+              sub={d.finance.cashBalance !== null ? `Burn ${fmt.money(d.finance.monthlyBurn, cur, { compact: true })}/mo` : 'Add a cash balance'} />
             <KpiTile label="Culture pulse" icon="favorite" href="/culture"
               value={d.health.components.culture !== null ? `${d.health.components.culture}%` : '—'}
               sub={d.rate14 !== null ? `${Math.round(d.rate14 * 100)}% check-in rate` : 'No check-ins yet'} />
@@ -171,7 +173,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ wel
           {can.seeFinance(ctx.role) && d.unpaid.count > 0 && (
             <p className="mt-4 text-body-sm text-on-surface-variant">
               <Icon name="receipt_long" className="mr-1 align-middle text-[16px]" />
-              {d.unpaid.count} unpaid invoices · {formatMoney(d.unpaid.total, cur, { compact: true })}{d.unpaid.dueToday ? ` · ${d.unpaid.dueToday} due today` : ''}
+              {d.unpaid.count} unpaid invoices · {fmt.money(d.unpaid.total, cur, { compact: true })}{d.unpaid.dueToday ? ` · ${d.unpaid.dueToday} due today` : ''}
             </p>
           )}
         </Card>

@@ -297,6 +297,31 @@ await step('protected API routes reject anonymous callers', async () => {
   return codes.every((c) => c === 401) ? codes.join(',') : `got ${codes.join(',')}`;
 });
 
+await step('region formats: a German-region browser gets 1.234,56; Profile → Region format switches to US style', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1360, height: 950 }, locale: 'de-DE' });
+  const p = await ctx.newPage();
+  const problems = [];
+  p.on('pageerror', (e) => problems.push(e.message.slice(0, 120)));
+  p.on('console', (m) => { if (m.type() === 'error' && /hydrat|did not match/i.test(m.text())) problems.push(m.text().slice(0, 120)); });
+  await p.goto(`${base}/login`, { waitUntil: 'networkidle' });
+  await p.getByLabel('Work email').fill('elena@acme-global.demo');
+  await p.getByLabel('Password', { exact: true }).fill(PW);
+  await p.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await p.waitForURL((u) => u.pathname === '/dashboard', { timeout: 30000 });
+  await p.goto(`${base}/operations?tab=finance`, { waitUntil: 'networkidle' });
+  const de = await p.locator('main').innerText();
+  if (!/KES \d{1,3}(\.\d{3})+,\d{2}/.test(de)) throw new Error('expected German separators, e.g. KES 1.234,56');
+  await p.goto(`${base}/profile`, { waitUntil: 'networkidle' });
+  await p.getByLabel('Format dates and numbers for').selectOption('en-US');
+  await p.waitForTimeout(500);
+  await p.goto(`${base}/operations?tab=finance`, { waitUntil: 'networkidle' });
+  const us = await p.locator('main').innerText();
+  if (!/KES \d{1,3}(,\d{3})+\.\d{2}/.test(us)) throw new Error('expected US separators after choosing United States');
+  if (!/[A-Z][a-z]{2} \d{1,2}, \d{4}/.test(us)) throw new Error('expected US dates like "Oct 8, 2026"');
+  await ctx.close();
+  if (problems.length) throw new Error(`page errors: ${problems.join(' | ')}`);
+});
+
 await browser.close();
 const failed = results.filter(([c]) => !c).length;
 console.log(`\n${results.length - failed}/${results.length} flows passed`);

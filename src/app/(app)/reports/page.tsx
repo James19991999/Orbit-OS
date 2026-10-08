@@ -4,7 +4,7 @@ import { requireAppContext } from '@/lib/context';
 import { loadReport } from '@/lib/reports/load';
 import { isPeriodKey, type PeriodKey } from '@/lib/reports/period';
 import { formatRunway } from '@/lib/metrics/finance';
-import { formatMoney, signed } from '@/lib/format';
+import { signed } from '@/lib/format';
 import { can } from '@/lib/roles';
 import { planAllows } from '@/lib/billing/plans';
 import { must } from '@/lib/data/members';
@@ -12,12 +12,14 @@ import { Card, CardHeader, Icon, Pill, Stat, EmptyState, Banner } from '@/compon
 import { PeriodPicker, ExportMenu, ModuleTabs, AdoptInsight } from '@/components/reports/ReportControls';
 import { DigestSchedules } from '@/components/reports/DigestSchedules';
 import type { ReportSchedule } from '@/lib/types';
+import { getFormat } from '@/lib/locale/server';
 
 export const metadata: Metadata = { title: 'Reports & Analytics' };
 
 const pc = (v: number | null, d = 0) => (v === null ? '—' : `${(v * 100).toFixed(d)}%`);
 
 export default async function ReportsPage(props: { searchParams: Promise<{ period?: string }> }) {
+  const fmt = await getFormat();
   const searchParams = await props.searchParams;
   const { supabase, org, role, profile, user } = await requireAppContext();
   if (!can.seeFinance(role)) {
@@ -47,9 +49,9 @@ export default async function ReportsPage(props: { searchParams: Promise<{ perio
   );
   const fin = (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-      <Stat label="Burn this period" value={formatMoney(r.finance.periodBurn, cur, { compact: true })} sub={r.finance.burnChangePct !== null ? `${signed(r.finance.burnChangePct, 1, '%')} vs previous` : undefined} />
-      <Stat label="Revenue this period" value={formatMoney(r.finance.periodRevenue, cur, { compact: true })} />
-      <Stat label="Runway" value={formatRunway(r.finance.runwayMonths)} sub={r.finance.cashBalance !== null ? `Cash ${formatMoney(r.finance.cashBalance, cur, { compact: true })}` : undefined} />
+      <Stat label="Burn this period" value={fmt.money(r.finance.periodBurn, cur, { compact: true })} sub={r.finance.burnChangePct !== null ? `${signed(r.finance.burnChangePct, 1, '%')} vs previous` : undefined} />
+      <Stat label="Revenue this period" value={fmt.money(r.finance.periodRevenue, cur, { compact: true })} />
+      <Stat label="Runway" value={formatRunway(r.finance.runwayMonths)} sub={r.finance.cashBalance !== null ? `Cash ${fmt.money(r.finance.cashBalance, cur, { compact: true })}` : undefined} />
       <Stat label="Payroll territories" value={r.finance.payrollTerritories ?? '—'} sub="latest recorded run" />
     </div>
   );
@@ -93,7 +95,7 @@ export default async function ReportsPage(props: { searchParams: Promise<{ perio
             <p className="mt-1 text-headline-xl leading-none tnum">{r.eng.velocityIndex ?? '—'}<span className="text-headline-md text-on-surface-variant">{r.eng.velocityIndex !== null ? ' / 100' : ''}</span></p>
             <p className="mt-1 text-body-sm text-on-surface-variant">Completed ÷ committed points for sprints that ended in the period. Compared with your own history, not other companies.</p>
           </div>
-          <Stat label="Sync load" value={`${r.sync.meetingHours.toFixed(0)} h`} sub={`${r.sync.hoursSaved >= 0 ? `${r.sync.hoursSaved.toFixed(0)} h fewer` : `${(-r.sync.hoursSaved).toFixed(0)} h more`} than previous · ${formatMoney(Math.abs(r.sync.costDiffMinor), cur, { compact: true })} ${r.sync.costDiffMinor >= 0 ? 'saved' : 'added'}`} />
+          <Stat label="Sync load" value={`${r.sync.meetingHours.toFixed(0)} h`} sub={`${r.sync.hoursSaved >= 0 ? `${r.sync.hoursSaved.toFixed(0)} h fewer` : `${(-r.sync.hoursSaved).toFixed(0)} h more`} than previous · ${fmt.money(Math.abs(r.sync.costDiffMinor), cur, { compact: true })} ${r.sync.costDiffMinor >= 0 ? 'saved' : 'added'}`} />
           <Stat label="Async decision rate" value={pc(r.sync.asyncRate)} sub={`${r.sync.meetings} meetings · async-first share`} />
         </div>
       </Card>

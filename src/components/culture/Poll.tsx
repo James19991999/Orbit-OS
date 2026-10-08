@@ -1,10 +1,10 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Dialog, Input, InlineError, Checkbox, useToast } from '@/components/ui';
+import { Button, Dialog, Input, InlineError, Checkbox, useToast, TimeAgo } from '@/components/ui';
 import { requireBrowserClient } from '@/lib/supabase/client';
 import { errorMessage, useAction, unwrap } from '@/hooks/useAction';
-import { relativeTime } from '@/lib/format';
+
 import type { Poll as PollT, PollOption } from '@/lib/types';
 
 export function PollCard({ poll, options, results, myVote: initialVote, orgId, canVote }:
@@ -55,7 +55,7 @@ export function PollCard({ poll, options, results, myVote: initialVote, orgId, c
         })}
       </ul>
       <p className="mt-2 text-body-sm text-on-surface-variant">
-        {total} {total === 1 ? 'response' : 'responses'} · {poll.anonymous ? 'anonymous' : 'named'} · {closed ? 'closed' : poll.closes_at ? `closes ${relativeTime(poll.closes_at)}` : 'open'}{myVote && !closed ? ' · tap another option to change your vote' : ''}
+        {total} {total === 1 ? 'response' : 'responses'} · {poll.anonymous ? 'anonymous' : 'named'} · {closed ? 'closed' : poll.closes_at ? <>closes <TimeAgo date={poll.closes_at} /></> : 'open'}{myVote && !closed ? ' · tap another option to change your vote' : ''}
       </p>
     </div>
   );

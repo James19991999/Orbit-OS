@@ -5,6 +5,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { priceFor, seatsFor } from '@/lib/billing/plans';
 import { createCheckout, mpesaStkPush, isIntaSendConfigured, IntaSendError } from '@/lib/intasend/client';
 import { normalizeKePhone } from '@/lib/intasend/phone';
+import { cardCurrencyFor } from '@/lib/intasend/currencies';
 import { appUrl } from '@/lib/env';
 
 export const dynamic = 'force-dynamic';
@@ -28,8 +29,8 @@ export const POST = handler(async (req) => {
   const { count } = await admin.from('memberships').select('id', { count: 'exact', head: true }).eq('org_id', ctx.org.id).eq('status', 'active');
   if ((count ?? 0) > seats) throw new ApiError(409, `You have ${count} active members; this plan covers ${seats} seats. Choose a bigger plan or add seat blocks.`);
 
-  // M-Pesa settles in KES; cards charge in the workspace currency.
-  const currency = b.method === 'MPESA' ? 'KES' : ctx.org.currency;
+  // M-Pesa settles in KES; cards charge in the workspace currency when IntaSend has it enabled (else USD).
+  const currency = b.method === 'MPESA' ? 'KES' : cardCurrencyFor(ctx.org.currency);
   const amount = priceFor(b.plan, b.period, currency, b.extraBlocks);
   const apiRef = `orb_${ctx.org.id}_${randomBytes(6).toString('hex')}`;
   let phone: string | null = null;

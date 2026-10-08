@@ -1,9 +1,9 @@
 'use client';
 import { useCallback, useState } from 'react';
 import Link from 'next/link';
-import { Avatar, Icon, EmptyState } from '@/components/ui';
+import { Avatar, Icon, EmptyState, TimeAgo } from '@/components/ui';
 import { useRealtime } from '@/hooks/useRealtime';
-import { relativeTime } from '@/lib/format';
+
 
 export interface ActivityEvent { id: string; created_at: string; actor_id: string | null; actor_name: string | null; kind: string; title: string; body: string | null; link: string | null }
 const ICON: Record<string, string> = { task_done: 'task_alt', checkin: 'edit_note', kudos: 'stars', invoice_paid: 'payments', expense_approved: 'fact_check', github_pr_merged: 'merge', github_push: 'commit' };
@@ -27,7 +27,7 @@ export function ActivityStream({ orgId, initial, cities }: { orgId: string; init
               <Avatar name={e.actor_name ?? 'System'} size={32} />
               <div className="min-w-0 flex-1">
                 <p className="text-body-md"><strong className="font-medium">{e.actor_name ?? 'OrbitOS'}</strong>{' '}
-                  <span className="text-on-surface-variant">{relativeTime(e.created_at)}{e.actor_id && cities[e.actor_id] ? ` · ${cities[e.actor_id]}` : ''}</span></p>
+                  <span className="text-on-surface-variant"><TimeAgo date={e.created_at} />{e.actor_id && cities[e.actor_id] ? ` · ${cities[e.actor_id]}` : ''}</span></p>
                 <p className="flex items-center gap-1.5 text-body-md text-on-surface">
                   <Icon name={ICON[e.kind] ?? 'bolt'} className="text-[16px] text-secondary" />
                   {e.link ? <Link href={e.link} className="hover:underline">{e.title}</Link> : e.title}

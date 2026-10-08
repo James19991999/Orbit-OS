@@ -1,10 +1,10 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { formatInTimeZone } from 'date-fns-tz';
-import { Avatar, Input, Select, Pill, EmptyState, Dialog } from '@/components/ui';
+import { Avatar, Input, Select, Pill, EmptyState, Dialog, TimeAgo } from '@/components/ui';
 import { dayPhase, regionOf } from '@/lib/scheduling/time';
 import { ROLE_LABEL } from '@/lib/roles';
-import { relativeTime } from '@/lib/format';
+
 import type { Role } from '@/lib/types';
 
 export interface PersonRow { id: string; name: string; email: string | null; avatar: string | null; role: Role; title: string | null; department: string | null; timezone: string; city: string | null; workStart: string; workEnd: string;
@@ -62,7 +62,7 @@ export function Directory({ people }: { people: PersonRow[] }) {
             <div><dt className="text-label-xs uppercase text-on-surface-variant">Open tasks</dt><dd className="tnum">{open.openTasks}</dd></div>
             <div><dt className="text-label-xs uppercase text-on-surface-variant">Check-in streak</dt><dd className="tnum">{open.streak} day{open.streak === 1 ? '' : 's'}</dd></div>
             <div><dt className="text-label-xs uppercase text-on-surface-variant">Recent kudos</dt>
-              <dd>{open.kudos.length ? <ul className="mt-1 space-y-1">{open.kudos.map((k, i) => <li key={i} className="text-body-sm">“{k.message}” <span className="text-on-surface-variant">{relativeTime(k.created_at)}</span></li>)}</ul> : '—'}</dd></div>
+              <dd>{open.kudos.length ? <ul className="mt-1 space-y-1">{open.kudos.map((k, i) => <li key={i} className="text-body-sm">“{k.message}” <TimeAgo className="text-on-surface-variant" date={k.created_at} /></li>)}</ul> : '—'}</dd></div>
           </dl>
         )}
       </Dialog>

@@ -5,7 +5,7 @@ import { loadMembers, nameMap, must } from '@/lib/data/members';
 import { sprintProgress } from '@/lib/metrics/sprint';
 import { summarizeFinance, formatRunway, type MonthlyRow } from '@/lib/metrics/finance';
 import { unpaidSummary, invoiceDisplayStatus } from '@/lib/metrics/invoices';
-import { formatMoney, signed } from '@/lib/format';
+import { signed, type Currency } from '@/lib/format';
 import { can } from '@/lib/roles';
 import { Card, CardHeader, Icon, Pill, ProgressBar, EmptyState, LinkTabs, Stat, Banner, type Tone } from '@/components/ui';
 import { TaskBoard } from '@/components/operations/TaskBoard';
@@ -15,6 +15,7 @@ import { Approvals } from '@/components/operations/Approvals';
 import { FinanceChart } from '@/components/operations/FinanceChart';
 import { ActivityStream, type ActivityEvent } from '@/components/operations/ActivityStream';
 import type { Sprint, Task, FinanceEntry, Invoice, PayrollRun } from '@/lib/types';
+import { getFormat } from '@/lib/locale/server';
 
 export const metadata: Metadata = { title: 'Operations' };
 
@@ -132,7 +133,8 @@ async function SprintsTab({ ctxOrgId, active, sprints, people, canManage, userId
 }
 
 async function FinanceTab({ supabase, orgId, currency, invoices, people, userId, canApprove }:
-  { supabase: Awaited<ReturnType<typeof requireAppContext>>['supabase']; orgId: string; currency: 'KES' | 'USD'; invoices: Invoice[]; people: ReturnType<typeof nameMap>; userId: string; canApprove: boolean }) {
+  { supabase: Awaited<ReturnType<typeof requireAppContext>>['supabase']; orgId: string; currency: Currency; invoices: Invoice[]; people: ReturnType<typeof nameMap>; userId: string; canApprove: boolean }) {
+  const fmt = await getFormat();
   const [monthly, entries, pending, payroll] = await Promise.all([
     supabase.rpc('finance_monthly', { p_org: orgId, p_months: 6 }),
     supabase.from('finance_entries').select('*').eq('org_id', orgId).order('occurred_on', { ascending: false }).order('created_at', { ascending: false }).limit(25),
@@ -153,10 +155,10 @@ async function FinanceTab({ supabase, orgId, currency, invoices, people, userId,
             <Pill tone={s.runwayMonths === null ? 'neutral' : !Number.isFinite(s.runwayMonths) || s.runwayMonths >= 18 ? 'healthy' : s.runwayMonths >= 9 ? 'warning' : 'alert'}>{formatRunway(s.runwayMonths)} runway</Pill>
           </div>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            <Stat label="Cash balance" value={s.cashBalance !== null ? formatMoney(s.cashBalance, currency, { compact: true }) : '—'} sub={s.cashBalance === null ? 'Log a bank balance' : 'Latest statement'} />
-            <Stat label="Monthly burn" value={formatMoney(s.monthlyBurn, currency, { compact: true })} sub={s.burnChangePct !== null ? `${signed(s.burnChangePct, 1, '%')} vs prior month` : '3-month average'} />
-            <Stat label="Net cash flow (MTD)" value={formatMoney(s.netCashFlow, currency, { compact: true })} sub={s.netCashFlowChangePct !== null ? `${signed(s.netCashFlowChangePct, 1, '%')} vs last month` : undefined} />
-            <Stat label="Unpaid invoices" value={formatMoney(unpaid.total, currency, { compact: true })} sub={`${unpaid.count} open · ${unpaid.dueToday} due today · ${unpaid.overdue} overdue`} />
+            <Stat label="Cash balance" value={s.cashBalance !== null ? fmt.money(s.cashBalance, currency, { compact: true }) : '—'} sub={s.cashBalance === null ? 'Log a bank balance' : 'Latest statement'} />
+            <Stat label="Monthly burn" value={fmt.money(s.monthlyBurn, currency, { compact: true })} sub={s.burnChangePct !== null ? `${signed(s.burnChangePct, 1, '%')} vs prior month` : '3-month average'} />
+            <Stat label="Net cash flow (MTD)" value={fmt.money(s.netCashFlow, currency, { compact: true })} sub={s.netCashFlowChangePct !== null ? `${signed(s.netCashFlowChangePct, 1, '%')} vs last month` : undefined} />
+            <Stat label="Unpaid invoices" value={fmt.money(unpaid.total, currency, { compact: true })} sub={`${unpaid.count} open · ${unpaid.dueToday} due today · ${unpaid.overdue} overdue`} />
           </div>
           {s.months.length > 0 ? <div className="mt-5"><FinanceChart months={s.months} currency={currency} /></div>
             : <EmptyState className="mt-5" icon="bar_chart" title="No finance data yet" body="Log expenses, revenue, payroll and a cash balance to see burn and runway." />}
@@ -165,10 +167,10 @@ async function FinanceTab({ supabase, orgId, currency, invoices, people, userId,
           <CardHeader title="Recorded payroll" icon="public" subtitle="Imported from your payroll provider — OrbitOS doesn't move money." />
           {lastRun ? (
             <>
-              <p className="text-headline-md tnum">{formatMoney(lastRun.total_minor, lastRun.currency)}</p>
+              <p className="text-headline-md tnum">{fmt.money(lastRun.total_minor, lastRun.currency)}</p>
               <p className="text-body-sm text-on-surface-variant">{lastRun.period} · {lastRun.country_count} {lastRun.country_count === 1 ? 'country' : 'countries'} · via {lastRun.provider_label}</p>
               <ul className="mt-3 divide-y divide-outline-variant text-body-sm">
-                {runs.slice(1, 6).map((r) => <li key={r.id} className="flex justify-between py-2"><span>{r.period} · {r.provider_label}</span><span className="tnum">{formatMoney(r.total_minor, r.currency, { compact: true })}</span></li>)}
+                {runs.slice(1, 6).map((r) => <li key={r.id} className="flex justify-between py-2"><span>{r.period} · {r.provider_label}</span><span className="tnum">{fmt.money(r.total_minor, r.currency, { compact: true })}</span></li>)}
               </ul>
             </>
           ) : <EmptyState icon="payments" title="No payroll recorded" />}
@@ -194,7 +196,7 @@ async function FinanceTab({ supabase, orgId, currency, invoices, people, userId,
                       <tr key={i.id} className="border-b border-outline-variant last:border-0 hover:bg-on-surface/[0.03]">
                         <td className="py-2 pr-3"><Link href={`/operations/invoices/${i.id}`} className="text-primary hover:underline">{i.number}</Link></td>
                         <td className="py-2 pr-3">{i.client_name}</td>
-                        <td className="py-2 pr-3 text-right tnum">{formatMoney(i.amount_minor, i.currency)}</td>
+                        <td className="py-2 pr-3 text-right tnum">{fmt.money(i.amount_minor, i.currency)}</td>
                         <td className="py-2"><Pill tone={INVOICE_TONE[st]}>{st.replace('_', ' ')}</Pill></td>
                       </tr>
                     );
@@ -213,12 +215,12 @@ async function FinanceTab({ supabase, orgId, currency, invoices, people, userId,
                 <tbody>
                   {ledger.map((e) => (
                     <tr key={e.id} className="border-b border-outline-variant last:border-0">
-                      <td className="py-2 pr-3 tnum text-on-surface-variant">{e.occurred_on}</td>
+                      <td className="py-2 pr-3 tnum text-on-surface-variant">{fmt.date(e.occurred_on)}</td>
                       <td className="py-2 pr-3">
                         <span className="capitalize">{e.kind.replace('_', ' ')}</span> · {e.vendor ?? e.category ?? '—'}
                         {e.approval_status !== 'approved' && <Pill tone={e.approval_status === 'pending' ? 'warning' : 'alert'} className="ml-2">{e.approval_status}</Pill>}
                       </td>
-                      <td className={`py-2 text-right tnum ${e.kind === 'revenue' ? 'text-healthy' : ''}`}>{e.kind === 'revenue' ? '+' : e.kind === 'cash_balance' ? '' : '−'}{formatMoney(e.amount_minor, e.currency)}</td>
+                      <td className={`py-2 text-right tnum ${e.kind === 'revenue' ? 'text-healthy' : ''}`}>{e.kind === 'revenue' ? '+' : e.kind === 'cash_balance' ? '' : '−'}{fmt.money(e.amount_minor, e.currency)}</td>
                     </tr>
                   ))}
                 </tbody>

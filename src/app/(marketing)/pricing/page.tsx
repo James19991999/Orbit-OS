@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 import { PricingTable } from '@/components/marketing/PricingTable';
 
-export const metadata: Metadata = { title: 'Pricing', description: 'OrbitOS plans in KES and USD. Pay with M-Pesa or card through IntaSend.' };
+export const metadata: Metadata = { title: 'Pricing', description: 'OrbitOS plans in KES, USD, EUR and GBP. Pay with M-Pesa or card through IntaSend.' };
 
 const FAQ = [
-  ['How do I pay?', 'Through IntaSend: M-Pesa (STK push to your phone, charged in KES) or card (KES or USD). Every payment covers one month or one year.'],
+  ['How do I pay?', 'Through IntaSend: M-Pesa (STK push to your phone, charged in KES) or card in your workspace currency (KES, USD, EUR or GBP). Every payment covers one month or one year.'],
   ['Does it renew automatically?', 'No. M-Pesa payments can’t be charged without you, so we email reminders 7 and 3 days before your plan ends. After a 3-day grace period the workspace becomes read-only until you renew — nothing is deleted.'],
   ['What happens during the trial?', 'You get Pro for 14 days with no payment details needed.'],
   ['Can I add seats?', 'Enterprise includes 200 seats and adds blocks of 10. Owners can turn on seat alerts at 95% usage.'],

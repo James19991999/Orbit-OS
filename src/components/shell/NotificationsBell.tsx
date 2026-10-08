@@ -1,10 +1,10 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Icon, cn } from '@/components/ui';
+import { Icon, cn, TimeAgo } from '@/components/ui';
 import { getBrowserClient } from '@/lib/supabase/client';
 import { useRealtime } from '@/hooks/useRealtime';
-import { relativeTime } from '@/lib/format';
+
 import type { Notification } from '@/lib/types';
 
 export function NotificationsBell({ userId }: { userId: string }) {
@@ -75,7 +75,7 @@ export function NotificationsBell({ userId }: { userId: string }) {
                   <span className="min-w-0">
                     <span className="block text-body-md text-on-surface">{n.title}</span>
                     {n.body && <span className="block truncate text-body-sm text-on-surface-variant">{n.body}</span>}
-                    <span className="block text-body-sm text-outline">{relativeTime(n.created_at)}{!n.read_at && <span className="sr-only"> · unread</span>}</span>
+                    <span className="block text-body-sm text-outline"><TimeAgo date={n.created_at} />{!n.read_at && <span className="sr-only"> · unread</span>}</span>
                   </span>
                 </Link>
               </li>

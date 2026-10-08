@@ -117,6 +117,7 @@ This step puts the app on your domain with every secret set and the five backgro
 | `INTASEND_SECRET_KEY` | from Step 5 | Yes |
 | `INTASEND_WEBHOOK_CHALLENGE` | a random string you choose (`openssl rand -hex 16`) | Yes |
 | `INTASEND_TEST_MODE` | `true` until your sandbox payment works, then `false` | Yes |
+| `INTASEND_CARD_CURRENCIES` | `KES,USD,EUR,GBP`, minus any currency your IntaSend account can't take by card (Step 5) | Optional (defaults to all four) |
 | `WEBAUTHN_RP_ID` | `app.yourdomain.com` (just the host, no `https://`) | Yes, for passkeys |
 | `WEBAUTHN_RP_NAME` | `OrbitOS` | Yes, for passkeys |
 | `NEXT_PUBLIC_SENTRY_DSN` | Sentry DSN from Step 4 | Strongly recommended |
@@ -187,6 +188,8 @@ This step makes plan purchases and client invoices take real M-Pesa and card pay
 | Card plan purchase | Settings → Billing → **Choose** any plan → Card, using IntaSend's sandbox test card | You return to OrbitOS and the plan is applied |
 | Client invoice | Operations → Finance → **Issue invoice** → **Create & send**, then open the payment link and pay | The invoice turns **Paid** and revenue is recorded |
 
+5. **Foreign currencies:** create a test workspace with currency **EUR** and another with **GBP** (Settings → Organization → Reporting currency), and try a card purchase in each. If IntaSend rejects a currency, remove it from `INTASEND_CARD_CURRENCIES` and redeploy: those workspaces are then charged in USD, and invoices in that currency go out without a payment link.
+
 If the plan never updates, open IntaSend's webhook log. A **401** response means the challenge strings don't match. A **404** means the URL is wrong.
 
 **Going live**
@@ -196,7 +199,7 @@ If the plan never updates, open IntaSend's webhook log. A **401** response means
 3. In Vercel, swap in the live keys, set `INTASEND_TEST_MODE=false`, then redeploy.
 4. Make one small real payment yourself, for example a test client invoice of KES 10, and confirm it lands in your IntaSend wallet.
 
-**Prices** are set in `src/lib/billing/plans.ts`, in cents (KES 4,900 is written `490000`). The current placeholders are Starter KES 4,900, Pro KES 14,900 and Enterprise KES 39,900 per month; annual is 10× monthly. Change them there, commit, and redeploy. The pricing page and checkout both read from that file.
+**Prices** are set in `src/lib/billing/plans.ts`, in cents (KES 4,900 is written `490000`). The current placeholders per month are: Starter KES 4,900 / $39 / €37 / £32, Pro KES 14,900 / $119 / €109 / £95, Enterprise KES 39,900 / $319 / €299 / £259; annual is 10× monthly. Change them there, commit, and redeploy. The pricing page and checkout both read from that file.
 
 ## Step 6 — Smoke test on production
 
@@ -216,6 +219,7 @@ These checks cover the only parts the automated tests could not reach without yo
 - [ ] **Sentry:** the test error from Step 4 shows as an issue, and the alert email arrived.
 - [ ] **Health:** `/api/health` returns status `ok`.
 - [ ] **Phone check:** open the app on your phone. Pages fit the screen, and the menu opens.
+- [ ] **Foreign visitor view:** open `/pricing` in a browser set to English (United States). Prices show in USD (`$39`), and Profile → Region format → United States shows dates like `Oct 8, 2026`.
 
 ## Step 7 — Day one
 

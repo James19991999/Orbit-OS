@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { requireAppContext } from '@/lib/context';
 import { loadMembers, nameMap, must } from '@/lib/data/members';
 import { can } from '@/lib/roles';
-import { relativeTime } from '@/lib/format';
+
 import { Card, CardHeader, Icon, LinkTabs, EmptyState, Pill } from '@/components/ui';
 import { PresenceProvider } from '@/components/culture/usePresence';
 import { Lounges, CitiesLive } from '@/components/culture/Lounges';
@@ -11,6 +11,7 @@ import { PollCard, NewPollButton } from '@/components/culture/Poll';
 import { RollCall } from '@/components/culture/RollCall';
 import { GiveKudos, KudosFeed, BADGES } from '@/components/culture/Kudos';
 import type { Lounge, Poll, PollOption, CheckIn, Channel, Message, Kudos, Badge } from '@/lib/types';
+import { getFormat } from '@/lib/locale/server';
 
 export const metadata: Metadata = { title: 'Culture' };
 
@@ -63,6 +64,7 @@ async function pollBundle(supabase: SB, polls: Poll[], userId: string) {
 
 async function LoungeTab({ orgId, orgSlug, userId, today, memberCount, canWrite, canManage, supabase }:
   { orgId: string; orgSlug: string; userId: string; today: string; memberCount: number; canWrite: boolean; canManage: boolean; supabase: SB }) {
+  const fmt = await getFormat();
   const [loungesRes, pollsRes, checkinsRes, annRes] = await Promise.all([
     supabase.from('lounges').select('*').eq('org_id', orgId).order('kind'),
     supabase.from('polls').select('*').eq('org_id', orgId).in('kind', ['pulse', 'announcement', 'enps']).order('created_at', { ascending: false }).limit(6),
@@ -96,7 +98,7 @@ async function LoungeTab({ orgId, orgSlug, userId, today, memberCount, canWrite,
           <div className="flex flex-col gap-4">
             {pinned.map((m) => (
               <article key={m.id} className="rounded-lg border border-outline-variant bg-surface-container-low p-4">
-                <p className="text-label-xs uppercase text-on-surface-variant">#announcements · {relativeTime(m.created_at)}</p>
+                <p className="text-label-xs uppercase text-on-surface-variant">#announcements · {fmt.relative(m.created_at)}</p>
                 <p className="mt-1 whitespace-pre-wrap text-body-lg">{m.body}</p>
               </article>
             ))}
@@ -109,6 +111,7 @@ async function LoungeTab({ orgId, orgSlug, userId, today, memberCount, canWrite,
 }
 
 async function ChannelsTab({ orgId, supabase, people }: { orgId: string; supabase: SB; people: ReturnType<typeof nameMap> }) {
+  const fmt = await getFormat();
   const [chRes, msgRes] = await Promise.all([
     supabase.from('channels').select('*').eq('org_id', orgId).order('name'),
     supabase.from('messages').select('id, channel_id, parent_id, author_id, body, created_at').eq('org_id', orgId).order('created_at', { ascending: false }).limit(400),
@@ -130,7 +133,7 @@ async function ChannelsTab({ orgId, supabase, people }: { orgId: string; supabas
                 <p className="text-label-md"># {c.name} {c.is_announcement && <Pill tone="info" className="ml-1">Announcements</Pill>}</p>
                 <p className="truncate text-body-sm text-on-surface-variant">{last ? `${people[last.author_id]?.name ?? 'Member'}: ${last.body}` : c.topic ?? 'No messages yet'}</p>
               </div>
-              <span className="shrink-0 text-right text-body-sm text-on-surface-variant">{last ? relativeTime(last.created_at) : ''}<br />{replies ? `${replies} replies` : ''}</span>
+              <span className="shrink-0 text-right text-body-sm text-on-surface-variant">{last ? fmt.relative(last.created_at) : ''}<br />{replies ? `${replies} replies` : ''}</span>
             </Link>
           </li>
         ))}

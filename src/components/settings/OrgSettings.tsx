@@ -5,6 +5,8 @@ import { Button, Input, Select, Switch, InlineError, Dialog, Checkbox, EmptyStat
 import { requireBrowserClient } from '@/lib/supabase/client';
 import { useAction, unwrap, postJson, errorMessage } from '@/hooks/useAction';
 import type { LegalEntity, Organization } from '@/lib/types';
+import { useFormat } from '@/lib/locale/client';
+import { CURRENCIES, CURRENCY_NAMES, type Currency } from '@/lib/format';
 
 export function OrgForm({ org, canEdit }: { org: Pick<Organization, 'id' | 'name' | 'legal_name' | 'currency' | 'expense_approval_threshold_minor' | 'hourly_cost_minor'>; canEdit: boolean }) {
   const router = useRouter();
@@ -17,8 +19,8 @@ export function OrgForm({ org, canEdit }: { org: Pick<Organization, 'id' | 'name
     <form className="grid gap-4 md:grid-cols-2" onSubmit={async (e) => { e.preventDefault(); if (await save.run()) router.refresh(); }}>
       <Input label="Display name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} disabled={!canEdit} />
       <Input label="Legal name" value={f.legal_name} onChange={(e) => setF({ ...f, legal_name: e.target.value })} disabled={!canEdit} />
-      <Select label="Reporting currency" value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value as 'KES' | 'USD' })} disabled={!canEdit}
-        options={[{ value: 'KES', label: 'KES' }, { value: 'USD', label: 'USD' }]} hint="Finance metrics only count entries in this currency." />
+      <Select label="Reporting currency" value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value as Currency })} disabled={!canEdit}
+        options={CURRENCIES.map((c) => ({ value: c, label: `${c} — ${CURRENCY_NAMES[c]}` }))} hint="Finance metrics only count entries in this currency." />
       <Input label={`Expense approval threshold (${f.currency})`} inputMode="decimal" value={f.threshold} onChange={(e) => setF({ ...f, threshold: e.target.value })} disabled={!canEdit} />
       <Input label={`Cost per person-hour (${f.currency})`} inputMode="decimal" value={f.hourly} onChange={(e) => setF({ ...f, hourly: e.target.value })} disabled={!canEdit} hint="Used to value meeting time in Reports." />
       {canEdit && <div className="flex items-end"><Button type="submit" loading={save.pending}>Save</Button></div>}
@@ -129,6 +131,7 @@ export function TimezoneEngine({ org, canEdit }: { org: Pick<Organization, 'id' 
 }
 
 export function GovernanceActions({ slug, isOwner, archiveAllowed, offboarding, deletionAt, aal2 }: { slug: string; isOwner: boolean; archiveAllowed: boolean; offboarding: boolean; deletionAt: string | null; aal2: boolean }) {
+  const fmt = useFormat();
   const router = useRouter();
   const { toast } = useToast();
   const [archiving, setArchiving] = useState(false);
@@ -159,7 +162,7 @@ export function GovernanceActions({ slug, isOwner, archiveAllowed, offboarding, 
           : <Button variant="danger" icon="lock_reset" onClick={() => setOpen(true)} disabled={!aal2}>Initiate suspension / offboarding</Button>}
       </div>
       {!archiveAllowed && <p className="text-body-sm text-on-surface-variant">Full archives are included on Enterprise.</p>}
-      {offboarding && deletionAt && <p className="text-body-sm text-alert">This workspace is read-only and will be permanently deleted on {new Date(deletionAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}.</p>}
+      {offboarding && deletionAt && <p className="text-body-sm text-alert">This workspace is read-only and will be permanently deleted on {fmt.date(deletionAt, 'long')}.</p>}
       <Dialog open={open} onClose={() => setOpen(false)} title="Offboard this workspace?" description="It becomes read-only now and is permanently deleted after 30 days. You can cancel until then."
         footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Keep workspace</Button><Button variant="danger" disabled={confirm !== slug} loading={off.pending} onClick={async () => { if (await off.run()) { setOpen(false); router.refresh(); } }}>Offboard workspace</Button></>}>
         <Input label={`Type “${slug}” to confirm`} value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="off" />

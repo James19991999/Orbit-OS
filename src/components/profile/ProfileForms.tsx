@@ -3,12 +3,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { startRegistration } from '@simplewebauthn/browser';
-import { Avatar, Button, Input, Select, Switch, InlineError, EmptyState, useToast, Banner } from '@/components/ui';
+import { Avatar, Button, Input, Select, Switch, InlineError, EmptyState, useToast, Banner, TimeAgo } from '@/components/ui';
 import { requireBrowserClient } from '@/lib/supabase/client';
 import { useAction, unwrap, postJson, errorMessage } from '@/hooks/useAction';
 import { applyTheme } from '@/components/shell/theme';
-import { relativeTime } from '@/lib/format';
+
 import type { Profile } from '@/lib/types';
+import { useFormat, setLocaleCookie } from '@/lib/locale/client';
+import { REGION_OPTIONS, formatDate } from '@/lib/locale';
+import { formatMoney } from '@/lib/format';
 
 function zones(): string[] {
   try { const f = (Intl as unknown as { supportedValuesOf?: (k: string) => string[] }).supportedValuesOf; if (f) return f('timeZone'); } catch { /* fallback */ }
@@ -112,7 +115,7 @@ export function SecurityPanel({ passkeys, aal }: { passkeys: Passkey[]; aal: str
           <ul className="mt-2 divide-y divide-outline-variant">
             {verified.map((f) => (
               <li key={f.id} className="flex items-center justify-between gap-2 py-2 text-body-md">
-                <span>{f.friendly_name || 'Authenticator'} <span className="text-body-sm text-on-surface-variant">· added {relativeTime(f.created_at)}</span></span>
+                <span>{f.friendly_name || 'Authenticator'} <span className="text-body-sm text-on-surface-variant">· added <TimeAgo date={f.created_at} /></span></span>
                 <Button size="sm" variant="ghost" disabled={aal !== 'aal2'} title={aal !== 'aal2' ? 'Verify with this factor first' : undefined} loading={removeFactor.pending} onClick={() => removeFactor.run(f.id)}>Remove</Button>
               </li>
             ))}
@@ -126,7 +129,7 @@ export function SecurityPanel({ passkeys, aal }: { passkeys: Passkey[]; aal: str
           <ul className="mt-2 divide-y divide-outline-variant">
             {passkeys.map((p) => (
               <li key={p.id} className="flex items-center justify-between gap-2 py-2 text-body-md">
-                <span>{p.label} <span className="text-body-sm text-on-surface-variant">· added {relativeTime(p.created_at)}</span></span>
+                <span>{p.label} <span className="text-body-sm text-on-surface-variant">· added <TimeAgo date={p.created_at} /></span></span>
                 <Button size="sm" variant="ghost" onClick={() => removePasskey(p.id)}>Remove</Button>
               </li>
             ))}
@@ -146,6 +149,21 @@ export function SecurityPanel({ passkeys, aal }: { passkeys: Passkey[]; aal: str
         <div className="md:col-span-3"><InlineError message={pwErr ?? changePw.error} /></div>
       </form>
       {aal === 'aal2' && <Banner tone="info">This session is two-factor verified.</Banner>}
+    </div>
+  );
+}
+
+/** Per-browser choice of date/number conventions (cookie), e.g. an American working from Nairobi. */
+export function RegionFormat({ saved }: { saved: string }) {
+  const fmt = useFormat();
+  const router = useRouter();
+  const [value, setValue] = useState(saved);
+  const sample = (l: string) => `${formatDate('2026-10-08', 'short', l)} · ${formatMoney(123450, 'USD', { locale: l })}`;
+  return (
+    <div className="flex flex-col gap-3">
+      <Select label="Format dates and numbers for" value={value} onChange={(e) => { setValue(e.target.value); setLocaleCookie(e.target.value); router.refresh(); }}
+        options={REGION_OPTIONS.map((o) => ({ value: o.value, label: o.value ? `${o.label} — ${sample(o.value)}` : o.label }))}
+        hint={`Currently: ${sample(fmt.locale)}. Saved on this device only.`} />
     </div>
   );
 }

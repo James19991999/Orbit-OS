@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRealtime } from '@/hooks/useRealtime';
-import { relativeTime } from '@/lib/format';
-import { Pill } from '@/components/ui';
+
+import { Pill, TimeAgo } from '@/components/ui';
 
 /** "Live sync: 12s ago" — time since the last realtime change in this workspace (or page load). */
 export function LiveSync({ orgId }: { orgId: string }) {
@@ -18,5 +18,5 @@ export function LiveSync({ orgId }: { orgId: string }) {
       </span>
     );
   }
-  return <Pill tone="healthy" pulse>Live · synced {relativeTime(last)}</Pill>;
+  return <Pill tone="healthy" pulse>Live · synced <TimeAgo date={last} /></Pill>;
 }

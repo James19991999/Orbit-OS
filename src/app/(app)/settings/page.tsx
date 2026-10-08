@@ -13,10 +13,12 @@ import { Members } from '@/components/settings/Members';
 import { Integrations } from '@/components/settings/Integrations';
 import pkg from '../../../../package.json';
 import type { LegalEntity, Role } from '@/lib/types';
+import { getFormat } from '@/lib/locale/server';
 
 export const metadata: Metadata = { title: 'Settings' };
 
 export default async function SettingsPage() {
+  const fmt = await getFormat();
   const { supabase, org, role, user, aal } = await requireAppContext();
   const members = await loadMembers(supabase, org.id);
   const [entRes, invRes, integRes] = await Promise.all([
@@ -51,7 +53,7 @@ export default async function SettingsPage() {
           <Stat label="Seats" value={`${members.length} / ${org.seat_limit}`} sub={`${Math.max(0, org.seat_limit - members.length)} available`} />
           <Stat label="Time zones" value={zones} sub="deployed" />
           <Stat label="Plan" value={<span className="capitalize">{PLANS[org.plan].name}</span>} sub={org.plan_period === 'trial' ? 'Free trial' : `Billed ${org.plan_period}`} />
-          <Stat label={expires.getTime() < Date.now() ? 'Expired' : 'Paid through'} value={expires.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} sub="IntaSend · M-Pesa or card" />
+          <Stat label={expires.getTime() < Date.now() ? 'Expired' : 'Paid through'} value={fmt.date(expires)} sub="IntaSend · M-Pesa or card" />
         </div>
         {role === 'owner' && <div className="mt-4"><LinkButton href="/settings/billing" icon="credit_card" size="sm">Manage plan & billing</LinkButton></div>}
       </Card>

@@ -5,18 +5,20 @@ import { loadMembers, nameMap, must } from '@/lib/data/members';
 import { readiness, daysUntil } from '@/lib/compliance/readiness';
 import { can } from '@/lib/roles';
 import { planAllows, PLANS } from '@/lib/billing/plans';
-import { relativeTime } from '@/lib/format';
+
 import { auditLabel } from '@/lib/audit-labels';
 import { Card, CardHeader, Icon, Pill, EmptyState, ProgressBar, Banner } from '@/components/ui';
 import { EnableFramework, DsarTracker, DeviceActions, TrainingActions } from '@/components/compliance/ComplianceActions';
 import { Vault } from '@/components/compliance/Vault';
 import type { Framework, Control, Device, Dsar, TrainingCampaign, TrainingAssignment, AuditEntry, VaultDoc } from '@/lib/types';
+import { getFormat } from '@/lib/locale/server';
 
 export const metadata: Metadata = { title: 'Compliance' };
 
 const FW_ICON: Record<string, string> = { soc2: 'domain_verification', gdpr: 'shield_with_heart', iso27001: 'enhanced_encryption', hipaa: 'health_and_safety', custom: 'rule' };
 
 export default async function CompliancePage() {
+  const fmt = await getFormat();
   const { supabase, org, role, user, aal } = await requireAppContext();
   const members = await loadMembers(supabase, org.id);
   const people = nameMap(members);
@@ -108,7 +110,7 @@ export default async function CompliancePage() {
           )}
         </Card>
         <Card>
-          <CardHeader title="Security awareness training" icon="school" subtitle={campaign ? `${campaign.title} · due ${campaign.due_on}` : 'No campaign running'} />
+          <CardHeader title="Security awareness training" icon="school" subtitle={campaign ? `${campaign.title} · due ${fmt.date(campaign.due_on)}` : 'No campaign running'} />
           {campaign ? (
             <>
               <p className="text-headline-md tnum">{assignments.length ? Math.round((passed / assignments.length) * 100) : 0}% <span className="text-body-sm text-on-surface-variant">{passed} of {assignments.length} completed</span></p>
@@ -139,7 +141,7 @@ export default async function CompliancePage() {
                       <span className={`font-medium ${e.action.includes('failed') ? 'text-alert' : 'text-on-surface'}`}>{auditLabel(e.action)}{e.target_type === 'membership' && e.target_id && people[e.target_id] ? `: ${people[e.target_id].name}` : ''}</span>
                       <span className="block truncate text-on-surface-variant">{e.actor_id ? `by ${people[e.actor_id]?.name ?? 'member'}` : 'System'}{e.ip ? ` · ${e.ip}` : ''}{e.metadata && 'email' in e.metadata ? ` · ${String(e.metadata.email)}` : ''}</span>
                     </span>
-                    <span className="shrink-0 text-on-surface-variant">{relativeTime(e.created_at)}</span>
+                    <span className="shrink-0 text-on-surface-variant">{fmt.relative(e.created_at)}</span>
                   </li>
                 ))}
               </ul>

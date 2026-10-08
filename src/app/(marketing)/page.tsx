@@ -30,7 +30,7 @@ export default function Landing() {
             <Link href="/signup" className="inline-flex h-12 items-center gap-2 rounded bg-primary-container px-5 text-label-md text-white shadow-bevel hover:bg-[#1d4ed8]">Start 14-day free trial<Icon name="arrow_forward" className="text-[18px]" /></Link>
             <Link href="/login" className="inline-flex h-12 items-center rounded border border-outline-variant bg-surface-container px-5 text-label-md">Sign in</Link>
           </div>
-          <p className="mt-3 text-body-sm text-on-surface-variant">Pay in KES with M-Pesa or by card. No auto-renewing surprises.</p>
+          <p className="mt-3 text-body-sm text-on-surface-variant">Pay with M-Pesa in KES, or by card in KES, USD, EUR or GBP. No auto-renewing surprises.</p>
         </div>
       </section>
       <section id="features" aria-labelledby="features-h" className="mx-auto max-w-6xl px-4 py-12">

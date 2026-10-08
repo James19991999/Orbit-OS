@@ -1,11 +1,11 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Button, Dialog, Select, Textarea, InlineError, Avatar, useToast, cn } from '@/components/ui';
+import { Button, Dialog, Select, Textarea, InlineError, Avatar, useToast, cn, TimeAgo } from '@/components/ui';
 import { requireBrowserClient } from '@/lib/supabase/client';
 import { useAction, unwrap, errorMessage } from '@/hooks/useAction';
 import { useClipboard } from '@/hooks/useClipboard';
-import { relativeTime } from '@/lib/format';
+
 import type { Badge, Kudos } from '@/lib/types';
 
 export const BADGES: Record<Badge, { emoji: string; label: string; hint: string }> = {
@@ -87,7 +87,7 @@ export function KudosFeed({ items, reactions, people, userId, orgId, canReact }:
         return (
           <li key={k.id} id={`kudos-${k.id}`} className="rounded-lg border border-outline-variant bg-surface-container-low p-4">
             <div className="flex items-start justify-between gap-2">
-              <p className="text-label-xs uppercase text-on-surface-variant">{BADGES[k.badge].emoji} {BADGES[k.badge].label} badge · {relativeTime(k.created_at)}</p>
+              <p className="text-label-xs uppercase text-on-surface-variant">{BADGES[k.badge].emoji} {BADGES[k.badge].label} badge · <TimeAgo date={k.created_at} /></p>
               <button type="button" onClick={() => clip.copy(`${window.location.origin}/culture?tab=kudos#kudos-${k.id}`)} className="rounded p-1 text-on-surface-variant hover:bg-on-surface/5"
                 aria-label={clip.status === 'copied' ? 'Link copied' : 'Copy link to this kudos'}>
                 <span className="ms text-[18px]" aria-hidden>{clip.status === 'copied' ? 'check' : clip.status === 'error' ? 'error' : 'share'}</span>

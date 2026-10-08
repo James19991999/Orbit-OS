@@ -5,6 +5,7 @@ import { Button, Dialog, Input, Select, Textarea, InlineError, Banner, useToast 
 import { requireBrowserClient } from '@/lib/supabase/client';
 import { useAction, unwrap, postJson, errorMessage } from '@/hooks/useAction';
 import { FRAMEWORK_TEMPLATES } from '@/lib/compliance/templates';
+import { useFormat } from '@/lib/locale/client';
 
 export function EnableFramework({ orgId, enabledKeys, limit }: { orgId: string; enabledKeys: string[]; limit: number }) {
   const router = useRouter();
@@ -39,6 +40,7 @@ export function EnableFramework({ orgId, enabledKeys, limit }: { orgId: string; 
 }
 
 export function DsarTracker({ orgId, items, canManage }: { orgId: string; items: { id: string; requester_email: string; type: string; status: string; due_on: string }[]; canManage: boolean }) {
+  const fmt = useFormat();
   const router = useRouter();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -55,7 +57,7 @@ export function DsarTracker({ orgId, items, canManage }: { orgId: string; items:
       <ul className="mt-2 divide-y divide-outline-variant text-body-sm">
         {items.slice(0, 5).map((d) => (
           <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-            <span><span className="capitalize">{d.type}</span> · {d.requester_email} · due {d.due_on}</span>
+            <span><span className="capitalize">{d.type}</span> · {d.requester_email} · due {fmt.date(d.due_on)}</span>
             {canManage ? (
               <select aria-label={`Status for ${d.requester_email}`} value={d.status} onChange={(e) => setStatus(d.id, e.target.value)} className="h-8 rounded border border-outline-variant bg-surface-container-lowest px-2">
                 <option value="open">Open</option><option value="in_progress">In progress</option><option value="closed">Closed</option>

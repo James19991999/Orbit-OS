@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Button, Input, Select, InlineError, Icon } from '@/components/ui';
 import { getBrowserClient } from '@/lib/supabase/client';
 import { errorMessage, postJson } from '@/hooks/useAction';
+import { CURRENCIES, CURRENCY_NAMES, type Currency } from '@/lib/format';
+import { currencyForLocale } from '@/lib/locale';
 
 export function slugify(name: string): string {
   return name.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
@@ -24,7 +26,7 @@ export function OnboardingForm({ userId, defaultName, hasWorkspaces }: { userId:
   const [slug, setSlug] = useState('');
   const [slugTouched, setSlugTouched] = useState(false);
   const [slugState, setSlugState] = useState<'idle' | 'checking' | 'free' | 'taken' | 'invalid'>('idle');
-  const [currency, setCurrency] = useState<'KES' | 'USD'>('KES');
+  const [currency, setCurrency] = useState<Currency>('KES');
   const [tz, setTz] = useState('Africa/Nairobi');
   const [ws, setWs] = useState('09:00');
   const [we, setWe] = useState('17:00');
@@ -34,6 +36,8 @@ export function OnboardingForm({ userId, defaultName, hasWorkspaces }: { userId:
 
   useEffect(() => {
     try { setTz(Intl.DateTimeFormat().resolvedOptions().timeZone || 'Africa/Nairobi'); } catch { /* keep default */ }
+    // Suggest the currency of the founder's region (US → USD, UK → GBP, euro area → EUR); Kenya and unknown stay KES.
+    try { setCurrency(currencyForLocale(navigator.language)); } catch { /* keep KES */ }
   }, []);
   useEffect(() => { if (!slugTouched) setSlug(slugify(name)); }, [name, slugTouched]);
   useEffect(() => {
@@ -92,8 +96,8 @@ export function OnboardingForm({ userId, defaultName, hasWorkspaces }: { userId:
             {slugState === 'invalid' && <span className="text-alert">3–40 lowercase letters, numbers or hyphens</span>}
           </p>
         </div>
-        <Select label="Billing & reporting currency" value={currency} onChange={(e) => setCurrency(e.target.value as 'KES' | 'USD')}
-          options={[{ value: 'KES', label: 'KES — Kenyan shilling' }, { value: 'USD', label: 'USD — US dollar' }]} />
+        <Select label="Billing & reporting currency" value={currency} onChange={(e) => setCurrency(e.target.value as Currency)}
+          options={CURRENCIES.map((c) => ({ value: c, label: `${c} — ${CURRENCY_NAMES[c]}` }))} />
         <Select label="Your time zone" value={tz} onChange={(e) => setTz(e.target.value)} options={tzList.map((z) => ({ value: z, label: z.replace(/_/g, ' ') }))} />
         <div className="grid grid-cols-2 gap-3">
           <Input label="Work day starts" type="time" value={ws} onChange={(e) => setWs(e.target.value)} />

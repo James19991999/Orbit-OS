@@ -1,10 +1,10 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Pill, Dialog, Textarea, Select, useToast, type Tone } from '@/components/ui';
+import { Button, Pill, Dialog, Textarea, Select, useToast, type Tone, TimeAgo } from '@/components/ui';
 import { requireBrowserClient } from '@/lib/supabase/client';
 import { errorMessage } from '@/hooks/useAction';
-import { relativeTime } from '@/lib/format';
+
 import { FileUpload, openSigned } from './FileUpload';
 import type { Control, ControlStatus, Evidence } from '@/lib/types';
 
@@ -62,7 +62,7 @@ export function ControlsTable({ orgId, controls: initial, evidence, people, canM
                       </select>
                     ) : <Pill tone={STATUS[c.status].tone}>{STATUS[c.status].label}</Pill>}
                   </td>
-                  <td className="py-2 pr-3 text-body-sm text-on-surface-variant">{c.last_reviewed_at ? relativeTime(c.last_reviewed_at) : 'Never'}</td>
+                  <td className="py-2 pr-3 text-body-sm text-on-surface-variant">{c.last_reviewed_at ? <TimeAgo date={c.last_reviewed_at} /> : 'Never'}</td>
                   <td className="py-2 text-body-sm">{ev.length ? `${ev.length} file${ev.length === 1 ? '' : 's'}` : <span className="text-on-surface-variant">None</span>}</td>
                 </tr>
               );
@@ -81,7 +81,7 @@ export function ControlsTable({ orgId, controls: initial, evidence, people, canM
               <ul className="mb-2 divide-y divide-outline-variant text-body-md">
                 {evidence.filter((e) => e.control_id === detail.id).map((e) => (
                   <li key={e.id} className="flex items-center justify-between gap-2 py-1.5">
-                    <span className="truncate">{e.file_name} <span className="text-body-sm text-on-surface-variant">· {relativeTime(e.created_at)}</span></span>
+                    <span className="truncate">{e.file_name} <span className="text-body-sm text-on-surface-variant">· <TimeAgo date={e.created_at} /></span></span>
                     <Button size="sm" variant="ghost" onClick={() => openSigned('evidence', e.file_path).catch((er) => toast(errorMessage(er), 'error'))}>Open</Button>
                   </li>
                 ))}

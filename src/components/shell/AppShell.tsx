@@ -12,6 +12,7 @@ import { NotificationsBell } from './NotificationsBell';
 import { applyTheme, type ThemePref } from './theme';
 import { TimezonePrompt } from './TimezonePrompt';
 import type { Role } from '@/lib/types';
+import { useFormat } from '@/lib/locale/client';
 
 export interface ShellProps {
   user: { id: string; name: string; email: string; avatar: string | null; theme: ThemePref; timezone: string };
@@ -22,6 +23,7 @@ export interface ShellProps {
 }
 
 export function AppShell({ user, org, role, workspaces, children }: ShellProps) {
+  const fmt = useFormat();
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
   const section = NAV.find((n) => isActive(pathname, n.href))?.label
@@ -55,7 +57,7 @@ export function AppShell({ user, org, role, workspaces, children }: ShellProps) 
         </nav>
         <div className="border-t border-outline-variant p-4 text-body-sm text-on-surface-variant">
           <p className="text-label-xs uppercase">Plan</p>
-          <p className="mt-1 text-on-surface capitalize">{org.plan} · {org.readOnly ? 'Expired' : `until ${new Date(org.expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}</p>
+          <p className="mt-1 text-on-surface capitalize">{org.plan} · {org.readOnly ? 'Expired' : `until ${fmt.date(org.expiresAt)}`}</p>
           {role === 'owner' && <Link href="/settings/billing" className="mt-1 inline-block text-primary underline-offset-2 hover:underline">Manage billing</Link>}
         </div>
       </aside>

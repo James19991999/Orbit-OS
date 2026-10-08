@@ -1,11 +1,11 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Avatar, Button, Dialog, Input, Select, InlineError, Banner, useToast } from '@/components/ui';
+import { Avatar, Button, Dialog, Input, Select, InlineError, Banner, useToast, TimeAgo } from '@/components/ui';
 import { requireBrowserClient } from '@/lib/supabase/client';
 import { useAction, postJson, errorMessage } from '@/hooks/useAction';
 import { useClipboard } from '@/hooks/useClipboard';
-import { relativeTime } from '@/lib/format';
+
 import { ROLE_LABEL, ROLE_DESCRIPTION } from '@/lib/roles';
 import type { Role } from '@/lib/types';
 
@@ -70,7 +70,7 @@ export function Members({ members, invites, myRole, myId, seatLimit, appUrl }: {
           <ul className="divide-y divide-outline-variant">
             {invites.map((i) => (
               <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-body-md">
-                <span>{i.email} · {ROLE_LABEL[i.role]} <span className="text-body-sm text-on-surface-variant">· expires {relativeTime(i.expires_at)}</span></span>
+                <span>{i.email} · {ROLE_LABEL[i.role]} <span className="text-body-sm text-on-surface-variant">· expires <TimeAgo date={i.expires_at} /></span></span>
                 <span className="flex gap-1">
                   <Button size="sm" variant="ghost" icon="link" onClick={() => clip.copy(`${appUrl}/join/${i.code}`)}>Copy link</Button>
                   {canInvite && <Button size="sm" variant="ghost" icon="close" onClick={() => revoke(i.id)}>Revoke</Button>}

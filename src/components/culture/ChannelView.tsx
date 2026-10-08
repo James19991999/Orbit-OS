@@ -1,10 +1,10 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Avatar, Button, Icon, InlineError, Textarea, useToast, cn } from '@/components/ui';
+import { Avatar, Button, Icon, InlineError, Textarea, useToast, cn, TimeAgo } from '@/components/ui';
 import { requireBrowserClient } from '@/lib/supabase/client';
 import { useRealtime } from '@/hooks/useRealtime';
 import { errorMessage } from '@/hooks/useAction';
-import { relativeTime } from '@/lib/format';
+
 import { usePresence } from './usePresence';
 import type { Message } from '@/lib/types';
 
@@ -77,7 +77,7 @@ export function ChannelView({ channel, initial, people, me, canPost, canModerate
       <div className={cn('group flex gap-3', nested && 'ml-10 mt-2')}>
         <Avatar name={author} src={people[m.author_id]?.avatar} size={nested ? 26 : 32} />
         <div className="min-w-0 flex-1">
-          <p className="text-body-sm"><strong className="text-label-md">{author}</strong> <span className="text-on-surface-variant">{relativeTime(m.created_at)}{m.edited_at ? ' · edited' : ''}</span>
+          <p className="text-body-sm"><strong className="text-label-md">{author}</strong> <span className="text-on-surface-variant"><TimeAgo date={m.created_at} />{m.edited_at ? ' · edited' : ''}</span>
             {m.pinned && <span className="ml-2 inline-flex items-center gap-0.5 text-warning"><Icon name="push_pin" className="text-[14px]" />Pinned</span>}</p>
           {editing?.id === m.id ? (
             <form className="mt-1 flex flex-col gap-2" onSubmit={async (e) => { e.preventDefault(); if (await patch(m.id, { body: editing.body.trim() }, 'Message edited')) setEditing(null); }}>

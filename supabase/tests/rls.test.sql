@@ -63,6 +63,18 @@ set role authenticated;
 select public.create_organization('Beta Ltd', 'beta-ltd', 'USD');
 reset role;
 
+-- Currencies: KES, USD, EUR and GBP are valid workspace currencies; anything else is rejected
+insert into auth.users (id, email, raw_user_meta_data) values ('00000000-0000-0000-0000-00000000000f', 'frank@eu.test', '{"full_name":"Frank Euro Owner"}');
+select tests.login('00000000-0000-0000-0000-00000000000f');
+set role authenticated;
+select public.create_organization('Euro GmbH', 'euro-gmbh', 'EUR');
+select tests.expect_error($$select public.create_organization('Yen KK', 'yen-kk', 'JPY')$$, 'unsupported currency rejected by create_organization');
+reset role;
+select tests.eq((select currency from public.organizations where slug = 'euro-gmbh'), 'EUR', 'EUR workspace can be created');
+update public.organizations set currency = 'GBP' where slug = 'euro-gmbh';
+select tests.eq((select currency from public.organizations where slug = 'euro-gmbh'), 'GBP', 'GBP is a valid workspace currency');
+select tests.expect_error($$update public.organizations set currency = 'JPY' where slug = 'euro-gmbh'$$, 'currency check constraint rejects JPY');
+
 -- invites are created server-side (service role); simulate as superuser
 insert into public.invites (org_id, email, role, code) select id, 'bob@a.test', 'contributor', 'code-bob' from public.organizations where slug='alpha-co';
 insert into public.invites (org_id, email, role, code) select id, 'carol@a.test', 'auditor', 'code-carol' from public.organizations where slug='alpha-co';

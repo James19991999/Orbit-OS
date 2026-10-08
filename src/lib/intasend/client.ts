@@ -1,4 +1,5 @@
 import 'server-only';
+import type { Currency } from '@/lib/format';
 import { timingSafeEqual } from 'node:crypto';
 
 /**
@@ -45,7 +46,7 @@ async function call<T>(path: string, init: { method: 'POST' | 'GET'; body?: unkn
 }
 
 export interface CheckoutInput {
-  amountMinor: number; currency: 'KES' | 'USD'; email: string; firstName?: string; lastName?: string;
+  amountMinor: number; currency: Currency; email: string; firstName?: string; lastName?: string;
   apiRef: string; redirectUrl: string; host: string; method?: 'M-PESA' | 'CARD-PAYMENT';
 }
 export interface CheckoutResult { id: string; url: string; signature?: string }

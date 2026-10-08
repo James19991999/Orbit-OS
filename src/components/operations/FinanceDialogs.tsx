@@ -4,8 +4,9 @@ import { useRouter } from 'next/navigation';
 import { Button, Dialog, Input, Select, Textarea, InlineError } from '@/components/ui';
 import { requireBrowserClient } from '@/lib/supabase/client';
 import { useAction, unwrap, postJson } from '@/hooks/useAction';
-import { parseMoneyToMinor, formatMoney, type Currency } from '@/lib/format';
+import { parseMoneyToMinor, CURRENCIES, type Currency } from '@/lib/format';
 import { nextInvoiceNumber } from '@/lib/metrics/invoices';
+import { useFormat } from '@/lib/locale/client';
 
 const KINDS = [
   { value: 'expense', label: 'Expense' }, { value: 'revenue', label: 'Revenue' },
@@ -14,12 +15,13 @@ const KINDS = [
 
 export function FinanceEntryDialog({ open, onClose, orgId, currency, thresholdMinor, defaultKind = 'expense' }:
   { open: boolean; onClose: () => void; orgId: string; currency: Currency; thresholdMinor: number; defaultKind?: string }) {
+  const fmt = useFormat();
   const router = useRouter();
   const today = new Date().toISOString().slice(0, 10);
   const [f, setF] = useState({ kind: defaultKind, amount: '', category: '', vendor: '', occurred_on: today, note: '' });
   const [err, setErr] = useState<string | null>(null);
   useEffect(() => { if (open) { setErr(null); setF((x) => ({ ...x, kind: defaultKind })); } }, [open, defaultKind]);
-  const minor = parseMoneyToMinor(f.amount);
+  const minor = fmt.parseMoney(f.amount);
   const save = useAction(async () => unwrap(await requireBrowserClient().from('finance_entries').insert({
     org_id: orgId, kind: f.kind, amount_minor: minor, currency, category: f.category.trim() || null, vendor: f.vendor.trim() || null,
     occurred_on: f.occurred_on, note: f.note.trim() || null,
@@ -42,7 +44,7 @@ export function FinanceEntryDialog({ open, onClose, orgId, currency, thresholdMi
       <form id="fin-form" onSubmit={submit} className="grid gap-4" noValidate>
         <Select label="Type" value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })} options={KINDS} />
         <Input label={`Amount (${currency})`} inputMode="decimal" placeholder="0.00" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })}
-          hint={needsApproval ? `Above ${formatMoney(thresholdMinor, currency)} — another owner or director must approve it.` : undefined} />
+          hint={needsApproval ? `Above ${fmt.money(thresholdMinor, currency)} — another owner or director must approve it.` : undefined} />
         <div className="grid grid-cols-2 gap-3">
           <Input label="Category" placeholder="Cloud, Software, Travel…" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })} />
           <Input label={f.kind === 'revenue' ? 'Customer' : 'Vendor'} value={f.vendor} onChange={(e) => setF({ ...f, vendor: e.target.value })} />
@@ -73,6 +75,7 @@ export function parsePayrollCsv(text: string): { rows: { period: string; country
 }
 
 export function PayrollDialog({ open, onClose, orgId, currency }: { open: boolean; onClose: () => void; orgId: string; currency: Currency }) {
+  const fmt = useFormat();
   const router = useRouter();
   const [mode, setMode] = useState<'single' | 'csv'>('single');
   const [f, setF] = useState({ period: new Date().toISOString().slice(0, 7), countries: '1', total: '', provider: 'Manual', paid_on: '' });
@@ -84,7 +87,7 @@ export function PayrollDialog({ open, onClose, orgId, currency }: { open: boolea
     setErr(null);
     let rows: Record<string, unknown>[];
     if (mode === 'single') {
-      const minor = parseMoneyToMinor(f.total);
+      const minor = fmt.parseMoney(f.total);
       if (!/^\d{4}-\d{2}$/.test(f.period)) return setErr('Pick the payroll month.');
       if (minor === null || minor <= 0) return setErr('Enter the payroll total.');
       rows = [{ org_id: orgId, period: f.period, country_count: Number(f.countries) || 1, total_minor: minor, currency, provider_label: f.provider.trim() || 'Manual', status: f.paid_on ? 'settled' : 'recorded', paid_on: f.paid_on || null }];
@@ -130,23 +133,24 @@ export function PayrollDialog({ open, onClose, orgId, currency }: { open: boolea
 }
 
 export function InvoiceDialog({ open, onClose, orgId, currency, existingNumbers }: { open: boolean; onClose: () => void; orgId: string; currency: Currency; existingNumbers: string[] }) {
+  const fmt = useFormat();
   const router = useRouter();
   const today = new Date().toISOString().slice(0, 10);
-  const [f, setF] = useState({ client_name: '', client_email: '', description: '', amount: '', terms: '30', issued_on: today, send: true });
+  const [f, setF] = useState({ client_name: '', client_email: '', description: '', amount: '', currency, terms: '30', issued_on: today, send: true });
   const [err, setErr] = useState<string | null>(null);
   const save = useAction(async () => {
-    const minor = parseMoneyToMinor(f.amount)!;
+    const minor = fmt.parseMoney(f.amount)!;
     const due = new Date(Date.parse(f.issued_on) + Number(f.terms) * 86_400_000).toISOString().slice(0, 10);
     const inv = unwrap(await requireBrowserClient().from('invoices').insert({
       org_id: orgId, number: nextInvoiceNumber(existingNumbers, Number(f.issued_on.slice(0, 4))), client_name: f.client_name.trim(), client_email: f.client_email.trim(),
-      description: f.description.trim() || null, amount_minor: minor, currency, terms_days: Number(f.terms), issued_on: f.issued_on, due_on: due, status: 'draft',
+      description: f.description.trim() || null, amount_minor: minor, currency: f.currency, terms_days: Number(f.terms), issued_on: f.issued_on, due_on: due, status: 'draft',
     }).select('id').single()) as { id: string };
     if (f.send) await postJson(`/api/invoices/${inv.id}/send`);
     return inv;
   }, { success: f.send ? 'Invoice sent with an M-Pesa / card payment link' : 'Draft invoice saved' });
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const minor = parseMoneyToMinor(f.amount);
+    const minor = fmt.parseMoney(f.amount);
     if (!f.client_name.trim()) return setErr('Enter the client name.');
     if (!/^\S+@\S+\.\S+$/.test(f.client_email)) return setErr('Enter a valid client email.');
     if (minor === null || minor <= 0) return setErr('Enter the invoice amount.');
@@ -162,8 +166,10 @@ export function InvoiceDialog({ open, onClose, orgId, currency, existingNumbers 
           <Input label="Client billing email" type="email" value={f.client_email} onChange={(e) => setF({ ...f, client_email: e.target.value })} />
         </div>
         <Textarea label="Description" rows={2} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
-        <div className="grid grid-cols-3 gap-3">
-          <Input label={`Amount (${currency})`} inputMode="decimal" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} />
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <Input label={`Amount (${f.currency})`} inputMode="decimal" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} />
+          <Select label="Currency" value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value as Currency })} options={CURRENCIES.map((c) => ({ value: c, label: c }))}
+            hint={f.currency !== currency ? `Revenue in ${f.currency} isn't counted in your ${currency} finance metrics.` : undefined} />
           <Select label="Terms" value={f.terms} onChange={(e) => setF({ ...f, terms: e.target.value })} options={[7, 14, 30, 45, 60].map((d) => ({ value: String(d), label: `Net ${d}` }))} />
           <Input label="Issue date" type="date" value={f.issued_on} onChange={(e) => setF({ ...f, issued_on: e.target.value })} />
         </div>
