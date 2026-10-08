@@ -61,6 +61,27 @@ describe('POST /api/billing/checkout', () => {
   });
 });
 
+describe('M-Pesa tracking', () => {
+  it('fails loudly (500) if the IntaSend invoice id cannot be stored — and does NOT mark the payment failed', async () => {
+    const updates: unknown[] = [];
+    from.mockImplementation((table: string) => {
+      if (table === 'memberships') return chain({ count: 1 });
+      const c = chain({ data: { id: 'pay-1' }, error: null }) as Record<string, jest.Mock>;
+      c.update = jest.fn((v: unknown) => { updates.push(v); return chain({ error: { message: 'db down' } }); });
+      return c;
+    });
+    const res = await call({ plan: 'pro', period: 'monthly', method: 'MPESA', phone: '0712345678' });
+    expect(res.status).toBe(500);
+    expect((await res.json()).error).toMatch(/could not be tracked/);
+    expect(updates).toHaveLength(1); // only the tracking write — no "FAILED" overwrite (the STK prompt is already on the phone)
+    expect(updates[0]).toMatchObject({ intasend_invoice_id: 'INV1' });
+  });
+  it('rejects an STK response without an invoice id', async () => {
+    mpesaStkPush.mockResolvedValueOnce({ invoice: {} });
+    expect((await call({ plan: 'pro', period: 'monthly', method: 'MPESA', phone: '0712345678' })).status).toBe(502);
+  });
+});
+
 describe('cron auth', () => {
   it('requires CRON_SECRET', async () => {
     const { requireCronSecret } = jest.requireActual('@/lib/api');

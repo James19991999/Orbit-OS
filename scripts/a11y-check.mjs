@@ -23,7 +23,7 @@ for (const [theme, width] of [['dark', 1280], ['light', 1280], ['dark', 375]]) {
     await page.getByLabel('Work email').fill(process.env.E2E_EMAIL || 'elena@acme-global.demo');
     await page.getByLabel('Password', { exact: true }).fill(process.env.E2E_PASSWORD || 'OrbitOS-demo-2026');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await page.waitForURL(/dashboard/, { timeout: 30000 }).then(() => pages.push(...APP)).catch(() => console.log('(could not sign in — app pages skipped)'));
+    await page.waitForURL((u) => u.pathname === '/dashboard', { timeout: 30000 }).then(() => pages.push(...APP)).catch(() => console.log('(could not sign in — app pages skipped)'));
   }
   for (const p of pages) {
     await page.goto(`${base}${p}`, { waitUntil: 'networkidle', timeout: 60000 });

@@ -13,7 +13,8 @@
     "test:a11y": "node scripts/a11y-check.mjs",
     "stack:up": "bash scripts/local-stack/start.sh",
     "test:e2e": "node scripts/e2e-flows.mjs",
-    "test:all": "npm run typecheck && npm run lint && npm test && npm run test:db"
+    "test:all": "npm run typecheck && npm run lint && npm test && npm run test:db",
+    "test:e2e:security": "node scripts/e2e-security.mjs"
   },
   "dependencies": {
     "@simplewebauthn/browser": "^14.0.0",

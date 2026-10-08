@@ -16,7 +16,8 @@ export const GET = handler(async (req) => {
   for (const row of (data ?? []) as (ReportSchedule & { org: Organization })[]) {
     if (!isDue(row) || row.org.status !== 'active' || !planAllows(row.org.plan, 'scheduledDigests')) continue;
     const r = await runDigest(admin, row.org, row, { asService: true }).catch((e: Error) => ({ ok: false, status: e.message }));
-    await admin.from('report_schedules').update({ last_run_at: new Date().toISOString(), last_status: r.status }).eq('id', row.id);
+    const st = await admin.from('report_schedules').update({ last_run_at: new Date().toISOString(), last_status: r.status }).eq('id', row.id);
+    if (st.error) console.error('[digests] could not stamp run', row.id, st.error.message);
     results.push({ id: row.id, status: r.status });
   }
   return json({ ran: results.length, results });

@@ -7,10 +7,15 @@ export function isProtected(pathname: string) {
   return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'));
 }
 
-/** Inactivity timeout: true when the last request is older than the org's timeout. */
+export const DEFAULT_TIMEOUT_HOURS = 8;
+
+/**
+ * Inactivity timeout: true when the last request is older than the org's timeout. The org's value is mirrored
+ * into a cookie by the app shell; until that cookie exists we enforce the default instead of skipping the check.
+ */
 export function isIdleExpired(lastSeen: string | undefined, timeoutHours: string | undefined, now = Date.now()): boolean {
   const last = Number(lastSeen);
-  const hours = Number(timeoutHours);
+  const hours = timeoutHours === undefined || timeoutHours === '' ? DEFAULT_TIMEOUT_HOURS : Number(timeoutHours);
   if (!Number.isFinite(last) || last <= 0 || !Number.isFinite(hours) || hours <= 0) return false;
   return now - last > hours * 3_600_000;
 }

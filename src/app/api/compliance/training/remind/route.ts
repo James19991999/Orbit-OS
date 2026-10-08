@@ -26,7 +26,8 @@ export const POST = handler(async (req) => {
       html: emailLayout(camp.title, `<p>Hi ${escapeHtml(r.profile.full_name.split(' ')[0] ?? '')},</p><p>Please complete <strong>${escapeHtml(camp.title)}</strong> by <strong>${camp.due_on}</strong>, then mark it complete in OrbitOS.</p>`, { label: 'Open OrbitOS', url: `${appUrl()}/compliance` }) });
     if (res.sent) {
       emailed++;
-      await admin.from('training_assignments').update({ last_reminded_at: new Date().toISOString() }).eq('campaign_id', campaignId).eq('user_id', r.user_id);
+      const st = await admin.from('training_assignments').update({ last_reminded_at: new Date().toISOString() }).eq('campaign_id', campaignId).eq('user_id', r.user_id);
+      if (st.error) console.error('[training] could not stamp reminder', st.error.message);
     }
   }
   await audit(req, ctx.org.id, ctx.user.id, 'compliance.training_reminders', { type: 'training_campaign', id: campaignId }, { emailed, skipped });

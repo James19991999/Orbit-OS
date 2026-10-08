@@ -83,10 +83,11 @@ npm run dev
 | Command | What it runs |
 |---|---|
 | `npm run typecheck` / `npm run lint` | TypeScript strict, ESLint (next/core-web-vitals) |
-| `npm test` | **96 Jest tests**: scheduling (DST, date line, weekends), health/finance/sprint/people metrics, pricing, phone normalisation, `.ics`, PDF/CSV (formula-injection), GitHub HMAC, session rules, open-redirect guard, IntaSend webhook + checkout **route handlers**, and component tests (login paths, poll rollback, roll call, sign-out failure, clipboard failure, jest-axe) |
+| `npm test` | **102 Jest tests**: scheduling (DST, date line, weekends), health/finance/sprint/people metrics, pricing, phone normalisation, `.ics`, PDF/CSV (formula-injection), GitHub HMAC, session rules, open-redirect guard, IntaSend webhook + checkout + renewals-cron **route handlers** (incl. failure paths), and component tests (login paths, poll rollback, roll call, sign-out failure, clipboard failure, jest-axe) |
 | `npm run test:db` | **71 SQL tests** against a real Postgres: migrations + seed + RLS (cross-tenant isolation, role escalation, client-unwritable billing/audit/plan columns, anonymous votes, expired-workspace read-only, MFA-gated vault, payment idempotency, two-person expense rule) |
 | `npm run stack:up` | Boots a **local Supabase-compatible stack**: Postgres + real **GoTrue** (Supabase Auth) + real **PostgREST** + a gateway on `:54321`, plus an **IntaSend mock** on `:54400`; applies migrations + seed and writes `.env.local` |
-| `npm run test:e2e` | **25 end-to-end flows** in real Chromium against that stack (see below) |
+| `npm run test:e2e` | **25 end-to-end business flows** in real Chromium against that stack (see below) |
+| `npm run test:e2e:security` | **19 end-to-end auth/session flows**: passkeys via Chrome's virtual WebAuthn authenticator, TOTP with real codes, enforced 2FA, MFA-gated archive/offboarding, remember-device cookie lifetimes, inactivity timeout, workspace switching, expired-workspace read-only. Run after `test:e2e` on the same database |
 | `npm run test:a11y` | **axe-core in real Chromium** over 27 pages × (dark, light, 375 px mobile) incl. signed-in app pages; also fails on horizontal overflow |
 
 `stack:up` needs a running Postgres 15/16 (`PGHOST/PGPORT`) and the `postgrest` + Supabase `auth` binaries (from their GitHub releases) in `$BIN`. Demo login: `elena@acme-global.demo` / `OrbitOS-demo-2026` (owner); also `devon@…` (director), `meiling@…` (contributor), `priya@…` (auditor).
@@ -148,8 +149,9 @@ scripts/             local stack, IntaSend mock, e2e flows, a11y check
 
 **Proven in this build environment**
 * TypeScript strict: 0 errors · ESLint: 0 warnings · production build: 72 routes (36 pages, 36 API).
-* **96/96 Jest**, **71/71 SQL RLS tests on real Postgres 16**.
+* **102/102 Jest**, **71/71 SQL RLS tests on real Postgres 16**.
 * **25/25 end-to-end flows in real Chromium** against real Supabase Auth (GoTrue v2.170) + real PostgREST (v12.2) + Postgres, including: password sign-in; task create/move; expense forced to pending + two-person approval; check-in; poll; kudos; meeting scheduling; invoice → hosted payment → webhook → paid + revenue; **M-Pesa plan purchase → polling → plan applied**; **card plan purchase → redirect → webhook**; PDF receipt; audit-package ZIP; report PDF/CSV; invite → sign-up → join as contributor (finance hidden, billing API 403); new founder sign-up → onboarding → dashboard; webhook rejects bad challenge / forged `api_ref`, replay idempotent; crons require `CRON_SECRET`.
+* **19/19 auth & session flows** in real Chromium, stable across repeated clean runs: passkey registration and passwordless sign-in (real WebAuthn ceremony via Chrome's virtual authenticator, verified server-side by SimpleWebAuthn, session minted through GoTrue); TOTP enrolment with real RFC 6238 codes (wrong code rejected); owners can't enforce 2FA without having it; enforced 2FA blocks directors until enrolled but not contributors; password → TOTP challenge → app; MFA-gated tenant archive (verified zero rows from other workspaces); offboarding confirm → read-only → cancel; “remember this device” off = browser-session cookies, on = 30 days; inactivity timeout; workspace switching (forged switch → 403); expired workspace read-only with a clear error while billing stays usable.
 * **0 axe-core violations (WCAG 2.2 AA)** on 27 pages in dark, light and 375 px mobile, and no horizontal overflow on mobile.
 * `npm audit --omit=dev`: **0 vulnerabilities** in production dependencies.
 * Builds and boots with **no env vars** (setup notice, honest `503` health).
@@ -157,11 +159,20 @@ scripts/             local stack, IntaSend mock, e2e flows, a11y check
 **Not verifiable here — needs your real accounts**
 * **IntaSend live API.** The e2e flows ran against a local mock that mirrors the request/response shapes this app uses. Confirm in IntaSend **sandbox** before going live (especially field names and the webhook payload).
 * **Supabase Realtime and Storage** weren't available in the local stack: live updates and presence showed their honest "paused/offline" states, and file uploads (evidence, vault, avatars) and the storage RLS policies were tested with SQL only, not through the Storage API.
-* **OAuth (Google/Azure), SAML SSO, passkeys and TOTP** need real providers/devices; the code paths are implemented and unit-tested, but not exercised end-to-end.
+* **OAuth (Google/Azure) and SAML SSO** need real identity providers; the code paths are implemented and unit-tested (correct provider/domain calls), but not exercised end-to-end. Passkeys were tested with a virtual authenticator, not a physical YubiKey.
 * **Email delivery** (Resend) was never sent for real; all email paths report "not configured" honestly when the key is absent.
 * `npm audit` (incl. dev tooling): 41 advisories remain in **dev-only** dependencies (Jest 29 / ESLint 8 internals), 0 critical, none shipped to production.
 
 ---
+
+## Bugs found by testing (and fixed)
+
+Kept here because they show what the test layers catch:
+* **RLS**: unqualified `org_id` inside policy subqueries resolved to the inner table (`m.org_id = m.org_id`, always true) — would have let users attach rows to other workspaces' meetings/messages/votes/kudos.
+* **Remember this device** silently did nothing: `@supabase/ssr` 0.12 ignores `cookieOptions.maxAge` and always writes 400-day cookies. The browser client now uses its own cookie writer.
+* **Inactivity timeout** could be skipped until the app shell had mirrored the org's timeout into a cookie; the middleware now enforces the 8 h default meanwhile.
+* **Renewal reminders** would have emailed owners *every hour* if the dedupe notification failed to save; **M-Pesa checkout** could leave polling with nothing to reconcile if the invoice id failed to save. Both now fail safe.
+* Route-handler wrapper swallowed Next's dynamic-rendering signal (could bake a static 500 at build time); server pages imported helpers from a `'use client'` module; `.ics` semicolons unescaped; several WCAG contrast failures in light mode and the chart tooltip.
 
 ## Deliberate deviations from the build prompt
 

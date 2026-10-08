@@ -3,6 +3,7 @@ import { winAnsi, toCsv, buildPdf } from '@/lib/reports/pdf';
 import { verifyGithubSignature, githubToActivity } from '@/lib/github';
 import { createHmac } from 'node:crypto';
 import { safeNext } from '@/lib/auth/redirect';
+import { serializeCookie, readRemember } from '@/lib/supabase/client';
 import { isIdleExpired, tenantFromHost, isProtected } from '@/lib/supabase/session-rules';
 import { applyRemember } from '@/lib/supabase/cookies';
 import { shiftInsights } from '@/lib/scheduling/insights';
@@ -16,7 +17,6 @@ import { parseDevicesCsv } from '@/components/compliance/ComplianceActions';
 import { slugify } from '@/components/auth/OnboardingForm';
 import { dueLabel } from '@/lib/tasks';
 
-jest.mock('@/lib/supabase/client', () => ({ getBrowserClient: () => null, requireBrowserClient: () => { throw new Error('no client'); } }));
 
 describe('calendar invites (.ics)', () => {
   const ev = { uid: 'abc', title: 'Sync, with; commas', description: 'Line 1\nLine 2', start: new Date('2026-10-12T14:00:00Z'), durationMin: 45, url: 'https://meet.jit.si/x',
@@ -81,6 +81,9 @@ describe('auth & session helpers', () => {
     expect(isIdleExpired(String(now - 9 * 3_600_000), '8', now)).toBe(true);
     expect(isIdleExpired(String(now - 7 * 3_600_000), '8', now)).toBe(false);
     expect(isIdleExpired(undefined, '8', now)).toBe(false);
+    // no timeout cookie yet → the 8h default still applies (the check is never skipped)
+    expect(isIdleExpired(String(now - 9 * 3_600_000), undefined, now)).toBe(true);
+    expect(isIdleExpired(String(now - 7 * 3_600_000), undefined, now)).toBe(false);
   });
   it('resolves tenants from subdomains only under the root domain', () => {
     expect(tenantFromHost('acme-global.orbitos.io', 'orbitos.io')).toBe('acme-global');
@@ -93,6 +96,12 @@ describe('auth & session helpers', () => {
     expect(isProtected('/settings/billing')).toBe(true);
     expect(isProtected('/pricing')).toBe(false);
     expect(isProtected('/dashboardx')).toBe(false);
+  });
+  it('browser cookie writer: session cookie when not remembered, Max-Age when remembered', () => {
+    expect(serializeCookie('sb-x', 'a b', { path: '/', sameSite: 'lax' })).toBe('sb-x=a%20b; Path=/; SameSite=lax');
+    expect(serializeCookie('sb-x', 'v', { path: '/', maxAge: 2592000 })).toContain('Max-Age=2592000');
+    expect(readRemember('a=1; orbit_remember=0')).toBe(false);
+    expect(readRemember('a=1')).toBe(true);
   });
   it('remember-device controls cookie lifetime', () => {
     expect(applyRemember({ maxAge: 400 * 86400, path: '/' }, true).maxAge).toBe(30 * 86400);

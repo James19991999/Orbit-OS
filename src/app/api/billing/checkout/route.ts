@@ -45,15 +45,20 @@ export const POST = handler(async (req) => {
   try {
     if (b.method === 'MPESA') {
       const r = await mpesaStkPush({ amountMinor: amount, phone: phone!, apiRef, email: ctx.user.email ?? undefined, narrative: `OrbitOS ${b.plan} ${b.period}` });
-      await admin.from('billing_payments').update({ intasend_invoice_id: r.invoice?.invoice_id ?? null, state: r.invoice?.state ?? 'PENDING' }).eq('id', pay.id);
+      if (!r.invoice?.invoice_id) throw new IntaSendError('IntaSend did not return an invoice id for the M-Pesa request');
+      // Without the invoice id the status poll can't reconcile, so a failed write must fail the request.
+      const saved = await admin.from('billing_payments').update({ intasend_invoice_id: r.invoice.invoice_id, state: r.invoice.state ?? 'PENDING' }).eq('id', pay.id);
+      if (saved.error) throw new ApiError(500, `Payment started but could not be tracked: ${saved.error.message}. Your plan will still update when IntaSend confirms.`);
       await audit(req, ctx.org.id, ctx.user.id, 'billing.checkout_started', { type: 'billing_payment', id: pay.id }, { method: 'MPESA', amount, currency, plan: b.plan, period: b.period });
       return json({ ref: apiRef, method: 'MPESA', amount, currency });
     }
     const co = await createCheckout({ amountMinor: amount, currency, email: ctx.user.email ?? '', apiRef, redirectUrl: `${appUrl()}/settings/billing?ref=${apiRef}`, host: appUrl(), method: 'CARD-PAYMENT' });
-    await admin.from('billing_payments').update({ intasend_checkout_id: co.id }).eq('id', pay.id);
+    const saved = await admin.from('billing_payments').update({ intasend_checkout_id: co.id }).eq('id', pay.id);
+    if (saved.error) console.error('[checkout] could not store checkout id', saved.error.message); // the webhook still settles by api_ref
     await audit(req, ctx.org.id, ctx.user.id, 'billing.checkout_started', { type: 'billing_payment', id: pay.id }, { method: 'CARD', amount, currency, plan: b.plan, period: b.period });
     return json({ ref: apiRef, method: 'CARD', url: co.url, amount, currency });
   } catch (e) {
+    if (e instanceof ApiError) throw e;
     await admin.from('billing_payments').update({ state: 'FAILED', raw: { error: (e as Error).message } }).eq('id', pay.id);
     throw new ApiError(502, e instanceof IntaSendError ? e.message : 'Payment provider error');
   }

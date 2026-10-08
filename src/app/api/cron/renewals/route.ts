@@ -32,7 +32,10 @@ export const GET = handler(async (req) => {
         const now = Date.now();
         const inHours = !o.profile || isWithinWorkingHours({ userId: o.user_id, timezone: o.profile.timezone || 'UTC', workStart: o.profile.work_start || '09:00', workEnd: o.profile.work_end || '17:00' }, now, now + 60_000);
         if (org.quiet_hours && !inHours) continue; // try again next hour
-        await admin.from('notifications').insert({ org_id: org.id, user_id: o.user_id, kind: 'renewal', title, body: 'Renew with M-Pesa or card to keep the workspace writable.', link: '/settings/billing' });
+        // The notification row is also the once-a-day dedupe marker: if it can't be written, don't email
+        // (otherwise the owner would be emailed every hour).
+        const marked = await admin.from('notifications').insert({ org_id: org.id, user_id: o.user_id, kind: 'renewal', title, body: 'Renew with M-Pesa or card to keep the workspace writable.', link: '/settings/billing' });
+        if (marked.error) { console.error('[renewals] notification insert failed', marked.error.message); continue; }
         if (o.profile?.email) await sendEmail({ to: o.profile.email, subject: `${org.name}: ${title}`, html: emailLayout(title, '<p>Renew with M-Pesa or card. After a 3-day grace period the workspace becomes read-only until payment.</p>', { label: 'Renew now', url: `${appUrl()}/settings/billing` }) });
         reminders++;
       }
@@ -43,8 +46,8 @@ export const GET = handler(async (req) => {
         const since = new Date(Date.now() - 86_400_000).toISOString();
         const { count: recent } = await admin.from('notifications').select('id', { count: 'exact', head: true }).eq('org_id', org.id).eq('kind', 'seats').gte('created_at', since);
         if (!recent) {
-          for (const o of owners) await admin.from('notifications').insert({ org_id: org.id, user_id: o.user_id, kind: 'seats', title: `${count} of ${org.seat_limit} seats used`, body: 'Add a block of 10 seats before you run out.', link: '/settings/billing' });
-          seatAlerts++;
+          const ins = await admin.from('notifications').insert(owners.map((o) => ({ org_id: org.id, user_id: o.user_id, kind: 'seats', title: `${count} of ${org.seat_limit} seats used`, body: 'Add a block of 10 seats before you run out.', link: '/settings/billing' })));
+          if (ins.error) console.error('[renewals] seat alert failed', ins.error.message); else seatAlerts++;
         }
       }
     }

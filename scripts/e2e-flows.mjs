@@ -23,7 +23,7 @@ async function session(email, password = PW) {
   await page.getByLabel('Work email').fill(email);
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await page.waitForURL(/\/dashboard/, { timeout: 30000 });
+  await page.waitForURL((u) => u.pathname === '/dashboard', { timeout: 30000 });
   return { ctx, page };
 }
 const dialog = (page) => page.locator('dialog[open]');
@@ -211,11 +211,11 @@ await step('new hire signs up from the invite link and lands in the workspace as
   await p.getByLabel('Full name').fill('Nia Wambui');
   await p.getByLabel('Password').fill('a-strong-password-123');
   await p.getByRole('button', { name: 'Create account' }).click();
-  await p.waitForURL(/\/join\//, { timeout: 30000 });
+  await p.waitForURL((u) => u.pathname.startsWith('/join/'), { timeout: 30000 });
   await p.getByRole('button', { name: 'Accept invite' }).click();
-  await p.waitForURL(/dashboard/, { timeout: 30000 });
+  await p.waitForURL((u) => u.pathname === '/dashboard', { timeout: 30000 });
   await p.goto(`${base}/operations?tab=finance`, { waitUntil: 'networkidle' });
-  const restricted = await p.getByText(/Finance details are visible to owners/).isVisible();
+  const restricted = await p.getByText(/Finance details are visible to owners/).first().waitFor({ timeout: 20000 }).then(() => true, () => false);
   const r = await p.request.post(`${base}/api/billing/checkout`, { data: { plan: 'pro', period: 'monthly', method: 'CARD' } });
   await ctx.close();
   return restricted && r.status() === 403 ? 'finance hidden; billing API → 403' : false;
@@ -240,12 +240,12 @@ await step('a new founder signs up, creates a workspace, and sees the welcome da
   await p.getByLabel('Work email').fill(`founder.${stamp}@example.com`);
   await p.getByLabel('Password').fill('another-strong-pass-1');
   await p.getByRole('button', { name: 'Create account' }).click();
-  await p.waitForURL(/onboarding/, { timeout: 30000 });
+  await p.waitForURL((u) => u.pathname === '/onboarding', { timeout: 30000 });
   await p.getByLabel('Company name').fill(`Savanna Labs ${stamp}`);
   await p.getByText('Available').waitFor({ timeout: 10000 });
   await p.getByRole('button', { name: 'Create workspace' }).click();
-  await p.waitForURL(/dashboard/, { timeout: 30000 });
-  const welcome = await p.getByText(/Welcome to OrbitOS/).isVisible();
+  await p.waitForURL((u) => u.pathname === '/dashboard', { timeout: 30000 });
+  const welcome = await p.getByText(/Welcome to OrbitOS/).first().waitFor({ timeout: 20000 }).then(() => true, () => false);
   const h1 = await p.locator('h1').first().textContent();
   await ctx.close();
   return welcome ? `h1: ${h1}` : false;

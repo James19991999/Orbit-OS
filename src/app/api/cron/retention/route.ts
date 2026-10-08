@@ -15,12 +15,15 @@ export const GET = handler(async (req) => {
     admin.from('invites').delete().lt('expires_at', monthAgo).select('id'),
   ]);
   const { data: doomed } = await admin.from('organizations').select('id, slug').eq('status', 'offboarding').lt('deletion_scheduled_at', new Date().toISOString());
+  let deleted = 0;
+  const failures: string[] = [];
   for (const o of doomed ?? []) {
     for (const bucket of ['evidence', 'vault'] as const) {
       const { data: files } = await admin.storage.from(bucket).list(o.id, { limit: 1000 });
       if (files?.length) await admin.storage.from(bucket).remove(files.map((f) => `${o.id}/${f.name}`));
     }
-    await admin.from('organizations').delete().eq('id', o.id); // cascades to every tenant table
+    const del = await admin.from('organizations').delete().eq('id', o.id); // cascades to every tenant table
+    if (del.error) failures.push(`${o.slug}: ${del.error.message}`); else deleted++;
   }
-  return json({ auditPurged: purged.data ?? 0, challenges: ch.data?.length ?? 0, invites: inv.data?.length ?? 0, workspacesDeleted: doomed?.length ?? 0 });
+  return json({ auditPurged: purged.data ?? 0, challenges: ch.data?.length ?? 0, invites: inv.data?.length ?? 0, workspacesDeleted: deleted, failures });
 });
