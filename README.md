@@ -38,6 +38,8 @@ Built from the *Distributed Executive OS* Stitch export (`design-reference/`). S
 
 ## Setup (production)
 
+> **Going live?** Follow [`docs/GO-LIVE.md`](docs/GO-LIVE.md) — the step-by-step checklist with the exact Supabase, Resend, Vercel, Sentry and IntaSend settings, the production smoke test, and the day-one steps. The summary below is the short version.
+
 ### 1. Supabase
 1. Create a project (Pro plan if you need SAML SSO).
 2. Link and push the schema:
@@ -67,6 +69,12 @@ Verify your sending domain and set `RESEND_API_KEY` + `EMAIL_FROM`. Without it, 
 3. Optional: `NEXT_PUBLIC_ROOT_DOMAIN=orbitos.io` + a `*.orbitos.io` wildcard domain for subdomain tenancy (`acme.orbitos.io`). Without it, tenancy uses the workspace switcher + a cookie.
 4. Optional: `UPSTASH_REDIS_REST_URL/TOKEN` for distributed rate limiting (in-memory otherwise).
 
+### 5. Sentry (error alerts)
+1. Create a free Sentry project (platform **Next.js**) and copy its DSN into `NEXT_PUBLIC_SENTRY_DSN`. Redeploy — the DSN is read at build time.
+2. Optional, for readable stack traces: `SENTRY_AUTH_TOKEN` (an org auth token with `project:releases`), `SENTRY_ORG`, `SENTRY_PROJECT`. Source maps are uploaded at build time and then deleted from the deployment.
+3. What is reported: uncaught errors in pages, route handlers and middleware (`src/instrumentation.ts`), every API 5xx the route wrapper turns into a friendly `500` (`src/lib/api.ts`), and browser crashes caught by the error boundaries. Errors only — no tracing, no session replay. Cookies, auth headers, request bodies, one-time tokens in URLs and emails are stripped before sending (`src/lib/observability/sentry-options.ts`); users are identified by id only.
+4. Browser events go through the same-origin `/monitoring` tunnel, so ad-blockers don't drop them and the CSP needs no change. Without a DSN, Sentry is completely off and the build is unchanged.
+
 ### Environment variables
 See `.env.example`. **Only the three Supabase variables are required** — the app builds and boots with none at all (public pages render and the app shows a setup notice), and every optional integration degrades to a labelled "not configured" state.
 
@@ -83,10 +91,10 @@ npm run dev
 | Command | What it runs |
 |---|---|
 | `npm run typecheck` / `npm run lint` | TypeScript strict, ESLint (next/core-web-vitals) |
-| `npm test` | **102 Jest tests**: scheduling (DST, date line, weekends), health/finance/sprint/people metrics, pricing, phone normalisation, `.ics`, PDF/CSV (formula-injection), GitHub HMAC, session rules, open-redirect guard, IntaSend webhook + checkout + renewals-cron **route handlers** (incl. failure paths), and component tests (login paths, poll rollback, roll call, sign-out failure, clipboard failure, jest-axe) |
+| `npm test` | **105 Jest tests**: scheduling (DST, date line, weekends), health/finance/sprint/people metrics, pricing, phone normalisation, `.ics`, PDF/CSV (formula-injection), GitHub HMAC, session rules, open-redirect guard, IntaSend webhook + checkout + renewals-cron **route handlers** (incl. failure paths), and component tests (login paths, poll rollback, roll call, sign-out failure, clipboard failure, jest-axe), Sentry event scrubbing |
 | `npm run test:db` | **71 SQL tests** against a real Postgres: migrations + seed + RLS (cross-tenant isolation, role escalation, client-unwritable billing/audit/plan columns, anonymous votes, expired-workspace read-only, MFA-gated vault, payment idempotency, two-person expense rule) |
 | `npm run stack:up` | Boots a **local Supabase-compatible stack**: Postgres + real **GoTrue** (Supabase Auth) + real **PostgREST** + a gateway on `:54321`, plus an **IntaSend mock** on `:54400`; applies migrations + seed and writes `.env.local` |
-| `npm run test:e2e` | **25 end-to-end business flows** in real Chromium against that stack (see below) |
+| `npm run test:e2e` | **26 end-to-end business flows** in real Chromium against that stack (see below) |
 | `npm run test:e2e:security` | **19 end-to-end auth/session flows**: passkeys via Chrome's virtual WebAuthn authenticator, TOTP with real codes, enforced 2FA, MFA-gated archive/offboarding, remember-device cookie lifetimes, inactivity timeout, workspace switching, expired-workspace read-only. Run after `test:e2e` on the same database |
 | `npm run test:a11y` | **axe-core in real Chromium** over 27 pages × (dark, light, 375 px mobile) incl. signed-in app pages; also fails on horizontal overflow |
 
@@ -149,10 +157,11 @@ scripts/             local stack, IntaSend mock, e2e flows, a11y check
 
 **Proven in this build environment**
 * TypeScript strict: 0 errors · ESLint: 0 warnings · production build: 72 routes (36 pages, 36 API).
-* **102/102 Jest**, **71/71 SQL RLS tests on real Postgres 16**.
-* **25/25 end-to-end flows in real Chromium** against real Supabase Auth (GoTrue v2.170) + real PostgREST (v12.2) + Postgres, including: password sign-in; task create/move; expense forced to pending + two-person approval; check-in; poll; kudos; meeting scheduling; invoice → hosted payment → webhook → paid + revenue; **M-Pesa plan purchase → polling → plan applied**; **card plan purchase → redirect → webhook**; PDF receipt; audit-package ZIP; report PDF/CSV; invite → sign-up → join as contributor (finance hidden, billing API 403); new founder sign-up → onboarding → dashboard; webhook rejects bad challenge / forged `api_ref`, replay idempotent; crons require `CRON_SECRET`.
+* **105/105 Jest**, **71/71 SQL RLS tests on real Postgres 16**.
+* **26/26 end-to-end flows in real Chromium** against real Supabase Auth (GoTrue v2.170) + real PostgREST (v12.2) + Postgres, including: password sign-in; task create/move; expense forced to pending + two-person approval; check-in; poll; kudos; meeting scheduling (calendar-invite endpoint must return 200); training reminders; invoice → hosted payment → webhook → paid + revenue; **M-Pesa plan purchase → polling → plan applied**; **card plan purchase → redirect → webhook**; PDF receipt; audit-package ZIP; report PDF/CSV; invite → sign-up → join as contributor (finance hidden, billing API 403); new founder sign-up → onboarding → dashboard; webhook rejects bad challenge / forged `api_ref`, replay idempotent; crons require `CRON_SECRET`.
 * **19/19 auth & session flows** in real Chromium, stable across repeated clean runs: passkey registration and passwordless sign-in (real WebAuthn ceremony via Chrome's virtual authenticator, verified server-side by SimpleWebAuthn, session minted through GoTrue); TOTP enrolment with real RFC 6238 codes (wrong code rejected); owners can't enforce 2FA without having it; enforced 2FA blocks directors until enrolled but not contributors; password → TOTP challenge → app; MFA-gated tenant archive (verified zero rows from other workspaces); offboarding confirm → read-only → cancel; “remember this device” off = browser-session cookies, on = 30 days; inactivity timeout; workspace switching (forged switch → 403); expired workspace read-only with a clear error while billing stays usable.
 * **0 axe-core violations (WCAG 2.2 AA)** on 27 pages in dark, light and 375 px mobile, and no horizontal overflow on mobile.
+* **Sentry**: with a DSN set, all 26 + 19 e2e flows produced **zero** error events; a forced server fault produced one event tagged with its route, with cookies, auth header and `?code=` stripped; a browser crash was sent through the `/monitoring` tunnel with no CSP violation.
 * `npm audit --omit=dev`: **0 vulnerabilities** in production dependencies.
 * Builds and boots with **no env vars** (setup notice, honest `503` health).
 
@@ -160,6 +169,7 @@ scripts/             local stack, IntaSend mock, e2e flows, a11y check
 * **IntaSend live API.** The e2e flows ran against a local mock that mirrors the request/response shapes this app uses. Confirm in IntaSend **sandbox** before going live (especially field names and the webhook payload).
 * **Supabase Realtime and Storage** weren't available in the local stack: live updates and presence showed their honest "paused/offline" states, and file uploads (evidence, vault, avatars) and the storage RLS policies were tested with SQL only, not through the Storage API.
 * **OAuth (Google/Azure) and SAML SSO** need real identity providers; the code paths are implemented and unit-tested (correct provider/domain calls), but not exercised end-to-end. Passkeys were tested with a virtual authenticator, not a physical YubiKey.
+* **Sentry delivery to sentry.io**: events were captured by a local fake ingest; the `/monitoring` tunnel's onward hop to sentry.io needs real network.
 * **Email delivery** (Resend) was never sent for real; all email paths report "not configured" honestly when the key is absent.
 * `npm audit` (incl. dev tooling): 41 advisories remain in **dev-only** dependencies (Jest 29 / ESLint 8 internals), 0 critical, none shipped to production.
 
@@ -168,6 +178,7 @@ scripts/             local stack, IntaSend mock, e2e flows, a11y check
 ## Bugs found by testing (and fixed)
 
 Kept here because they show what the test layers catch:
+* **Calendar invites and training reminders always failed** (found by Sentry on its first run): both routes asked PostgREST to embed `profiles` from tables whose `user_id` references `auth.users`, which has no relationship to `profiles` → "Could not find a relationship" → 500. The meeting dialog still said "Meeting saved", so the e2e flow passed. Both now load profiles separately (`src/lib/data/profiles.ts`), and the e2e suite asserts the invite endpoint's status and covers training reminders.
 * **RLS**: unqualified `org_id` inside policy subqueries resolved to the inner table (`m.org_id = m.org_id`, always true) — would have let users attach rows to other workspaces' meetings/messages/votes/kudos.
 * **Remember this device** silently did nothing: `@supabase/ssr` 0.12 ignores `cookieOptions.maxAge` and always writes 400-day cookies. The browser client now uses its own cookie writer.
 * **Inactivity timeout** could be skipped until the app shell had mirrored the org's timeout into a cookie; the middleware now enforces the 8 h default meanwhile.
@@ -180,7 +191,6 @@ Kept here because they show what the test layers catch:
 * **Copy changed where the design implied things the product can't truthfully claim**: no "FedRAMP ready", no peer benchmarks, no "continuous 24/7 testing", no "settled via Wise/Deel" (payroll is *recorded*), "phishing simulation" → security-awareness training, "enforce hardware keys" → "require two-factor for admins", AWS CloudTrail shown as "coming soon", SCIM removed.
 * **Google Calendar/Outlook** integration is `.ics` email invites + an "Add to Google Calendar" link, not OAuth calendar sync.
 * **Quiet hours** applies to renewal-reminder emails (held until each owner's working hours); check-in reminders are always sent at 16:00 local time, and digests at the time the admin chose.
-* **Sentry** (optional in the prompt) is not wired in.
 * **i18n**: the prompt asked for strings in `src/i18n/en.ts`; they are inline instead (English only). Numbers, dates and currency use `Intl` with the `en-KE` locale.
 
 ## Roadmap / not built

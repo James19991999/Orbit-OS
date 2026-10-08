@@ -3,6 +3,7 @@ import { buildIcs } from '@/lib/ics';
 import { sendEmail, emailLayout, escapeHtml, isEmailConfigured } from '@/lib/email';
 import { formatInTimeZone } from 'date-fns-tz';
 import type { Meeting } from '@/lib/types';
+import { loadProfiles } from '@/lib/data/profiles';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,9 +16,12 @@ export const POST = handler<{ params: Promise<{ id: string }> }>(async (req, rou
   if (!m) throw new ApiError(404, 'Meeting not found');
   const meeting = m as Meeting;
   if (meeting.organizer_id !== ctx.user.id && !['owner', 'director'].includes(ctx.role)) throw new ApiError(403, 'Only the organizer can send invites');
-  const { data: parts, error } = await ctx.supabase.from('meeting_participants').select('user_id, profile:profiles(full_name, email, timezone)').eq('meeting_id', meeting.id);
+  // meeting_participants.user_id references auth.users, not profiles, so profiles are loaded separately.
+  const { data: parts, error } = await ctx.supabase.from('meeting_participants').select('user_id').eq('meeting_id', meeting.id);
   if (error) throw new ApiError(500, error.message);
-  const people = (parts ?? []) as unknown as { user_id: string; profile: { full_name: string; email: string | null; timezone: string } | null }[];
+  const ids = (parts ?? []).map((p: { user_id: string }) => p.user_id);
+  const byId = await loadProfiles(ctx.supabase, ids);
+  const people = ids.map((id) => ({ user_id: id, profile: byId.get(id) ?? null }));
   if (!isEmailConfigured()) return json({ emailed: 0, notConfigured: true });
   const organizer = people.find((p) => p.user_id === meeting.organizer_id)?.profile;
   const attendees = people.filter((p) => p.profile?.email).map((p) => ({ name: p.profile!.full_name, email: p.profile!.email! }));

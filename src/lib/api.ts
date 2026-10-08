@@ -8,6 +8,7 @@ import { getAdminClient, hasServiceRole } from '@/lib/supabase/admin';
 import { isSupabaseConfigured, ORG_COOKIE } from '@/lib/env';
 import { limiter } from '@/lib/ratelimit';
 import type { Organization, Role } from '@/lib/types';
+import { reportError, setReportingUser } from '@/lib/observability/report';
 
 export class ApiError extends Error {
   constructor(public status: number, message: string, public extraHeaders?: Record<string, string>) { super(message); }
@@ -26,9 +27,14 @@ export function handler<C = unknown>(fn: (req: NextRequest, ctx: C) => Promise<R
       // Never swallow Next.js control-flow signals (dynamic usage, redirect, notFound) — rethrow them.
       const digest = (e as { digest?: unknown } | null)?.digest;
       if (typeof digest === 'string' && (digest === 'DYNAMIC_SERVER_USAGE' || digest.startsWith('NEXT_'))) throw e;
-      if (e instanceof ApiError) return json({ error: e.message }, e.status, e.extraHeaders);
+      if (e instanceof ApiError) {
+        // 5xx ApiErrors are real faults (e.g. a failed database write); 503 "not configured" is expected setup state.
+        if (e.status >= 500 && e.status !== 503) reportError(e, { route: req.nextUrl.pathname, method: req.method });
+        return json({ error: e.message }, e.status, e.extraHeaders);
+      }
       if (e instanceof z.ZodError) return json({ error: 'Invalid request', issues: e.issues.map((i) => ({ path: i.path.join('.'), message: i.message })) }, 400);
       console.error('[api]', req.nextUrl.pathname, e);
+      reportError(e, { route: req.nextUrl.pathname, method: req.method });
       return json({ error: 'Internal error' }, 500);
     }
   };
@@ -66,6 +72,7 @@ export async function requireApiContext(opts: { roles?: Role[]; orgSlug?: string
   if (opts.writable && (m.org.status !== 'active' || new Date(m.org.plan_expires_at).getTime() < Date.now() - 3 * 86_400_000)) {
     throw new ApiError(402, 'This workspace is read-only. Renew the plan to make changes.');
   }
+  setReportingUser(user.id, m.org.id);
   return { supabase, user, org: m.org, role: m.role };
 }
 

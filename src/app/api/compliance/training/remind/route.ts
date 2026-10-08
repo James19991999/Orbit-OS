@@ -3,6 +3,7 @@ import { handler, json, parseBody, requireApiContext, audit, rateLimit, ApiError
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendEmail, emailLayout, escapeHtml, isEmailConfigured } from '@/lib/email';
 import { appUrl } from '@/lib/env';
+import { loadProfiles } from '@/lib/data/profiles';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,13 +14,16 @@ export const POST = handler(async (req) => {
   const { campaignId } = await parseBody(req, z.object({ campaignId: z.string().uuid() }));
   const { data: camp } = await ctx.supabase.from('training_campaigns').select('*').eq('id', campaignId).eq('org_id', ctx.org.id).maybeSingle();
   if (!camp) throw new ApiError(404, 'Campaign not found');
-  if (!isEmailConfigured()) return json({ emailed: 0, skipped: 0, notConfigured: true });
-  const { data: rows, error } = await ctx.supabase.from('training_assignments').select('user_id, last_reminded_at, profile:profiles(full_name, email)').eq('campaign_id', campaignId).is('completed_at', null);
+  // training_assignments.user_id references auth.users, not profiles, so profiles are loaded separately.
+  const { data: assigned, error } = await ctx.supabase.from('training_assignments').select('user_id, last_reminded_at').eq('campaign_id', campaignId).is('completed_at', null);
   if (error) throw new ApiError(500, error.message);
+  const profiles = await loadProfiles(ctx.supabase, (assigned ?? []).map((a: { user_id: string }) => a.user_id));
+  const rows = (assigned ?? []).map((a: { user_id: string; last_reminded_at: string | null }) => ({ ...a, profile: profiles.get(a.user_id) ?? null }));
+  if (!isEmailConfigured()) return json({ emailed: 0, skipped: 0, pending: rows.length, notConfigured: true });
   const dayAgo = Date.now() - 86_400_000;
   let emailed = 0; let skipped = 0;
   const admin = getAdminClient();
-  for (const r of (rows ?? []) as unknown as { user_id: string; last_reminded_at: string | null; profile: { full_name: string; email: string | null } | null }[]) {
+  for (const r of rows) {
     if (r.last_reminded_at && new Date(r.last_reminded_at).getTime() > dayAgo) { skipped++; continue; }
     if (!r.profile?.email) continue;
     const res = await sendEmail({ to: r.profile.email, subject: `Reminder: ${camp.title} is due ${camp.due_on}`,

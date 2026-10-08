@@ -2,11 +2,14 @@
 // Usage: node scripts/e2e-flows.mjs [baseUrl]
 import { chromium } from 'playwright-core';
 import JSZip from 'jszip';
+import { execFileSync } from 'node:child_process';
 
 const base = process.argv[2] || 'http://localhost:3000';
 const MOCK = process.env.INTASEND_MOCK || 'http://localhost:54400';
 const PW = 'OrbitOS-demo-2026';
 const results = [];
+/** psql against the local stack DB — read-only lookups of ids the UI doesn't expose. */
+const sql = (q) => execFileSync('psql', ['-h', process.env.PGHOST || '/tmp', '-p', process.env.PGPORT || '54329', '-U', 'postgres', '-d', process.env.DB || 'orbitos_e2e', '-tAc', q]).toString().trim();
 const stamp = Date.now().toString(36);
 function ok(name, cond, detail = '') { results.push([cond, name]); console.log(`${cond ? 'PASS' : 'FAIL'}  ${name}${detail ? ` — ${detail}` : ''}`); }
 async function step(name, fn) {
@@ -101,11 +104,24 @@ await step('schedule a meeting from the slot finder', async () => {
   await page.getByRole('button', { name: 'Schedule overlap sync' }).click();
   const d = dialog(page);
   await d.getByLabel('Title').fill(`E2E sync ${stamp}`);
+  const invite = page.waitForResponse((r) => /\/api\/meetings\/[^/]+\/invite$/.test(new URL(r.url()).pathname), { timeout: 15000 });
   await d.getByRole('button', { name: 'Schedule' }).click();
+  const inv = await invite;
+  if (inv.status() !== 200) throw new Error(`calendar invite endpoint returned ${inv.status()}: ${await inv.text()}`);
   await d.getByText(/Meeting saved|Calendar invites/).waitFor({ timeout: 15000 });
   await d.getByRole('button', { name: 'Done' }).click();
   await page.reload({ waitUntil: 'networkidle' });
   await page.getByRole('link', { name: `E2E sync ${stamp}` }).waitFor();
+});
+
+await step('send training reminders for an open campaign (loads assignees + profiles)', async () => {
+  const id = sql("select c.id from training_campaigns c join training_assignments a on a.campaign_id = c.id where a.completed_at is null limit 1");
+  if (!id) throw new Error('seed has no open training campaign');
+  const r = await page.request.post(`${base}/api/compliance/training/remind`, { data: { campaignId: id } });
+  const body = await r.json();
+  if (r.status() !== 200) throw new Error(`remind returned ${r.status()}: ${JSON.stringify(body)}`);
+  if (!(body.pending > 0)) throw new Error(`expected incomplete assignees, got ${JSON.stringify(body)}`);
+  return `${body.pending} assignee(s) pending`;
 });
 
 let invoiceUrl = '';
