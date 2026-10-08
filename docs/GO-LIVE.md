@@ -33,6 +33,8 @@ This step leaves you with an empty production database that has the full schema,
 2. Upgrade the organization to **Pro** under Organization → Billing.
 3. Go to Project Settings → API and copy the **Project URL**, the **anon public** key and the **service_role** key. The service_role key bypasses all security; it goes only into Vercel, never into the browser or a chat.
 
+**Or, without installing anything: use the SQL Editor.** Open Supabase → **SQL Editor → New query**, paste the whole of `supabase/setup_all.sql`, and click **Run** once. Then paste `supabase/verify_setup.sql` and run it: every row should show `ok = true`. The setup file refuses to run twice, so a second click changes nothing.
+
 **Push the schema (from your computer, inside the OrbitOS folder)**
 
 ```bash
@@ -42,7 +44,7 @@ npx supabase link --project-ref <your-project-ref>
 npx supabase db push
 ```
 
-`db push` applies the five files in `supabase/migrations/` in order. Check the result in Table Editor: you should see `organizations`, `memberships`, `tasks`, `invoices` and the rest, every one marked **RLS enabled**. Storage should show four buckets: `avatars`, `evidence`, `vault`, `exports`.
+`db push` applies the six files in `supabase/migrations/` in order. Check the result in Table Editor: you should see `organizations`, `memberships`, `tasks`, `invoices` and the rest, every one marked **RLS enabled**. Storage should show four buckets: `avatars`, `evidence`, `vault`, `exports`.
 
 **Never run `supabase/seed.sql` against this project.** It creates 12 demo users who all share the public password `OrbitOS-demo-2026`. Do not use `supabase db reset --linked` either, because it wipes the database and runs the seed.
 

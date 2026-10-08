@@ -47,6 +47,7 @@ Built from the *Distributed Executive OS* Stitch export (`design-reference/`). S
    npx supabase link --project-ref <ref>
    npx supabase db push            # applies supabase/migrations/*
    ```
+   No CLI? Paste `supabase/setup_all.sql` (all migrations in one transaction) into **SQL Editor** and run it once, then run `supabase/verify_setup.sql` — every row should say `ok = true`.
    Do **not** run `supabase/seed.sql` in production — it is demo data.
 3. **Auth → URL configuration:** Site URL = your app URL; add `https://<your-app>/auth/callback` to redirect URLs.
 4. **Auth → Providers:** enable Email; optionally Google and Azure (Entra ID, scope `email`). For SAML:
