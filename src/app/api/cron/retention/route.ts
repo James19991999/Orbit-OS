@@ -1,0 +1,26 @@
+import { handler, json, requireCronSecret } from '@/lib/api';
+import { getAdminClient } from '@/lib/supabase/admin';
+
+export const dynamic = 'force-dynamic';
+
+/** Daily housekeeping: audit-log retention, expired challenges/invites, and workspaces past their offboarding date. */
+export const GET = handler(async (req) => {
+  requireCronSecret(req);
+  const admin = getAdminClient();
+  const purged = await admin.rpc('purge_audit_log');
+  const hourAgo = new Date(Date.now() - 3_600_000).toISOString();
+  const monthAgo = new Date(Date.now() - 30 * 86_400_000).toISOString();
+  const [ch, inv] = await Promise.all([
+    admin.from('webauthn_challenges').delete().lt('created_at', hourAgo).select('id'),
+    admin.from('invites').delete().lt('expires_at', monthAgo).select('id'),
+  ]);
+  const { data: doomed } = await admin.from('organizations').select('id, slug').eq('status', 'offboarding').lt('deletion_scheduled_at', new Date().toISOString());
+  for (const o of doomed ?? []) {
+    for (const bucket of ['evidence', 'vault'] as const) {
+      const { data: files } = await admin.storage.from(bucket).list(o.id, { limit: 1000 });
+      if (files?.length) await admin.storage.from(bucket).remove(files.map((f) => `${o.id}/${f.name}`));
+    }
+    await admin.from('organizations').delete().eq('id', o.id); // cascades to every tenant table
+  }
+  return json({ auditPurged: purged.data ?? 0, challenges: ch.data?.length ?? 0, invites: inv.data?.length ?? 0, workspacesDeleted: doomed?.length ?? 0 });
+});

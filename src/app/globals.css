@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'Material Symbols Outlined';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url('../../node_modules/material-symbols/material-symbols-outlined.woff2') format('woff2');
+}
+
+/* Dark theme = DESIGN.md front-matter tokens (the ones the Stitch screens actually use). */
+:root, [data-theme='dark'] {
+  color-scheme: dark;
+  --c-surface: 11 19 38;                     /* #0b1326 */
+  --c-surface-container-lowest: 6 14 32;     /* #060e20 */
+  --c-surface-container-low: 19 27 46;       /* #131b2e */
+  --c-surface-container: 23 31 51;           /* #171f33 */
+  --c-surface-container-high: 34 42 61;      /* #222a3d */
+  --c-surface-container-highest: 45 52 73;   /* #2d3449 */
+  --c-on-surface: 218 226 253;               /* #dae2fd */
+  --c-on-surface-variant: 195 198 215;       /* #c3c6d7 */
+  --c-outline: 141 144 160;                  /* #8d90a0 */
+  --c-outline-variant: 67 70 85;             /* #434655 */
+  --c-primary: 180 197 255;                  /* #b4c5ff */
+  --c-on-primary: 0 42 120;
+  --c-primary-container: 37 99 235;          /* #2563eb electric blue */
+  --c-on-primary-container: 255 255 255;
+  --c-secondary: 137 206 255;                /* #89ceff */
+  --c-tertiary: 78 222 163;                  /* #4edea3 */
+  --c-error: 255 180 171;
+  --c-on-error: 105 0 5;
+  --c-error-container: 147 0 10;
+  --c-on-error-container: 255 218 214;
+  --c-healthy: 16 185 129;                   /* #10b981 */
+  --c-warning: 245 158 11;                   /* #f59e0b */
+  --c-alert: 248 113 113;                    /* rose, lifted for AA on dark cards */
+  --glow: rgba(37, 99, 235, 0.12);
+}
+
+/* Light theme = DESIGN.md prose values; signal colours darkened to keep 4.5:1 on white. */
+[data-theme='light'] {
+  color-scheme: light;
+  --c-surface: 248 250 252;                  /* #f8fafc */
+  --c-surface-container-lowest: 255 255 255;
+  --c-surface-container-low: 255 255 255;
+  --c-surface-container: 255 255 255;
+  --c-surface-container-high: 241 245 249;   /* #f1f5f9 */
+  --c-surface-container-highest: 226 232 240;/* #e2e8f0 */
+  --c-on-surface: 15 23 42;                  /* #0f172a */
+  --c-on-surface-variant: 71 85 105;         /* #475569 */
+  --c-outline: 100 116 139;                  /* #64748b */
+  --c-outline-variant: 226 232 240;          /* #e2e8f0 */
+  --c-primary: 29 78 216;                    /* #1d4ed8 */
+  --c-on-primary: 255 255 255;
+  --c-primary-container: 37 99 235;
+  --c-on-primary-container: 255 255 255;
+  --c-secondary: 3 105 161;                  /* #0369a1 */
+  --c-tertiary: 4 120 87;                    /* #047857 */
+  --c-error: 185 28 28;
+  --c-on-error: 255 255 255;
+  --c-error-container: 254 226 226;
+  --c-on-error-container: 127 29 29;
+  --c-healthy: 4 120 87;
+  --c-warning: 146 64 14;                   /* #92400e — 4.5:1+ even on its own tinted pill */
+  --c-alert: 185 28 28;
+  --glow: rgba(37, 99, 235, 0.06);
+}
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    @apply bg-surface text-on-surface font-sans antialiased;
+  }
+  .tnum, time, [data-num] { font-variant-numeric: tabular-nums; }
+  :focus-visible { outline: 2px solid rgb(var(--c-primary-container)); outline-offset: 2px; }
+}
+
+@layer components {
+  .ms {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 1.25rem;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    user-select: none;
+  }
+  .card {
+    @apply rounded-lg border border-outline-variant bg-surface-container shadow-l1;
+  }
+  .glow-focal {
+    background-image: radial-gradient(circle at 30% 20%, var(--glow), transparent 60%);
+  }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .pulse-dot { animation: none; }
+  * { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+}

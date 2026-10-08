@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#0b1326;color:#dae2fd;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "on-error-container": "#ffdad6", "surface-tint": "#b4c5ff", "on-secondary-fixed-variant": "#004c6e", "inverse-on-surface": "#283044", "surface-bright": "#31394d", "on-background": "#dae2fd", "background": "#0b1326", "on-surface-variant": "#c3c6d7", "on-primary-fixed": "#00174b", "on-tertiary": "#003824", "on-secondary-container": "#00344e", "surface-container-highest": "#2d3449", "primary-fixed-dim": "#b4c5ff", "primary-container": "#2563eb", "tertiary-fixed": "#6ffbbe", "on-tertiary-container": "#bdffdb", "secondary": "#89ceff", "error": "#ffb4ab", "outline": "#8d90a0", "tertiary-container": "#007d55", "surface-container": "#171f33", "surface-variant": "#2d3449", "on-error": "#690005", "on-tertiary-fixed-variant": "#005236", "surface-container-low": "#131b2e", "primary": "#b4c5ff", "surface-container-lowest": "#060e20", "tertiary": "#4edea3", "tertiary-fixed-dim": "#4edea3", "inverse-surface": "#dae2fd", "inverse-primary": "#0053db", "on-tertiary-fixed": "#002113", "primary-fixed": "#dbe1ff", "on-secondary-fixed": "#001e2f", "secondary-fixed": "#c9e6ff", "surface-container-high": "#222a3d", "on-surface": "#dae2fd", "on-primary-container": "#eeefff", "on-primary-fixed-variant": "#003ea8", "on-secondary": "#00344d", "secondary-fixed-dim": "#89ceff", "surface": "#0b1326", "surface-dim": "#0b1326", "on-primary": "#002a78", "outline-variant": "#434655", "secondary-container": "#00a2e6", "error-container": "#93000a" }, borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" }, spacing: { "gutter-sm": "1rem", "space-xl": "2.5rem", "gutter": "1.5rem", "margin": "2rem", "margin-sm": "1rem", "space-sm": "0.5rem", "space-xs": "0.25rem", "space-lg": "1.5rem", "space-md": "1rem" }, fontFamily: { "headline-lg": ["Geist"], "label-xs": ["Geist"], "label-md": ["Geist"], "body-lg": ["Geist"], "headline-md": ["Geist"], "headline-xl-mobile": ["Geist"], "headline-xl": ["Geist"], "headline-sm": ["Geist"], "label-sm": ["Geist"], "headline-lg-mobile": ["Geist"], "body-md": ["Geist"], "body-sm": ["Geist"] }, fontSize: { "headline-lg": ["2rem", { "lineHeight": "2.5rem", "letterSpacing": "-0.02em", "fontWeight": "600" }], "label-xs": ["0.6875rem", { "lineHeight": "0.875rem", "letterSpacing": "0.04em", "fontWeight": "600" }], "label-md": ["0.875rem", { "lineHeight": "1.25rem", "letterSpacing": "0.01em", "fontWeight": "500" }], "body-lg": ["1rem", { "lineHeight": "1.5rem", "letterSpacing": "-0.005em", "fontWeight": "400" }], "headline-md": ["1.25rem", { "lineHeight": "1.75rem", "letterSpacing": "-0.015em", "fontWeight": "600" }], "headline-xl-mobile": ["2rem", { "lineHeight": "2.5rem", "letterSpacing": "-0.02em", "fontWeight": "600" }], "headline-xl": ["3rem", { "lineHeight": "3.5rem", "letterSpacing": "-0.025em", "fontWeight": "600" }], "headline-sm": ["1.125rem", { "lineHeight": "1.5rem", "letterSpacing": "-0.01em", "fontWeight": "500" }], "label-sm": ["0.75rem", { "lineHeight": "1rem", "letterSpacing": "0.02em", "fontWeight": "600" }], "headline-lg-mobile": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.015em", "fontWeight": "600" }], "body-md": ["0.875rem", { "lineHeight": "1.25rem", "letterSpacing": "0", "fontWeight": "400" }], "body-sm": ["0.75rem", { "lineHeight": "1rem", "letterSpacing": "0.005em", "fontWeight": "400" }] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface text-on-surface font-body-md flex flex-col min-h-screen selection:bg-primary-container selection:text-on-primary-container"><header class="fixed top-0 w-full z-50 pt-safe bg-surface-container-lowest/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.25)]"><div class="h-16 px-gutter-sm flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-sm min-w-0"><img alt="OrbitOS Brand Logo" class="h-8 w-auto object-contain flex-shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1WDTdminmjuzZZa20kGSLNh6iML5kGJuG1yH-6NaiTTHHl-UxY-PgnhNJwRcTB7torZ0HsIjlohOXlu2cW5WbDpZlyHYvgcZiw__sRfGwlEQmVoEHdMEHG5GkEOraCyfS9XKAD7POcU-R8OHBvriGc26FcmmjezGcq8dEaOVXtgleN-u-zs-xjJ-bxJ-zygX_nXJwbuVDR0N-5mwzsPFCbfYoCWPFekBdMJgT0nf1fy"/><div class="flex flex-col min-w-0"><div class="flex items-center gap-space-xs"><span class="font-label-xs text-label-xs uppercase tracking-wider text-outline">OrbitOS</span><span class="font-label-xs text-label-xs text-on-surface-variant font-medium">·</span><span class="font-label-xs text-label-xs text-primary font-medium truncate">Reports &amp; Analytics</span></div><button class="flex items-center gap-space-xs text-left group min-w-0"><span class="font-label-md text-label-md text-on-surface font-semibold truncate group-hover:text-primary transition-colors">Acme Global Inc.</span><span class="material-symbols-outlined text-[18px] text-on-surface-variant transition-transform group-hover:translate-y-0.5">expand_more</span></button></div></div><div class="flex items-center gap-space-sm flex-shrink-0"><button class="relative w-11 h-11 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60 transition-colors"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-2 right-2 flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span></span></button><div class="relative flex items-center justify-center"><img alt="Profile" class="w-8 h-8 rounded-full object-cover ring-1 ring-outline/30" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7gfHYJBLnTt8b9pGN6UW-4EAINdeNLdaDFtAupLucZadRKq-izTPhBISO9-JT1VXi6aqQWCv7W3KoHDixYQx7nr_2EmIdO7BKKfH0izpErefRjXC6AGxMNHJwGVr9mkdGY_KdajxPSlG32z6VN2PZMZv42p83zbroOMevSDVbx8zTXQrUCG2_cr2vMTJU1Ou_itBj_LsLcbu5xj1sszLPtgp_JZdmcZPNo8Xasek"/><span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-tertiary ring-2 ring-surface-container-lowest"></span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 pb-24 bg-surface"><div class="flex flex-col w-full px-gutter-sm space-y-space-md select-none">
+<!-- Top Command & Filter Scrim -->
+<section class="flex flex-col gap-space-sm pt-space-xs">
+<div class="flex items-center justify-between gap-space-sm">
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-space-xs">
+<span class="inline-block w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+<span class="font-label-xs text-label-xs uppercase tracking-wider text-outline">Telemetry Engine v4.2</span>
+</div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface tracking-tight truncate">
+          Executive Intelligence
+        </h1>
+</div>
+<div class="flex items-center gap-space-xs flex-shrink-0">
+<button class="h-10 px-3 bg-surface-container-high hover:bg-surface-bright active:scale-95 text-on-surface rounded-xl flex items-center gap-1.5 transition-all shadow-sm" id="exportBtn" onclick="toggleExportMenu()">
+<span class="material-symbols-outlined text-[18px] text-primary">ios_share</span>
+<span class="font-label-sm text-label-sm">Export</span>
+</button>
+</div>
+</div>
+<!-- Quick Date & Cohort Selector Bar -->
+<div class="flex items-center justify-between gap-space-sm bg-surface-container-low p-1.5 rounded-xl shadow-inner">
+<button class="flex items-center gap-space-xs px-2.5 py-1.5 bg-surface-container-highest text-on-surface rounded-lg text-left shadow-sm">
+<span class="material-symbols-outlined text-[16px] text-secondary">date_range</span>
+<span class="font-label-xs text-label-xs font-semibold">Q3 2024 (Jul - Sep) · YTD</span>
+<span class="material-symbols-outlined text-[14px] text-outline">arrow_drop_down</span>
+</button>
+<div class="flex items-center gap-1">
+<span class="font-label-xs text-label-xs text-outline px-1">Audience:</span>
+<span class="font-label-xs text-label-xs px-2 py-0.5 rounded-full bg-secondary-container/20 text-secondary font-medium">Board &amp; Exec</span>
+</div>
+</div>
+<!-- Hidden Export Flyout Menu -->
+<div class="hidden flex-col gap-1 p-2 bg-surface-container-high rounded-xl shadow-xl transition-all" id="exportFlyout">
+<div class="flex items-center justify-between px-2 py-1 text-outline font-label-xs text-label-xs uppercase tracking-wider">
+<span>Delivery Targets</span>
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+</div>
+<button class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-surface-bright text-on-surface text-left transition-colors" onclick="simulateExport('Executive Brief PDF')">
+<span class="flex items-center gap-2 font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[18px] text-error">picture_as_pdf</span>
+          Full Analytical Dossier (PDF)
+        </span>
+<span class="font-label-xs text-label-xs text-outline">3.2 MB</span>
+</button>
+<button class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-surface-bright text-on-surface text-left transition-colors" onclick="simulateExport('Aggregated Raw CSV')">
+<span class="flex items-center gap-2 font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[18px] text-tertiary">table_chart</span>
+          Row Metrics Dump (CSV)
+        </span>
+<span class="font-label-xs text-label-xs text-outline">840 KB</span>
+</button>
+<button class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-surface-bright text-on-surface text-left transition-colors" onclick="simulateExport('Leadership Slack Digest')">
+<span class="flex items-center gap-2 font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[18px] text-secondary">send</span>
+          Dispatch to #exec-telemetry
+        </span>
+<span class="font-label-xs text-label-xs text-primary font-semibold">Immediate</span>
+</button>
+</div>
+</section>
+<!-- Interactive Scorecard: Distributed Velocity Index -->
+<section class="bg-surface-container rounded-xl p-space-md shadow-md relative overflow-hidden">
+<div class="absolute -right-8 -top-8 w-36 h-36 bg-primary-container/10 rounded-full blur-2xl pointer-events-none"></div>
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-label-xs text-label-xs text-outline uppercase tracking-wider">Macro Diagnostic</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface mt-0.5">Distributed Velocity Index</h2>
+</div>
+<div class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-tertiary-container/30 text-tertiary">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+<span class="font-label-xs text-label-xs font-semibold">+6.4% YoY</span>
+</div>
+</div>
+<div class="mt-space-sm flex items-baseline gap-space-sm">
+<span class="font-headline-xl-mobile text-headline-xl-mobile text-on-surface font-semibold tracking-tight">94.2</span>
+<span class="font-label-xs text-label-xs text-on-surface-variant font-medium">/ 100 benchmark benchmarked across 1,840 peers</span>
+</div>
+<!-- Inline Sparkline Curve -->
+<div class="mt-space-sm w-full h-14 relative flex items-end">
+<svg class="w-full h-full overflow-visible" preserveaspectratio="none" viewbox="0 0 320 60">
+<defs>
+<lineargradient id="velocityGlow" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#b4c5ff" stop-opacity="0.3"></stop>
+<stop offset="100%" stop-color="#b4c5ff" stop-opacity="0.0"></stop>
+</lineargradient>
+</defs>
+<path d="M 0,48 Q 40,50 80,38 T 160,30 T 240,18 T 320,8 L 320,60 L 0,60 Z" fill="url(#velocityGlow)"></path>
+<path d="M 0,48 Q 40,50 80,38 T 160,30 T 240,18 T 320,8" fill="none" stroke="#b4c5ff" stroke-linecap="round" stroke-width="2.5"></path>
+<circle cx="320" cy="8" fill="#4edea3" r="3.5"></circle>
+</svg>
+</div>
+<!-- Secondary Efficiency Metrics Grid -->
+<div class="grid grid-cols-2 gap-space-sm mt-space-md pt-space-sm bg-surface-container-low/60 rounded-lg p-2.5">
+<div class="flex flex-col">
+<div class="flex items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px] text-secondary">hourglass_disabled</span>
+<span class="font-label-xs text-label-xs font-medium">Sync Load Drop</span>
+</div>
+<span class="font-headline-sm text-headline-sm text-on-surface mt-0.5 font-semibold">1,420 hrs</span>
+<span class="font-body-sm text-body-sm text-tertiary">~$218k cost efficiency</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px] text-tertiary">difference</span>
+<span class="font-label-xs text-label-xs font-medium">Async Decision Rate</span>
+</div>
+<span class="font-headline-sm text-headline-sm text-on-surface mt-0.5 font-semibold">78.0%</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Resolved via RFC / Docs</span>
+</div>
+</div>
+</section>
+<!-- Interactive Functional Tabs & Domain Explorer -->
+<section class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Domain Modules</h2>
+<span class="font-label-xs text-label-xs text-outline">Real-Time Sync active</span>
+</div>
+<!-- Domain Pill Selectors -->
+<div class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+<button class="flex-shrink-0 px-3 py-1.5 rounded-full font-label-xs text-label-xs font-semibold bg-primary-container text-on-primary-container shadow-sm transition-all" id="tab-eng" onclick="switchTab('eng')">
+        Eng &amp; Product
+      </button>
+<button class="flex-shrink-0 px-3 py-1.5 rounded-full font-label-xs text-label-xs font-semibold bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all" id="tab-fin" onclick="switchTab('fin')">
+        Finance &amp; Treasury
+      </button>
+<button class="flex-shrink-0 px-3 py-1.5 rounded-full font-label-xs text-label-xs font-semibold bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all" id="tab-cul" onclick="switchTab('cul')">
+        People &amp; Culture
+      </button>
+<button class="flex-shrink-0 px-3 py-1.5 rounded-full font-label-xs text-label-xs font-semibold bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all" id="tab-sec" onclick="switchTab('sec')">
+        Infosec &amp; Audit
+      </button>
+</div>
+<!-- Module Panel: Engineering & Product -->
+<div class="flex flex-col gap-space-xs bg-surface-container rounded-xl p-space-md shadow-sm transition-all" id="panel-eng">
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-xs text-label-xs uppercase tracking-wider text-secondary">Global Engineering Fabric</span>
+<span class="font-label-xs text-label-xs text-tertiary flex items-center gap-1 font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span> SRE All Clear
+        </span>
+</div>
+<div class="grid grid-cols-3 gap-2 py-1">
+<div class="bg-surface-container-lowest/80 p-2.5 rounded-lg flex flex-col justify-between">
+<span class="font-label-xs text-label-xs text-outline">Sprints Closed</span>
+<span class="font-headline-md text-headline-md text-on-surface font-semibold mt-1">42</span>
+<span class="font-label-xs text-label-xs text-tertiary">100% on target</span>
+</div>
+<div class="bg-surface-container-lowest/80 p-2.5 rounded-lg flex flex-col justify-between">
+<span class="font-label-xs text-label-xs text-outline">PR Turnaround</span>
+<span class="font-headline-md text-headline-md text-on-surface font-semibold mt-1">14m</span>
+<span class="font-label-xs text-label-xs text-tertiary">-3.2m vs Q2</span>
+</div>
+<div class="bg-surface-container-lowest/80 p-2.5 rounded-lg flex flex-col justify-between">
+<span class="font-label-xs text-label-xs text-outline">Uptime SLA</span>
+<span class="font-headline-md text-headline-md text-on-surface font-semibold mt-1">98.4%</span>
+<span class="font-label-xs text-label-xs text-secondary">Target: 98.0%</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2 text-on-surface-variant font-label-xs text-label-xs">
+<span>Active microservices across AWS &amp; Cloudflare Workers</span>
+<button class="text-primary font-semibold hover:underline">View CI/CD Log</button>
+</div>
+</div>
+<!-- Module Panel: Finance & Treasury (Hidden by default) -->
+<div class="hidden flex-col gap-space-xs bg-surface-container rounded-xl p-space-md shadow-sm transition-all" id="panel-fin">
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-xs text-label-xs uppercase tracking-wider text-secondary">Capital &amp; Global Payroll</span>
+<span class="font-label-xs text-label-xs text-primary font-semibold">Ledger Synced</span>
+</div>
+<div class="grid grid-cols-3 gap-2 py-1">
+<div class="bg-surface-container-lowest/80 p-2.5 rounded-lg flex flex-col justify-between">
+<span class="font-label-xs text-label-xs text-outline">Quarterly Burn</span>
+<span class="font-headline-md text-headline-md text-on-surface font-semibold mt-1">$1.48M</span>
+<span class="font-label-xs text-label-xs text-tertiary">4.1% under plan</span>
+</div>
+<div class="bg-surface-container-lowest/80 p-2.5 rounded-lg flex flex-col justify-between">
+<span class="font-label-xs text-label-xs text-outline">Runway Horizon</span>
+<span class="font-headline-md text-headline-md text-on-surface font-semibold mt-1">24 mo</span>
+<span class="font-label-xs text-label-xs text-on-surface-variant">Conservative</span>
+</div>
+<div class="bg-surface-container-lowest/80 p-2.5 rounded-lg flex flex-col justify-between">
+<span class="font-label-xs text-label-xs text-outline">Auto Payroll</span>
+<span class="font-headline-md text-headline-md text-on-surface font-semibold mt-1">42</span>
+<span class="font-label-xs text-label-xs text-tertiary">Territories live</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2 text-on-surface-variant font-label-xs text-label-xs">
+<span>Zero foreign currency exchange slippage in Q3 remittances</span>
+<button class="text-primary font-semibold hover:underline">Auditor View</button>
+</div>
+</div>
+<!-- Module Panel: People & Culture (Hidden by default) -->
+<div class="hidden flex-col gap-space-xs bg-surface-container rounded-xl p-space-md shadow-sm transition-all" id="panel-cul">
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-xs text-label-xs uppercase tracking-wider text-secondary">Organizational Wellness</span>
+<span class="font-label-xs text-label-xs text-tertiary font-semibold">High Equilibrium</span>
+</div>
+<div class="grid grid-cols-3 gap-2 py-1">
+<div class="bg-surface-container-lowest/80 p-2.5 rounded-lg flex flex-col justify-between">
+<span class="font-label-xs text-label-xs text-outline">Global eNPS</span>
+<span class="font-headline-md text-headline-md text-on-surface font-semibold mt-1">+61</span>
+<span class="font-label-xs text-label-xs text-tertiary">Top 5% tech SaaS</span>
+</div>
+<div class="bg-surface-container-lowest/80 p-2.5 rounded-lg flex flex-col justify-between">
+<span class="font-label-xs text-label-xs text-outline">Burnout Risk</span>
+<span class="font-headline-md text-headline-md text-on-surface font-semibold mt-1">2.4%</span>
+<span class="font-label-xs text-label-xs text-tertiary">Minimal anomaly</span>
+</div>
+<div class="bg-surface-container-lowest/80 p-2.5 rounded-lg flex flex-col justify-between">
+<span class="font-label-xs text-label-xs text-outline">TZ Harmony</span>
+<span class="font-headline-md text-headline-md text-on-surface font-semibold mt-1">4.8</span>
+<span class="font-label-xs text-label-xs text-on-surface-variant">Out of 5.0 scale</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2 text-on-surface-variant font-label-xs text-label-xs">
+<span>Survey pulse completion: 94% across 8 timezone bands</span>
+<button class="text-primary font-semibold hover:underline">Pulse Details</button>
+</div>
+</div>
+<!-- Module Panel: Compliance & Infosec (Hidden by default) -->
+<div class="hidden flex-col gap-space-xs bg-surface-container rounded-xl p-space-md shadow-sm transition-all" id="panel-sec">
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-xs text-label-xs uppercase tracking-wider text-secondary">Threat &amp; SOC2 Telemetry</span>
+<span class="font-label-xs text-label-xs text-tertiary font-semibold">Continuous Trust</span>
+</div>
+<div class="grid grid-cols-3 gap-2 py-1">
+<div class="bg-surface-container-lowest/80 p-2.5 rounded-lg flex flex-col justify-between">
+<span class="font-label-xs text-label-xs text-outline">Controls Pass</span>
+<span class="font-headline-md text-headline-md text-on-surface font-semibold mt-1">100%</span>
+<span class="font-label-xs text-label-xs text-tertiary">118/118 passing</span>
+</div>
+<div class="bg-surface-container-lowest/80 p-2.5 rounded-lg flex flex-col justify-between">
+<span class="font-label-xs text-label-xs text-outline">Critical CVEs</span>
+<span class="font-headline-md text-headline-md text-on-surface font-semibold mt-1">0</span>
+<span class="font-label-xs text-label-xs text-tertiary">Zero exposure</span>
+</div>
+<div class="bg-surface-container-lowest/80 p-2.5 rounded-lg flex flex-col justify-between">
+<span class="font-label-xs text-label-xs text-outline">SOC2 Modules</span>
+<span class="font-headline-md text-headline-md text-on-surface font-semibold mt-1">100%</span>
+<span class="font-label-xs text-label-xs text-tertiary">Staff certified</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2 text-on-surface-variant font-label-xs text-label-xs">
+<span>Vanta auto-evidence collector verified 4 mins ago</span>
+<button class="text-primary font-semibold hover:underline">SecOps Portal</button>
+</div>
+</div>
+</section>
+<!-- AI Executive Insights Card -->
+<section class="bg-gradient-to-br from-surface-container-high via-surface-container to-surface-container-low rounded-xl p-space-md shadow-md relative overflow-hidden">
+<div class="flex items-center gap-space-xs mb-space-xs">
+<span class="p-1 rounded-md bg-secondary-container/20 text-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px]">auto_awesome</span>
+</span>
+<span class="font-label-xs text-label-xs font-semibold uppercase tracking-wider text-secondary">
+        Autonomous Chrono-Optimizer
+      </span>
+</div>
+<div class="flex flex-col gap-1.5">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">
+        APAC Handoff Shift Yields +22% Async Velocity
+      </h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+        Shifting APAC core engineering syncs 45 minutes earlier reduced multi-region Slack context fragmentation, driving a <strong class="text-on-surface">22% surge</strong> in documentation signoffs without requiring overtime hours.
+      </p>
+</div>
+<!-- Visual telemetry strip -->
+<div class="mt-space-sm pt-space-xs flex items-center justify-between bg-surface-container-lowest/60 px-3 py-2 rounded-lg">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-tertiary"></div>
+<span class="font-label-xs text-label-xs text-on-surface">Simulated Q4 upside: +$42k bandwidth</span>
+</div>
+<button class="px-2.5 py-1 bg-primary text-on-primary font-label-xs text-label-xs font-semibold rounded-md shadow-sm active:scale-95 transition-all" onclick="applyRecommendation(this)">
+        Adopt Policy
+      </button>
+</div>
+</section>
+<!-- Automated Digests & Telemetry Distribution -->
+<section class="bg-surface-container rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[18px] text-primary">schedule_send</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Scheduled Digests</h3>
+</div>
+<span class="font-label-xs text-label-xs text-tertiary px-2 py-0.5 rounded-full bg-tertiary-container/20 font-medium">3 Configured</span>
+</div>
+<div class="flex flex-col gap-space-xs">
+<!-- Item 1: Slack Webhook -->
+<div class="flex items-center justify-between p-2.5 bg-surface-container-low rounded-lg">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center flex-shrink-0 text-secondary">
+<span class="material-symbols-outlined text-[18px]">forum</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-md text-label-md text-on-surface truncate">#executive-telemetry</span>
+<span class="font-label-xs text-label-xs text-outline">Mondays at 07:00 UTC · Slack Bot</span>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-9 h-5 bg-surface-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-on-surface after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-container"></div>
+</label>
+</div>
+<!-- Item 2: Board Packet PDF -->
+<div class="flex items-center justify-between p-2.5 bg-surface-container-low rounded-lg">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center flex-shrink-0 text-error">
+<span class="material-symbols-outlined text-[18px]">mark_email_read</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-md text-label-md text-on-surface truncate">Board of Directors Packet</span>
+<span class="font-label-xs text-label-xs text-outline">1st of Month · Encrypted PDF</span>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-9 h-5 bg-surface-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-on-surface after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-container"></div>
+</label>
+</div>
+</div>
+<!-- Instant Trigger Action -->
+<div class="pt-space-xs flex justify-between items-center text-outline font-label-xs text-label-xs">
+<span>Last sync dispatch: Today at 04:30 UTC</span>
+<button class="text-primary hover:text-primary-fixed font-semibold transition-colors flex items-center gap-0.5" onclick="triggerNow(this)">
+<span class="material-symbols-outlined text-[14px]">refresh</span>
+        Run Test Dispatch
+      </button>
+</div>
+</section>
+<!-- Live Toast Element (DOM Injection) -->
+<div class="fixed bottom-20 left-4 right-4 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none flex items-center justify-between p-3 rounded-xl bg-surface-bright text-on-surface shadow-2xl" id="toastNotification">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-[20px]" id="toastIcon">check_circle</span>
+<span class="font-label-sm text-label-sm" id="toastMessage">Export triggered successfully</span>
+</div>
+<span class="font-label-xs text-label-xs text-outline">OrbitOS Telemetry</span>
+</div>
+</div>
+<script>
+  function toggleExportMenu() {
+    const flyout = document.getElementById('exportFlyout');
+    if (flyout.classList.contains('hidden')) {
+      flyout.classList.remove('hidden');
+      flyout.classList.add('flex');
+    } else {
+      flyout.classList.add('hidden');
+      flyout.classList.remove('flex');
+    }
+  }
+
+  function simulateExport(format) {
+    toggleExportMenu();
+    showToast(`Generating ${format}... Download scheduled.`);
+  }
+
+  function applyRecommendation(btn) {
+    btn.disabled = true;
+    btn.innerText = 'Enacted';
+    btn.classList.remove('bg-primary');
+    btn.classList.add('bg-tertiary', 'text-on-tertiary');
+    showToast('Chrono schedule policy pushed to APAC calendar routing.');
+  }
+
+  function triggerNow(btn) {
+    const orig = btn.innerHTML;
+    btn.innerHTML = `<span class="material-symbols-outlined text-[14px] animate-spin">refresh</span> Dispatching...`;
+    setTimeout(() => {
+      btn.innerHTML = orig;
+      showToast('Payload pushed to Slack #executive-telemetry.');
+    }, 900);
+  }
+
+  function switchTab(id) {
+    const tabs = ['eng', 'fin', 'cul', 'sec'];
+    tabs.forEach(t => {
+      const tabBtn = document.getElementById('tab-' + t);
+      const panel = document.getElementById('panel-' + t);
+      if (t === id) {
+        tabBtn.className = 'flex-shrink-0 px-3 py-1.5 rounded-full font-label-xs text-label-xs font-semibold bg-primary-container text-on-primary-container shadow-sm transition-all';
+        panel.classList.remove('hidden');
+        panel.classList.add('flex');
+      } else {
+        tabBtn.className = 'flex-shrink-0 px-3 py-1.5 rounded-full font-label-xs text-label-xs font-semibold bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all';
+        panel.classList.add('hidden');
+        panel.classList.remove('flex');
+      }
+    });
+  }
+
+  function showToast(msg) {
+    const toast = document.getElementById('toastNotification');
+    const toastMsg = document.getElementById('toastMessage');
+    toastMsg.innerText = msg;
+    toast.classList.remove('translate-y-24', 'opacity-0');
+    toast.classList.add('translate-y-0', 'opacity-100');
+    setTimeout(() => {
+      toast.classList.remove('translate-y-0', 'opacity-100');
+      toast.classList.add('translate-y-24', 'opacity-0');
+    }, 2800);
+  }
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface-container-lowest/85 backdrop-blur-xl shadow-[0_-1px_12px_rgba(0,0,0,0.35)]" data-active-classes="text-primary-fixed bg-surface-container-high/80 shadow-[0_0_16px_-2px_rgba(37,99,235,0.35)] font-label-sm"><div class="flex items-center gap-1.5 h-16 px-space-xs overflow-x-auto no-scrollbar scroll-smooth"><a class="flex flex-col items-center justify-center gap-0.5 min-w-[54px] min-h-[44px] px-2 py-1 rounded-xl text-on-surface-variant transition-all hover:text-on-surface flex-shrink-0" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[20px]">grid_view</span><span class="font-label-xs text-label-xs">Dashboard</span></a><a class="flex flex-col items-center justify-center gap-0.5 min-w-[54px] min-h-[44px] px-2 py-1 rounded-xl text-on-surface-variant transition-all hover:text-on-surface flex-shrink-0" data-path="operations" href="#"><span class="material-symbols-outlined text-[20px]">view_kanban</span><span class="font-label-xs text-label-xs">Operations</span></a><a class="flex flex-col items-center justify-center gap-0.5 min-w-[54px] min-h-[44px] px-2 py-1 rounded-xl text-on-surface-variant transition-all hover:text-on-surface flex-shrink-0" data-path="scheduling" href="#"><span class="material-symbols-outlined text-[20px]">schedule</span><span class="font-label-xs text-label-xs">Scheduling</span></a><a class="flex flex-col items-center justify-center gap-0.5 min-w-[54px] min-h-[44px] px-2 py-1 rounded-xl text-on-surface-variant transition-all hover:text-on-surface flex-shrink-0" data-path="culture" href="#"><span class="material-symbols-outlined text-[20px]">auto_awesome</span><span class="font-label-xs text-label-xs">Culture</span></a><a class="flex flex-col items-center justify-center gap-0.5 min-w-[54px] min-h-[44px] px-2 py-1 rounded-xl text-on-surface-variant transition-all hover:text-on-surface flex-shrink-0" data-path="compliance" href="#"><span class="material-symbols-outlined text-[20px]">verified_user</span><span class="font-label-xs text-label-xs">Compliance</span></a><a class="flex flex-col items-center justify-center gap-0.5 min-w-[54px] min-h-[44px] px-2 py-1 rounded-xl text-on-surface-variant transition-all hover:text-on-surface flex-shrink-0" data-path="reports-analytics" href="#"><span class="material-symbols-outlined text-[20px]">analytics</span><span class="font-label-xs text-label-xs">Analytics</span></a><a class="flex flex-col items-center justify-center gap-0.5 min-w-[54px] min-h-[44px] px-2 py-1 rounded-xl text-on-surface-variant transition-all hover:text-on-surface flex-shrink-0" data-path="settings" href="#"><span class="material-symbols-outlined text-[20px]">settings</span><span class="font-label-xs text-label-xs">Settings</span></a></div></nav></body></html>

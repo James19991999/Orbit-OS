@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Local Supabase-compatible stack for end-to-end tests: Postgres + GoTrue (auth) + PostgREST + gateway.
+# Requires: a running Postgres (PGHOST/PGPORT), and the postgrest + auth binaries in $BIN.
+set -euo pipefail
+DIR="$(cd "$(dirname "$0")" && pwd)"; ROOT="$DIR/../.."
+BIN="${BIN:-/home/pgrun/bin}"; DB="${DB:-orbitos_e2e}"
+export PGHOST="${PGHOST:-/tmp}" PGPORT="${PGPORT:-54329}" PGUSER="${PGUSER:-postgres}"
+SECRET="${JWT_SECRET:-local-dev-jwt-secret-at-least-32-characters-long}"
+pkill -x auth 2>/dev/null || true; pkill -x postgrest 2>/dev/null || true; pkill -f "local-stack/proxy.mjs" 2>/dev/null || true
+sleep 0.5
+psql -q -d postgres -c "drop database if exists $DB with (force)" -c "create database $DB" >/dev/null
+psql -q -d "$DB" -v ON_ERROR_STOP=1 -f "$DIR/bootstrap.sql" >/dev/null
+DBURL="postgres://supabase_auth_admin@localhost:$PGPORT/$DB?host=$PGHOST&sslmode=disable"
+(cd "$BIN" && GOTRUE_DB_DRIVER=postgres DATABASE_URL="$DBURL" GOTRUE_DB_NAMESPACE=auth API_EXTERNAL_URL=http://localhost:54321/auth/v1 \
+  GOTRUE_API_HOST=127.0.0.1 PORT=9999 GOTRUE_SITE_URL=http://localhost:3000 GOTRUE_URI_ALLOW_LIST='http://localhost:3000/**' \
+  GOTRUE_JWT_SECRET="$SECRET" GOTRUE_JWT_EXP=3600 GOTRUE_JWT_AUD=authenticated GOTRUE_JWT_DEFAULT_GROUP_NAME=authenticated GOTRUE_JWT_ADMIN_ROLES=service_role \
+  GOTRUE_EXTERNAL_EMAIL_ENABLED=true GOTRUE_MAILER_AUTOCONFIRM=true GOTRUE_DISABLE_SIGNUP=false GOTRUE_LOG_LEVEL=warn \
+  GOTRUE_MFA_TOTP_ENROLL_ENABLED=true GOTRUE_MFA_TOTP_VERIFY_ENABLED=true GOTRUE_RATE_LIMIT_EMAIL_SENT=1000 \
+  setsid nohup ./auth < /dev/null > /tmp/gotrue.log 2>&1 &)
+for i in $(seq 1 40); do curl -sf http://127.0.0.1:9999/health >/dev/null && break; sleep 0.5; done
+curl -sf http://127.0.0.1:9999/health >/dev/null || { echo "GoTrue failed"; tail -20 /tmp/gotrue.log; exit 1; }
+psql -q -d "$DB" -v ON_ERROR_STOP=1 -f "$DIR/post-auth.sql" >/dev/null
+for f in "$ROOT"/supabase/migrations/*.sql; do psql -q -d "$DB" -v ON_ERROR_STOP=1 -f "$f" >/dev/null 2>&1 || { echo "migration failed: $f"; psql -d "$DB" -v ON_ERROR_STOP=1 -f "$f" 2>&1 | grep -i error | head; exit 1; }; done
+psql -q -d "$DB" -v ON_ERROR_STOP=1 -f "$ROOT/supabase/seed.sql" >/dev/null
+PGRST_DB_URI="postgres://authenticator@localhost:$PGPORT/$DB?host=$PGHOST" PGRST_DB_SCHEMAS=public PGRST_DB_ANON_ROLE=anon \
+  PGRST_JWT_SECRET="$SECRET" PGRST_SERVER_PORT=3001 PGRST_SERVER_HOST=127.0.0.1 PGRST_DB_POOL=10 \
+  setsid nohup "$BIN/postgrest" < /dev/null > /tmp/postgrest.log 2>&1 &
+setsid nohup node "$DIR/proxy.mjs" < /dev/null > /tmp/gateway.log 2>&1 &
+for i in $(seq 1 40); do curl -sf http://127.0.0.1:3001/ >/dev/null && break; sleep 0.5; done
+ANON=$(node "$DIR/jwt.mjs" anon "$SECRET"); SERVICE=$(node "$DIR/jwt.mjs" service_role "$SECRET")
+cat > "$ROOT/.env.local" <<ENV
+NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON
+SUPABASE_SERVICE_ROLE_KEY=$SERVICE
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+CRON_SECRET=local-cron-secret
+INTASEND_WEBHOOK_CHALLENGE=local-challenge
+INTASEND_TEST_MODE=true
+WEBAUTHN_RP_ID=localhost
+ENV
+if [ "${WITH_INTASEND_MOCK:-1}" = "1" ]; then
+  pkill -f "local-stack/intasend-mock.mjs" 2>/dev/null || true
+  setsid nohup node "$DIR/intasend-mock.mjs" < /dev/null > /tmp/intasend-mock.log 2>&1 &
+  printf 'INTASEND_PUBLISHABLE_KEY=ISPubKey_test_mock\nINTASEND_SECRET_KEY=ISSecretKey_test_mock\nINTASEND_BASE_URL=http://localhost:54400\n' >> "$ROOT/.env.local"
+fi
+echo "stack up: gateway http://localhost:54321 (auth + rest), db=$DB; wrote .env.local"

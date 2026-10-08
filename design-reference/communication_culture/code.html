@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#0b1326;color:#dae2fd;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "on-error-container": "#ffdad6", "surface-tint": "#b4c5ff", "on-secondary-fixed-variant": "#004c6e", "inverse-on-surface": "#283044", "surface-bright": "#31394d", "on-background": "#dae2fd", "background": "#0b1326", "on-surface-variant": "#c3c6d7", "on-primary-fixed": "#00174b", "on-tertiary": "#003824", "on-secondary-container": "#00344e", "surface-container-highest": "#2d3449", "primary-fixed-dim": "#b4c5ff", "primary-container": "#2563eb", "tertiary-fixed": "#6ffbbe", "on-tertiary-container": "#bdffdb", "secondary": "#89ceff", "error": "#ffb4ab", "outline": "#8d90a0", "tertiary-container": "#007d55", "surface-container": "#171f33", "surface-variant": "#2d3449", "on-error": "#690005", "on-tertiary-fixed-variant": "#005236", "surface-container-low": "#131b2e", "primary": "#b4c5ff", "surface-container-lowest": "#060e20", "tertiary": "#4edea3", "tertiary-fixed-dim": "#4edea3", "inverse-surface": "#dae2fd", "inverse-primary": "#0053db", "on-tertiary-fixed": "#002113", "primary-fixed": "#dbe1ff", "on-secondary-fixed": "#001e2f", "secondary-fixed": "#c9e6ff", "surface-container-high": "#222a3d", "on-surface": "#dae2fd", "on-primary-container": "#eeefff", "on-primary-fixed-variant": "#003ea8", "on-secondary": "#00344d", "secondary-fixed-dim": "#89ceff", "surface": "#0b1326", "surface-dim": "#0b1326", "on-primary": "#002a78", "outline-variant": "#434655", "secondary-container": "#00a2e6", "error-container": "#93000a" }, borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" }, spacing: { "gutter-sm": "1rem", "space-xl": "2.5rem", "gutter": "1.5rem", "margin": "2rem", "margin-sm": "1rem", "space-sm": "0.5rem", "space-xs": "0.25rem", "space-lg": "1.5rem", "space-md": "1rem" }, fontFamily: { "headline-lg": ["Geist"], "label-xs": ["Geist"], "label-md": ["Geist"], "body-lg": ["Geist"], "headline-md": ["Geist"], "headline-xl-mobile": ["Geist"], "headline-xl": ["Geist"], "headline-sm": ["Geist"], "label-sm": ["Geist"], "headline-lg-mobile": ["Geist"], "body-md": ["Geist"], "body-sm": ["Geist"] }, fontSize: { "headline-lg": ["2rem", { "lineHeight": "2.5rem", "letterSpacing": "-0.02em", "fontWeight": "600" }], "label-xs": ["0.6875rem", { "lineHeight": "0.875rem", "letterSpacing": "0.04em", "fontWeight": "600" }], "label-md": ["0.875rem", { "lineHeight": "1.25rem", "letterSpacing": "0.01em", "fontWeight": "500" }], "body-lg": ["1rem", { "lineHeight": "1.5rem", "letterSpacing": "-0.005em", "fontWeight": "400" }], "headline-md": ["1.25rem", { "lineHeight": "1.75rem", "letterSpacing": "-0.015em", "fontWeight": "600" }], "headline-xl-mobile": ["2rem", { "lineHeight": "2.5rem", "letterSpacing": "-0.02em", "fontWeight": "600" }], "headline-xl": ["3rem", { "lineHeight": "3.5rem", "letterSpacing": "-0.025em", "fontWeight": "600" }], "headline-sm": ["1.125rem", { "lineHeight": "1.5rem", "letterSpacing": "-0.01em", "fontWeight": "500" }], "label-sm": ["0.75rem", { "lineHeight": "1rem", "letterSpacing": "0.02em", "fontWeight": "600" }], "headline-lg-mobile": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.015em", "fontWeight": "600" }], "body-md": ["0.875rem", { "lineHeight": "1.25rem", "letterSpacing": "0", "fontWeight": "400" }], "body-sm": ["0.75rem", { "lineHeight": "1rem", "letterSpacing": "0.005em", "fontWeight": "400" }] } } } };</script></head><body class="bg-surface text-on-surface font-body-md flex flex-col min-h-screen selection:bg-primary-container selection:text-on-primary-container"><header class="fixed top-0 w-full z-50 pt-safe bg-surface-container-lowest/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.25)]"><div class="h-16 px-gutter-sm flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-sm min-w-0"><img alt="OrbitOS Brand Logo" class="h-8 w-auto object-contain flex-shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1WDTdminmjuzZZa20kGSLNh6iML5kGJuG1yH-6NaiTTHHl-UxY-PgnhNJwRcTB7torZ0HsIjlohOXlu2cW5WbDpZlyHYvgcZiw__sRfGwlEQmVoEHdMEHG5GkEOraCyfS9XKAD7POcU-R8OHBvriGc26FcmmjezGcq8dEaOVXtgleN-u-zs-xjJ-bxJ-zygX_nXJwbuVDR0N-5mwzsPFCbfYoCWPFekBdMJgT0nf1fy"/><div class="flex flex-col min-w-0"><div class="flex items-center gap-space-xs"><span class="font-label-xs text-label-xs uppercase tracking-wider text-outline">OrbitOS</span><span class="font-label-xs text-label-xs text-on-surface-variant font-medium">·</span><span class="font-label-xs text-label-xs text-primary font-medium truncate">Culture</span></div><button class="flex items-center gap-space-xs text-left group min-w-0"><span class="font-label-md text-label-md text-on-surface font-semibold truncate group-hover:text-primary transition-colors">Acme Global Inc.</span><span class="material-symbols-outlined text-[18px] text-on-surface-variant transition-transform group-hover:translate-y-0.5">expand_more</span></button></div></div><div class="flex items-center gap-space-sm flex-shrink-0"><button class="relative w-11 h-11 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60 transition-colors"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-2 right-2 flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span></span></button><div class="relative flex items-center justify-center"><img alt="Profile" class="w-8 h-8 rounded-full object-cover ring-1 ring-outline/30" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7gfHYJBLnTt8b9pGN6UW-4EAINdeNLdaDFtAupLucZadRKq-izTPhBISO9-JT1VXi6aqQWCv7W3KoHDixYQx7nr_2EmIdO7BKKfH0izpErefRjXC6AGxMNHJwGVr9mkdGY_KdajxPSlG32z6VN2PZMZv42p83zbroOMevSDVbx8zTXQrUCG2_cr2vMTJU1Ou_itBj_LsLcbu5xj1sszLPtgp_JZdmcZPNo8Xasek"/><span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-tertiary ring-2 ring-surface-container-lowest"></span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 pb-24 bg-surface"><div class="flex flex-col w-full px-gutter-sm space-y-space-md">
+<!-- Ambient Sub-header & Presence Bar -->
+<div class="flex items-center justify-between pt-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+<span class="font-label-xs text-label-xs text-on-surface-variant uppercase tracking-wider">Distributed Orbit · 18 Cities Live</span>
+</div>
+<div class="flex items-center -space-x-1.5 overflow-hidden">
+<div class="w-6 h-6 rounded-full bg-surface-container-high flex items-center justify-center text-[10px] font-label-xs text-secondary ring-1 ring-surface-container-lowest">LDN</div>
+<div class="w-6 h-6 rounded-full bg-surface-container-high flex items-center justify-center text-[10px] font-label-xs text-tertiary ring-1 ring-surface-container-lowest">SFO</div>
+<div class="w-6 h-6 rounded-full bg-surface-container-high flex items-center justify-center text-[10px] font-label-xs text-primary ring-1 ring-surface-container-lowest">TYO</div>
+<div class="w-6 h-6 rounded-full bg-surface-container-highest flex items-center justify-center text-[9px] font-label-xs text-on-surface-variant ring-1 ring-surface-container-lowest">+42</div>
+</div>
+</div>
+<!-- Hub Segmented Tab Control -->
+<div class="bg-surface-container-lowest p-1 rounded-xl flex items-center gap-1 shadow-sm">
+<button class="flex-1 py-2 px-2 rounded-lg font-label-sm text-label-sm text-center transition-all bg-primary-container text-on-primary-container shadow-md flex items-center justify-center gap-1" id="tab-lounge" onclick="switchHubTab('lounge')">
+<span class="material-symbols-outlined text-[16px]">coffee</span>
+<span>Lounge</span>
+</button>
+<button class="flex-1 py-2 px-2 rounded-lg font-label-sm text-label-sm text-center transition-all text-on-surface-variant hover:text-on-surface flex items-center justify-center gap-1" id="tab-channels" onclick="switchHubTab('channels')">
+<span class="material-symbols-outlined text-[16px]">forum</span>
+<span>Channels</span>
+</button>
+<button class="flex-1 py-2 px-2 rounded-lg font-label-sm text-label-sm text-center transition-all text-on-surface-variant hover:text-on-surface flex items-center justify-center gap-1" id="tab-kudos" onclick="switchHubTab('kudos')">
+<span class="material-symbols-outlined text-[16px]">military_tech</span>
+<span>Kudos</span>
+</button>
+</div>
+<!-- SECTION 1: Virtual Coffee Room & Informal Hangout Lounge -->
+<div class="space-y-space-md" id="view-lounge">
+<!-- Warm Ambient Lounge Banner -->
+<div class="relative overflow-hidden rounded-xl bg-surface-container p-space-md shadow-md">
+<div class="absolute -right-6 -bottom-6 w-28 h-28 rounded-full bg-primary/10 blur-xl pointer-events-none"></div>
+<div class="flex items-start justify-between relative z-10">
+<div class="space-y-1">
+<div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-container-high text-tertiary font-label-xs text-label-xs">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-ping"></span>
+            Lounge Active
+          </div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold flex items-center gap-1.5">
+<span>☕ The Lounge is Warm</span>
+</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">4 teammates unwinding between timezones</p>
+</div>
+<div class="flex -space-x-2">
+<img class="w-8 h-8 rounded-full object-cover ring-2 ring-surface-container" data-alt="Portrait photo of a friendly female software engineer wearing casual glasses smiling warmly against soft studio backdrop" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBcnc977s0fmv1xD8XVJ-fJeDcOJavC9wk00ivW4JfqA5fxhAwRSJuDxWlgn91D-bpeikJ7V7VZmhiIYBZXyYZvvIAZwXM1ogdnNZZM7O6FFYppUTQlmvHxTLGzGyMwe40NrFwCJ4fRmNBpfgeHjsjHnZzvwsj7D6ipVUepAruceBaOMdTDgQUEKNLzFE1FGPT4KoTKuE8S3bOOpvh2kvfC7fzpQ1_IFGw2sW8AVPU"/>
+<img class="w-8 h-8 rounded-full object-cover ring-2 ring-surface-container" data-alt="Portrait photo of a young male creative designer with headphones in natural soft morning light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4fgKmXXyXY-vWbFp5cfP1CCbGdxP-82sZaoLNpi0qjRoWGisQ-U72FTfb_2jFR76c7tT8Qr3O8Rg968w0eQUdCG7jx3a3qvuBAtz_LetfoLXamX_SZCOb7SfV7etERNAmBjX2JSXG65G0GTY-eAKpT2vjFdb38mEDGLZcBEUkEiV6ZJuyAOx_07RfguXcQG9F3p_CGrd1YoWFo8D4FEwRoDMTadd3nSsTh0odUS8"/>
+<img class="w-8 h-8 rounded-full object-cover ring-2 ring-surface-container" data-alt="Portrait photo of an Asian executive woman team lead in cozy navy knitwear smiling gently" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXat9-g_MlwjLk_RCjGPm7eO4uZchuZQBTB8l2k5PaOSDJRaWz9nafwabzzZJ6HIeVHgJt44XYAJMlRAq3weQy_Ozrnlt2kA-GTZdKDHkwyBRdOCrESN6WqU6uB1cZLV0lO0k_jJeOwxZYAW4kZh5yoPCXAcl7dnxFTOAhyutxhSSDsixQPSC0XH0hlbDdeEE8vJ74xPChWNFin1Q0XXag0awVD3nzKa9YkkeqYOI"/>
+</div>
+</div>
+</div>
+<!-- Active Rooms Stack -->
+<div class="space-y-space-sm">
+<div class="flex items-center justify-between px-1">
+<span class="font-label-xs text-label-xs uppercase tracking-wider text-outline">Open Hangout Spaces</span>
+<span class="font-label-xs text-label-xs text-primary font-medium">Auto-Join via Audio</span>
+</div>
+<!-- Room A: Casual Coffee & Lo-Fi Music -->
+<div class="bg-surface-container rounded-xl p-space-md space-y-space-sm shadow-sm transition-transform active:scale-[0.99]">
+<div class="flex items-start justify-between">
+<div class="space-y-0.5">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[20px]">graphic_eq</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-medium">Casual Coffee & Beats</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Chill synthwave background · Drop-in chat</p>
+</div>
+<!-- Live Audio Wave Pill -->
+<div class="flex items-center gap-1 px-2 py-1 rounded-full bg-surface-container-high text-secondary">
+<span class="flex items-end gap-0.5 h-3">
+<span class="w-0.5 h-3 bg-secondary rounded-full animate-bounce"></span>
+<span class="w-0.5 h-1.5 bg-secondary rounded-full animate-pulse"></span>
+<span class="w-0.5 h-2.5 bg-secondary rounded-full animate-bounce delay-100"></span>
+</span>
+<span class="font-label-xs text-label-xs font-semibold ml-1">Live</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center gap-2">
+<div class="flex -space-x-1.5">
+<img class="w-7 h-7 rounded-full object-cover ring-1 ring-surface-container" data-alt="Young male product designer wearing yellow beanie smiling indoors in cozy cafe setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBAZCFqDGGVLq-ztdhpIP2-n3-dFGCKCar84D0040A6GZtjiYJScaugOE56JImrTqOytnMHKET_1dCimzVV5gXh7gXvPBDPbTPsRSAHeHiY9teXr68q9fr9gRtxOCgQ87pFx0-doHchfvoXQ0LMLeaWZG7h2Ozx0QsC9OFukKkvGGxeU69GHdAlzk_gakQ8D3KuXco5hIEu_eGeK5Hq9b4JvufVKXrGfQMvjLqqugs"/>
+<img class="w-7 h-7 rounded-full object-cover ring-1 ring-surface-container" data-alt="Female tech lead smiling warmly at camera with soft purple cinematic lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBVXsAAkxiLOscZ_IFf2gG4hXM7W0BgvYwyo7P-NJS1etd7sioTDSCg098BYx37WBgDg0UVOoRtuPESSEG7yD0koWLz36199kdVN7DR9ylf_uL7us_QRY2du2azVHCBvojH1heZwJuYrYnfRhQsNfZDqFyC0apgcptMHwO_hb4cdUgbu7eCkJv4PRboqlgDxu0EXHvnIJBfyIrkXCdGD3YALQEaaQYnamGTJ8DSp70"/>
+<div class="w-7 h-7 rounded-full bg-surface-container-high flex items-center justify-center font-label-xs text-[10px] text-on-surface-variant ring-1 ring-surface-container">+1</div>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Sam, Nia & Roy</span>
+</div>
+<button class="px-space-md py-1.5 rounded-lg bg-primary-container text-on-primary-container font-label-sm text-label-sm font-semibold shadow hover:brightness-110 transition-all flex items-center gap-1" onclick="simulateJoin(this)">
+<span class="material-symbols-outlined text-[16px]">headset</span>
+<span>Join Lounge</span>
+</button>
+</div>
+</div>
+<!-- Room B: Silent Coworking / Pomodoro -->
+<div class="bg-surface-container-low rounded-xl p-space-md space-y-space-sm shadow-sm">
+<div class="flex items-start justify-between">
+<div class="space-y-0.5">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-[20px]">timer</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-medium">Deep Coworking (25/5)</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Focus Sprint 2 of 4 · Mics strictly muted</p>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-tertiary font-label-xs text-label-xs font-medium">
+            18:24 left
+          </span>
+</div>
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-outline text-[18px]">mic_off</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">6 members in flow</span>
+</div>
+<button class="px-space-md py-1.5 rounded-lg bg-surface-container-high text-on-surface font-label-sm text-label-sm font-medium hover:bg-surface-container-highest transition-colors">
+            Sit Quietly
+          </button>
+</div>
+</div>
+</div>
+<!-- Live Team Pulse Survey Widget -->
+<div class="bg-surface-container-high rounded-xl p-space-md space-y-space-sm shadow-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-secondary text-[18px]">query_stats</span>
+<span class="font-label-xs text-label-xs uppercase tracking-wider text-secondary font-semibold">Weekly Culture Pulse</span>
+</div>
+<span class="font-label-xs text-label-xs text-on-surface-variant">48 responses</span>
+</div>
+<p class="font-label-md text-label-md text-on-surface font-medium">
+        How manageable was your cross-timezone coordination this week?
+      </p>
+<!-- Poll Options -->
+<div class="space-y-2 pt-1" id="pulse-poll">
+<!-- Option 1 -->
+<button class="w-full relative overflow-hidden rounded-lg bg-surface-container p-2.5 text-left group transition-all" onclick="votePulse(1, 64)">
+<div class="absolute inset-0 bg-tertiary-container/30 rounded-lg w-[64%] transition-all duration-700"></div>
+<div class="relative z-10 flex items-center justify-between">
+<span class="font-body-sm text-body-sm text-on-surface flex items-center gap-1.5">
+<span>🟢</span> Very Smooth
+            </span>
+<span class="font-label-sm text-label-sm text-tertiary font-semibold">64%</span>
+</div>
+</button>
+<!-- Option 2 -->
+<button class="w-full relative overflow-hidden rounded-lg bg-surface-container p-2.5 text-left group transition-all" onclick="votePulse(2, 28)">
+<div class="absolute inset-0 bg-secondary/15 rounded-lg w-[28%] transition-all duration-700"></div>
+<div class="relative z-10 flex items-center justify-between">
+<span class="font-body-sm text-body-sm text-on-surface flex items-center gap-1.5">
+<span>🟡</span> Manageable
+            </span>
+<span class="font-label-sm text-label-sm text-secondary font-semibold">28%</span>
+</div>
+</button>
+<!-- Option 3 -->
+<button class="w-full relative overflow-hidden rounded-lg bg-surface-container p-2.5 text-left group transition-all" onclick="votePulse(3, 8)">
+<div class="absolute inset-0 bg-error/20 rounded-lg w-[8%] transition-all duration-700"></div>
+<div class="relative z-10 flex items-center justify-between">
+<span class="font-body-sm text-body-sm text-on-surface flex items-center gap-1.5">
+<span>🔴</span> Too many late calls
+            </span>
+<span class="font-label-sm text-label-sm text-error font-semibold">8%</span>
+</div>
+</button>
+</div>
+<p class="font-body-sm text-[11px] text-outline text-right italic">1-tap anonymous feedback</p>
+</div>
+</div>
+<!-- SECTION 2: Topic Channels & Async Standup Feeds -->
+<div class="space-y-space-md hidden" id="view-channels">
+<!-- Daily Async Check-in Bar -->
+<div class="bg-surface-container-high rounded-xl p-space-md space-y-space-xs shadow-sm">
+<div class="flex items-center justify-between">
+<span class="font-label-xs text-label-xs uppercase tracking-wider text-tertiary font-semibold">Async Roll Call</span>
+<span class="font-label-xs text-label-xs text-on-surface-variant font-medium">92% Completed</span>
+</div>
+<div class="flex items-center justify-between gap-space-sm">
+<div class="min-w-0">
+<p class="font-headline-sm text-headline-sm text-on-surface font-semibold truncate">What did you ship today?</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Keep your distributed node in sync</p>
+</div>
+<button class="flex-shrink-0 px-3 py-1.5 rounded-lg bg-surface-container-highest text-secondary font-label-sm text-label-sm font-semibold hover:bg-secondary hover:text-on-secondary transition-colors">
+          Check In
+        </button>
+</div>
+<!-- Minimalist Progress Bar -->
+<div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden mt-1">
+<div class="h-full bg-tertiary rounded-full w-[92%]"></div>
+</div>
+</div>
+<!-- Pinned Announcement Card -->
+<div class="bg-surface-container rounded-xl p-space-md space-y-space-xs shadow-sm relative overflow-hidden">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[18px]">push_pin</span>
+<span class="font-label-xs text-label-xs font-semibold uppercase text-primary">#announcements</span>
+</div>
+<span class="font-label-xs text-label-xs text-on-surface-variant">2h ago</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold">Quarterly Remote Retreat voting is live! 🎉</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">
+        Options for Q3 all-hands: Lisbon coast vs. Kyoto gardens. Vote closes this Friday at 17:00 UTC.
+      </p>
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-xs text-label-xs">🏝️ Lisbon: 34</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-xs text-label-xs">⛩️ Kyoto: 41</span>
+</div>
+<button class="font-label-xs text-label-xs text-secondary font-semibold flex items-center gap-0.5">
+<span>Vote Now</span>
+<span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Channel Stream List -->
+<div class="space-y-space-sm">
+<span class="font-label-xs text-label-xs uppercase tracking-wider text-outline px-1">Active Streams</span>
+<!-- Channel Item 1 -->
+<div class="bg-surface-container-low rounded-xl p-space-md flex items-start gap-space-sm shadow-sm hover:bg-surface-container transition-colors">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-secondary flex-shrink-0">
+<span class="font-label-md text-label-md font-bold">#</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface font-semibold truncate">product-design</span>
+<span class="font-label-xs text-label-xs text-on-surface-variant">8m</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">
+            Design token spec for mobile shell v2 — 12 replies
+          </p>
+<div class="flex items-center gap-2 mt-1.5">
+<span class="px-1.5 py-0.5 rounded bg-surface-container-high text-outline font-label-xs text-[10px]">Figma Tokens</span>
+<span class="font-body-sm text-body-sm text-outline">·</span>
+<span class="font-body-sm text-[11px] text-tertiary">Siddharth typing...</span>
+</div>
+</div>
+</div>
+<!-- Channel Item 2 -->
+<div class="bg-surface-container-low rounded-xl p-space-md flex items-start gap-space-sm shadow-sm hover:bg-surface-container transition-colors">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-primary flex-shrink-0">
+<span class="font-label-md text-label-md font-bold">#</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface font-semibold truncate">engineering-async</span>
+<span class="font-label-xs text-label-xs text-on-surface-variant">24m</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">
+            Edge-compute replication latency down 40ms in AP-South
+          </p>
+<div class="flex items-center gap-2 mt-1.5">
+<span class="px-1.5 py-0.5 rounded bg-surface-container-high text-outline font-label-xs text-[10px]">Infra</span>
+<span class="font-body-sm text-body-sm text-outline">·</span>
+<span class="font-body-sm text-[11px] text-on-surface-variant">5 replies</span>
+</div>
+</div>
+</div>
+<!-- Channel Item 3 -->
+<div class="bg-surface-container-low rounded-xl p-space-md flex items-start gap-space-sm shadow-sm hover:bg-surface-container transition-colors">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-tertiary flex-shrink-0">
+<span class="font-label-md text-label-md font-bold">#</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface font-semibold truncate">random-watercooler</span>
+<span class="font-label-xs text-label-xs text-on-surface-variant">1h</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">
+            Show us your home office plants and desk pets 🪴🐾
+          </p>
+<div class="flex items-center gap-2 mt-1.5">
+<span class="px-1.5 py-0.5 rounded bg-surface-container-high text-outline font-label-xs text-[10px]">Culture</span>
+<span class="font-body-sm text-body-sm text-outline">·</span>
+<span class="font-body-sm text-[11px] text-on-surface-variant">38 photos</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- SECTION 3: Peer Recognition & Kudos -->
+<div class="space-y-space-md hidden" id="view-kudos">
+<!-- Kudos Action Banner -->
+<div class="bg-surface-container-high rounded-xl p-space-md flex items-center justify-between shadow-sm">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold">Celebrate Impact</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Send a peer recognition token</p>
+</div>
+<button class="px-space-md py-2 rounded-lg bg-primary text-on-primary font-label-sm text-label-sm font-semibold shadow hover:opacity-90 transition-opacity flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">stars</span>
+<span>Give Kudos</span>
+</button>
+</div>
+<!-- Micro Badge Collection Display -->
+<div class="space-y-space-xs">
+<span class="font-label-xs text-label-xs uppercase tracking-wider text-outline px-1">Orbit Badge System</span>
+<div class="grid grid-cols-2 gap-2">
+<div class="bg-surface-container rounded-lg p-2.5 flex items-center gap-2 shadow-sm">
+<div class="w-8 h-8 rounded-md bg-error/15 text-error flex items-center justify-center font-label-md text-[18px]">🔥</div>
+<div class="min-w-0">
+<span class="font-label-sm text-label-sm text-on-surface font-semibold block truncate">Firefighter</span>
+<span class="font-body-sm text-[10px] text-on-surface-variant block truncate">Critical incident fix</span>
+</div>
+</div>
+<div class="bg-surface-container rounded-lg p-2.5 flex items-center gap-2 shadow-sm">
+<div class="w-8 h-8 rounded-md bg-tertiary/15 text-tertiary flex items-center justify-center font-label-md text-[18px]">🤝</div>
+<div class="min-w-0">
+<span class="font-label-sm text-label-sm text-on-surface font-semibold block truncate">Team Glue</span>
+<span class="font-body-sm text-[10px] text-on-surface-variant block truncate">Unsung coordination</span>
+</div>
+</div>
+<div class="bg-surface-container rounded-lg p-2.5 flex items-center gap-2 shadow-sm">
+<div class="w-8 h-8 rounded-md bg-secondary/15 text-secondary flex items-center justify-center font-label-md text-[18px]">⚡</div>
+<div class="min-w-0">
+<span class="font-label-sm text-label-sm text-on-surface font-semibold block truncate">Ship It</span>
+<span class="font-body-sm text-[10px] text-on-surface-variant block truncate">Relentless delivery</span>
+</div>
+</div>
+<div class="bg-surface-container rounded-lg p-2.5 flex items-center gap-2 shadow-sm">
+<div class="w-8 h-8 rounded-md bg-primary/15 text-primary flex items-center justify-center font-label-md text-[18px]">💡</div>
+<div class="min-w-0">
+<span class="font-label-sm text-label-sm text-on-surface font-semibold block truncate">Innovator</span>
+<span class="font-body-sm text-[10px] text-on-surface-variant block truncate">Elegant simplification</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Kudos Feed Items -->
+<div class="space-y-space-sm">
+<span class="font-label-xs text-label-xs uppercase tracking-wider text-outline px-1">Recent Recognition</span>
+<!-- Primary Kudos Card -->
+<div class="bg-surface-container rounded-xl p-space-md space-y-space-sm shadow-md relative overflow-hidden">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="px-2 py-0.5 rounded-full bg-error-container text-on-error-container font-label-xs text-label-xs font-semibold flex items-center gap-1">
+<span>🔥</span>
+<span>Firefighter Badge</span>
+</div>
+<span class="font-body-sm text-body-sm text-outline">·</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">3h ago</span>
+</div>
+<button class="text-on-surface-variant hover:text-on-surface">
+<span class="material-symbols-outlined text-[18px]">share</span>
+</button>
+</div>
+<p class="font-body-md text-body-md text-on-surface">
+          Huge kudos to <span class="font-semibold text-primary">@Marcus</span> (DevOps) from <span class="font-semibold text-secondary">@Elena</span>! 🚀 Awarded for seamless database failover at 3 AM with zero lost transactions. Absolute lifesaver!
+        </p>
+<div class="flex items-center justify-between pt-2">
+<div class="flex items-center gap-1.5">
+<button class="px-2 py-1 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-container-highest transition-colors font-label-xs text-label-xs flex items-center gap-1" onclick="toggleClap(this)">
+<span>👏</span>
+<span class="clap-count">24</span>
+</button>
+<button class="px-2 py-1 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-container-highest transition-colors font-label-xs text-label-xs flex items-center gap-1">
+<span>❤️</span>
+<span>11</span>
+</button>
+<button class="px-2 py-1 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-container-highest transition-colors font-label-xs text-label-xs flex items-center gap-1">
+<span>🙌</span>
+<span>7</span>
+</button>
+</div>
+<span class="font-body-sm text-[11px] text-outline">DevOps Guild</span>
+</div>
+</div>
+<!-- Secondary Kudos Card -->
+<div class="bg-surface-container-low rounded-xl p-space-md space-y-space-sm shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="px-2 py-0.5 rounded-full bg-tertiary-container text-on-tertiary-container font-label-xs text-label-xs font-semibold flex items-center gap-1">
+<span>🤝</span>
+<span>Team Glue Badge</span>
+</div>
+<span class="font-body-sm text-body-sm text-outline">·</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Yesterday</span>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface">
+          Props to <span class="font-semibold text-primary">@Kiran</span> for hosting the APAC onboarding demo and staying late so the London cohorts felt totally at home.
+        </p>
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center gap-1.5">
+<button class="px-2 py-1 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-container-highest transition-colors font-label-xs text-label-xs flex items-center gap-1" onclick="toggleClap(this)">
+<span>👏</span>
+<span class="clap-count">19</span>
+</button>
+<button class="px-2 py-1 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-container-highest transition-colors font-label-xs text-label-xs flex items-center gap-1">
+<span>🌟</span>
+<span>9</span>
+</button>
+</div>
+<span class="font-body-sm text-[11px] text-outline">People & Culture</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+  function switchHubTab(tabName) {
+    const tabs = ['lounge', 'channels', 'kudos'];
+    tabs.forEach(t => {
+      const btn = document.getElementById('tab-' + t);
+      const view = document.getElementById('view-' + t);
+      if (t === tabName) {
+        btn.className = "flex-1 py-2 px-2 rounded-lg font-label-sm text-label-sm text-center transition-all bg-primary-container text-on-primary-container shadow-md flex items-center justify-center gap-1";
+        view.classList.remove('hidden');
+      } else {
+        btn.className = "flex-1 py-2 px-2 rounded-lg font-label-sm text-label-sm text-center transition-all text-on-surface-variant hover:text-on-surface flex items-center justify-center gap-1";
+        view.classList.add('hidden');
+      }
+    });
+  }
+
+  function simulateJoin(btn) {
+    if (btn.innerText.includes('Join')) {
+      btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">call_end</span><span>Connected</span>';
+      btn.className = "px-space-md py-1.5 rounded-lg bg-error text-on-error font-label-sm text-label-sm font-semibold shadow transition-all flex items-center gap-1";
+    } else {
+      btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">headset</span><span>Join Lounge</span>';
+      btn.className = "px-space-md py-1.5 rounded-lg bg-primary-container text-on-primary-container font-label-sm text-label-sm font-semibold shadow hover:brightness-110 transition-all flex items-center gap-1";
+    }
+  }
+
+  function toggleClap(btn) {
+    const countSpan = btn.querySelector('.clap-count');
+    if (countSpan) {
+      let count = parseInt(countSpan.textContent, 10);
+      countSpan.textContent = count + 1;
+      btn.classList.add('scale-110', 'bg-primary-container', 'text-on-primary-container');
+      setTimeout(() => btn.classList.remove('scale-110'), 200);
+    }
+  }
+
+  function votePulse(optionIndex, currentPct) {
+    const poll = document.getElementById('pulse-poll');
+    const buttons = poll.querySelectorAll('button');
+    buttons.forEach((b, idx) => {
+      if (idx + 1 === optionIndex) {
+        b.classList.add('ring-1', 'ring-secondary');
+      } else {
+        b.classList.remove('ring-1', 'ring-secondary');
+      }
+    });
+  }
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface-container-lowest/85 backdrop-blur-xl shadow-[0_-1px_12px_rgba(0,0,0,0.35)]" data-active-classes="text-primary-fixed bg-surface-container-high/80 shadow-[0_0_16px_-2px_rgba(37,99,235,0.35)] font-label-sm"><div class="flex items-center justify-around h-16 px-space-xs"><a class="flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] px-2 py-1 rounded-xl text-on-surface-variant transition-all hover:text-on-surface" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[20px]">grid_view</span><span class="font-label-xs text-label-xs">Dashboard</span></a><a class="flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] px-2 py-1 rounded-xl text-on-surface-variant transition-all hover:text-on-surface" data-path="operations" href="#"><span class="material-symbols-outlined text-[20px]">view_kanban</span><span class="font-label-xs text-label-xs">Operations</span></a><a class="flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] px-2 py-1 rounded-xl text-on-surface-variant transition-all hover:text-on-surface" data-path="scheduling" href="#"><span class="material-symbols-outlined text-[20px]">schedule</span><span class="font-label-xs text-label-xs">Scheduling</span></a><a aria-current="page" class="flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] px-2 py-1 rounded-xl transition-all text-primary-fixed bg-surface-container-high/80 shadow-[0_0_16px_-2px_rgba(37,99,235,0.35)] font-label-sm" data-path="culture" href="#"><span class="material-symbols-outlined text-[20px]">auto_awesome</span><span class="font-label-xs text-label-xs">Culture</span></a><a class="flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] px-2 py-1 rounded-xl text-on-surface-variant transition-all hover:text-on-surface" data-path="compliance" href="#"><span class="material-symbols-outlined text-[20px]">verified_user</span><span class="font-label-xs text-label-xs">Compliance</span></a></div></nav></body></html>

@@ -1,0 +1,67 @@
+{
+  "name": "orbitos",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "test:db": "bash supabase/tests/run.sh",
+    "test:a11y": "node scripts/a11y-check.mjs",
+    "stack:up": "bash scripts/local-stack/start.sh",
+    "test:e2e": "node scripts/e2e-flows.mjs",
+    "test:all": "npm run typecheck && npm run lint && npm test && npm run test:db"
+  },
+  "dependencies": {
+    "@simplewebauthn/browser": "^14.0.0",
+    "@simplewebauthn/server": "^14.0.3",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.117.3",
+    "@upstash/ratelimit": "^2.2.0",
+    "@upstash/redis": "^1.39.0",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.4.0",
+    "date-fns-tz": "^3.2.0",
+    "geist": "^1.7.2",
+    "jszip": "^3.10.2",
+    "material-symbols": "^0.27.2",
+    "next": "^15.5.27",
+    "pdf-lib": "^1.17.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "recharts": "^3.10.1",
+    "resend": "^6.32.1",
+    "server-only": "^0.0.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
+    "@types/jest": "^30.0.0",
+    "@types/jest-axe": "^3.5.9",
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "autoprefixer": "^10.6.1",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^15.5.27",
+    "jest": "^29.7.0",
+    "jest-axe": "^11.0.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "playwright-core": "^1.64.0",
+    "postcss": "^8.5.29",
+    "tailwindcss": "3.4",
+    "typescript": "5.6"
+  },
+  "engines": {
+    "node": ">=18.18"
+  },
+  "overrides": {
+    "postcss": "^8.5.29"
+  }
+}

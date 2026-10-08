@@ -1,0 +1,41 @@
+# Supabase CLI project config (used by `supabase link`, `supabase db push`, and local `supabase start`).
+project_id = "orbitos"
+
+[api]
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+
+[db]
+major_version = 15
+
+[realtime]
+enabled = true
+
+[storage]
+enabled = true
+file_size_limit = "20MiB"
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/auth/callback"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[auth.external.google]
+enabled = false
+client_id = "env(SUPABASE_AUTH_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_GOOGLE_SECRET)"
+
+[auth.external.azure]
+enabled = false
+client_id = "env(SUPABASE_AUTH_AZURE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_AZURE_SECRET)"
+url = "https://login.microsoftonline.com/common/v2.0"
