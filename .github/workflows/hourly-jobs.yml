@@ -1,0 +1,39 @@
+# Hourly OrbitOS jobs. Vercel Hobby only allows daily crons, so these run from GitHub Actions.
+# Needs repo secrets ORBITOS_URL (live site, no trailing slash) and CRON_SECRET (same as Vercel).
+name: Hourly jobs
+
+on:
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: hourly-jobs
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check secrets are set
+        env:
+          ORBITOS_URL: ${{ secrets.ORBITOS_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$ORBITOS_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::error::Add ORBITOS_URL and CRON_SECRET under Settings > Secrets and variables > Actions"; exit 1
+          fi
+      - name: Run jobs
+        env:
+          ORBITOS_URL: ${{ secrets.ORBITOS_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          failed=0
+          for job in digests checkin-reminders renewals; do
+            code=$(curl -sS -o body.txt -w '%{http_code}' --max-time 300 \
+              -H "Authorization: Bearer $CRON_SECRET" "$ORBITOS_URL/api/cron/$job" || echo 000)
+            echo "$job -> HTTP $code: $(head -c 300 body.txt)"
+            if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then echo "::error::$job failed with HTTP $code"; failed=1; fi
+          done
+          exit $failed

@@ -1,8 +1,5 @@
 {
   "crons": [
-    { "path": "/api/cron/digests", "schedule": "0 * * * *" },
-    { "path": "/api/cron/checkin-reminders", "schedule": "5 * * * *" },
-    { "path": "/api/cron/renewals", "schedule": "15 * * * *" },
     { "path": "/api/cron/health-snapshot", "schedule": "5 0 * * *" },
     { "path": "/api/cron/retention", "schedule": "30 1 * * *" }
   ]
