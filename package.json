@@ -14,7 +14,9 @@
     "stack:up": "bash scripts/local-stack/start.sh",
     "test:e2e": "node scripts/e2e-flows.mjs",
     "test:all": "npm run typecheck && npm run lint && npm test && npm run test:db",
-    "test:e2e:security": "node scripts/e2e-security.mjs"
+    "test:e2e:security": "node scripts/e2e-security.mjs",
+    "test:e2e:features": "node scripts/e2e-features.mjs",
+    "db:bundle": "node scripts/build-setup-sql.mjs"
   },
   "dependencies": {
     "@sentry/nextjs": "10.75.1",

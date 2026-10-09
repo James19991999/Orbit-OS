@@ -53,7 +53,7 @@ export function NotificationsBell({ userId }: { userId: string }) {
       <button type="button" onClick={() => setOpen((o) => !o)} aria-haspopup="dialog" aria-expanded={open}
         aria-label={unread ? t('notif.unread', { count: unread }) : t('notif.title')} className="relative rounded p-2 text-on-surface-variant hover:bg-on-surface/5">
         <Icon name="notifications" />
-        {unread > 0 && <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-alert px-1 text-[10px] font-bold text-white" aria-hidden>{unread > 9 ? '9+' : unread}</span>}
+        {unread > 0 && <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-alert px-1 text-[10px] font-bold text-white dark:text-black" aria-hidden>{unread > 9 ? '9+' : unread}</span>}
       </button>
       {open && (
         <div role="dialog" aria-label={t('notif.title')} className="absolute right-0 top-11 z-50 w-[min(22rem,calc(100vw-2rem))] rounded-lg border border-outline-variant bg-surface-container-high shadow-l2">
@@ -77,7 +77,7 @@ export function NotificationsBell({ userId }: { userId: string }) {
                   <span className="min-w-0">
                     <span className="block text-body-md text-on-surface">{n.title}</span>
                     {n.body && <span className="block truncate text-body-sm text-on-surface-variant">{n.body}</span>}
-                    <span className="block text-body-sm text-outline"><TimeAgo date={n.created_at} />{!n.read_at && <span className="sr-only">{t('notif.unread_sr')}</span>}</span>
+                    <span className="block text-body-sm text-on-surface-variant"><TimeAgo date={n.created_at} />{!n.read_at && <span className="sr-only">{t('notif.unread_sr')}</span>}</span>
                   </span>
                 </Link>
               </li>

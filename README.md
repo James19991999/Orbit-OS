@@ -1,6 +1,6 @@
 # OrbitOS
 
-**The distributed operating system for remote-first companies.** One calm cockpit for founders and operations leaders: company health, sprints, runway, time-zone scheduling, culture, compliance and board reports — across every city the team works from.
+**The distributed operating system for remote-first companies.** One calm cockpit for founders and operations leaders: company health, sprints, runway, time-zone scheduling, culture, compliance and board reports — across every city the team works from. Built for African teams first: **check-ins and approvals on WhatsApp, salaries paid to M-Pesa, Kiswahili and French, and a mode for slow connections** — plus an **AI chief of staff** that writes the founder's Monday brief.
 
 Built from the *Distributed Executive OS* Stitch export (`design-reference/`). Stack: **Next.js 15.5 (App Router) · React 19 · TypeScript · Tailwind · Supabase (Auth, Postgres + RLS, Storage, Realtime) · IntaSend (M-Pesa + card) · Resend · Vercel**. No Stripe anywhere.
 
@@ -32,6 +32,11 @@ Built from the *Distributed Executive OS* Stitch export (`design-reference/`). S
 | **People** | Directory with live local times, working status, filters, member detail |
 | **Settings** | Org & legal entities, SSO/MFA/session policy, Slack + GitHub integrations, timezone engine, RBAC & invites, billing, data residency, full tenant archive, offboarding with 30-day deletion |
 | **Auth** | Email/password, Google Workspace, Microsoft Entra ID, SAML SSO (per-workspace domain), **passkeys (WebAuthn)**, TOTP two-factor, remember-device, inactivity timeout, invites, onboarding |
+| **WhatsApp** | Link a number with a code; daily check-in reminders you **answer by replying**; **Approve / Reject buttons** for expenses (never your own); STOP / START / HELP; signed, idempotent webhook — [docs/WHATSAPP.md](docs/WHATSAPP.md) |
+| **M-Pesa payouts** | Pay salaries to M-Pesa via IntaSend B2C: draft (rows or CSV) → **a second owner/director approves with two-factor** → paid; per-person status, payroll run recorded — [docs/PAYOUTS.md](docs/PAYOUTS.md) |
+| **AI chief of staff** | Owner opt-in. Monday 08:00 brief in each owner's/director's time zone and language (wins, blockers, who to check in with, what's waiting on you), plus on-demand check-in summaries; Claude, with a rule-based fallback — [docs/AI-CHIEF-OF-STAFF.md](docs/AI-CHIEF-OF-STAFF.md) |
+| **Languages** | **English, Kiswahili, French** for sign-in, navigation, check-ins, notifications, profile, WhatsApp, payouts, reminder emails and briefs (picker on the sign-in page and in Profile; browser language by default). Other screens are still English |
+| **Low bandwidth** | Installable app (PWA), offline page, **check-ins written offline are queued and sent on reconnect**, data saver (live updates paused until you tap Retry, photos as initials); signed-in pages are never cached on the device |
 | **Platform** | Notifications (realtime bell), append-only audit log with CSV export, light/dark/system themes, marketing site, legal pages, SEO (sitemap, robots, OG image) |
 
 ---
@@ -48,6 +53,7 @@ Built from the *Distributed Executive OS* Stitch export (`design-reference/`). S
    npx supabase db push            # applies supabase/migrations/*
    ```
    No CLI? Paste `supabase/setup_all.sql` (all migrations in one transaction) into **SQL Editor** and run it once, then run `supabase/verify_setup.sql` — every row should say `ok = true`.
+   **Already set up before 9 Oct 2026?** Run `supabase/update_differentiators.sql` once instead (adds WhatsApp, payouts, languages, AI briefs), then `verify_setup.sql`.
    Do **not** run `supabase/seed.sql` in production — it is demo data.
 3. **Auth → URL configuration:** Site URL = your app URL; add `https://<your-app>/auth/callback` to redirect URLs.
 4. **Auth → Providers:** enable Email; optionally Google and Azure (Entra ID, scope `email`). For SAML:
@@ -60,13 +66,14 @@ Built from the *Distributed Executive OS* Stitch export (`design-reference/`). S
 1. Get publishable + secret keys (start with **sandbox**, `INTASEND_TEST_MODE=true`).
 2. Dashboard → Webhooks: URL `https://<your-app>/api/webhooks/intasend`, and set a **challenge** string → `INTASEND_WEBHOOK_CHALLENGE`.
 3. Before going live, re-check the endpoint shapes in `src/lib/intasend/client.ts` against https://developers.intasend.com.
+4. For **M-Pesa payouts**, ask IntaSend to enable Send Money (B2C) and fund the wallet — see [docs/PAYOUTS.md](docs/PAYOUTS.md).
 
 ### 3. Resend (email)
 Verify your sending domain and set `RESEND_API_KEY` + `EMAIL_FROM`. Without it, the app still works: invites show a copyable link and every email-dependent action reports "email not configured" instead of pretending.
 
 ### 4. Vercel
 1. Import the repo, set the env vars from `.env.example`, deploy.
-2. Background jobs: the daily ones (health snapshot, retention) are Vercel crons in `vercel.json`. The hourly ones (digests, check-in reminders, renewal reminders) run from **GitHub Actions** (`.github/workflows/hourly-jobs.yml`) because Vercel Hobby only allows daily crons. Add repo secrets `ORBITOS_URL` and `CRON_SECRET`. On Vercel Pro you can move them back into `vercel.json`.
+2. Background jobs: the daily ones (health snapshot, retention) are Vercel crons in `vercel.json`. The hourly ones (digests, check-in reminders, renewal reminders, payout status sync, AI briefs) run from **GitHub Actions** (`.github/workflows/hourly-jobs.yml`) because Vercel Hobby only allows daily crons. Add repo secrets `ORBITOS_URL` and `CRON_SECRET`. On Vercel Pro you can move them back into `vercel.json`.
 3. Optional: `NEXT_PUBLIC_ROOT_DOMAIN=orbitos.io` + a `*.orbitos.io` wildcard domain for subdomain tenancy (`acme.orbitos.io`). Without it, tenancy uses the workspace switcher + a cookie.
 4. Optional: `UPSTASH_REDIS_REST_URL/TOKEN` for distributed rate limiting (in-memory otherwise).
 
@@ -75,6 +82,12 @@ Verify your sending domain and set `RESEND_API_KEY` + `EMAIL_FROM`. Without it, 
 2. Optional, for readable stack traces: `SENTRY_AUTH_TOKEN` (an org auth token with `project:releases`), `SENTRY_ORG`, `SENTRY_PROJECT`. Source maps are uploaded at build time and then deleted from the deployment.
 3. What is reported: uncaught errors in pages, route handlers and middleware (`src/instrumentation.ts`), every API 5xx the route wrapper turns into a friendly `500` (`src/lib/api.ts`), and browser crashes caught by the error boundaries. Errors only — no tracing, no session replay. Cookies, auth headers, request bodies, one-time tokens in URLs and emails are stripped before sending (`src/lib/observability/sentry-options.ts`); users are identified by id only.
 4. Browser events go through the same-origin `/monitoring` tunnel, so ad-blockers don't drop them and the CSP needs no change. Without a DSN, Sentry is completely off and the build is unchanged.
+
+### 6. WhatsApp (optional)
+Meta app, number, webhook `https://<your-app>/api/webhooks/whatsapp`, four approved templates and four env vars — step by step in [docs/WHATSAPP.md](docs/WHATSAPP.md). Off (email only) until configured.
+
+### 7. Claude for the AI chief of staff (optional)
+`ANTHROPIC_API_KEY` (+ optional `ANTHROPIC_MODEL`, default `claude-haiku-5-5`). The owner still has to turn it on in the app. Without a key, briefs are a rule-based summary. See [docs/AI-CHIEF-OF-STAFF.md](docs/AI-CHIEF-OF-STAFF.md).
 
 ### Environment variables
 See `.env.example`. **Only the three Supabase variables are required** — the app builds and boots with none at all (public pages render and the app shows a setup notice), and every optional integration degrades to a labelled "not configured" state.
@@ -92,11 +105,12 @@ npm run dev
 | Command | What it runs |
 |---|---|
 | `npm run typecheck` / `npm run lint` | TypeScript strict, ESLint (next/core-web-vitals) |
-| `npm test` | **117 Jest tests**: scheduling (DST, date line, weekends), health/finance/sprint/people metrics, pricing, phone normalisation, `.ics`, PDF/CSV (formula-injection), GitHub HMAC, session rules, open-redirect guard, IntaSend webhook + checkout + renewals-cron **route handlers** (incl. failure paths), and component tests (login paths, poll rollback, roll call, sign-out failure, clipboard failure, jest-axe), Sentry event scrubbing, money/date formatting and parsing per region |
-| `npm run test:db` | **75 SQL tests** against a real Postgres: migrations + seed + RLS (cross-tenant isolation, role escalation, client-unwritable billing/audit/plan columns, anonymous votes, expired-workspace read-only, MFA-gated vault, payment idempotency, two-person expense rule, allowed currencies) |
-| `npm run stack:up` | Boots a **local Supabase-compatible stack**: Postgres + real **GoTrue** (Supabase Auth) + real **PostgREST** + a gateway on `:54321`, plus an **IntaSend mock** on `:54400`; applies migrations + seed and writes `.env.local` |
+| `npm test` | **139 Jest tests** (incl. WhatsApp message parsing, payout line validation, translations — every key in Kiswahili and French with matching placeholders — and the AI brief prompt and fallback): scheduling (DST, date line, weekends), health/finance/sprint/people metrics, pricing, phone normalisation, `.ics`, PDF/CSV (formula-injection), GitHub HMAC, session rules, open-redirect guard, IntaSend webhook + checkout + renewals-cron **route handlers** (incl. failure paths), and component tests (login paths, poll rollback, roll call, sign-out failure, clipboard failure, jest-axe), Sentry event scrubbing, money/date formatting and parsing per region |
+| `npm run test:db` | **105 SQL tests** against a real Postgres: migrations + seed + RLS (cross-tenant isolation, role escalation, client-unwritable billing/audit/plan columns, anonymous votes, expired-workspace read-only, MFA-gated vault, payment idempotency, two-person expense rule, allowed currencies, WhatsApp links/codes server-only, payouts hidden from contributors and unwritable by clients, AI briefs private to their reader, `ai_enabled` owner-API only) |
+| `npm run stack:up` | Boots a **local Supabase-compatible stack**: Postgres + real **GoTrue** (Supabase Auth) + real **PostgREST** + a gateway on `:54321`, plus mocks of **IntaSend** (`:54400`), the **WhatsApp Cloud API** (`:54410`) and the **Anthropic API** (`:54420`); applies migrations + seed and writes `.env.local` |
 | `npm run test:e2e` | **27 end-to-end business flows** in real Chromium against that stack (see below) |
 | `npm run test:e2e:security` | **19 end-to-end auth/session flows**: passkeys via Chrome's virtual WebAuthn authenticator, TOTP with real codes, enforced 2FA, MFA-gated archive/offboarding, remember-device cookie lifetimes, inactivity timeout, workspace switching, expired-workspace read-only. Run after `test:e2e` on the same database |
+| `npm run test:e2e:features` | **36 flows** for WhatsApp (link, reply → check-in, one-tap approval, forged signature, retries), offline/PWA, data saver, M-Pesa payouts (two-person + 2FA, partial failure, RLS), languages (French browser, Kiswahili switch, no hydration errors) and the AI chief of staff (opt-in, prompt, fallback, Monday delivery once). If `ANTHROPIC_BASE_URL` is set in your shell, start the app with it pointing at the mock |
 | `npm run test:a11y` | **axe-core in real Chromium** over 27 pages × (dark, light, 375 px mobile) incl. signed-in app pages; also fails on horizontal overflow |
 
 `stack:up` needs a running Postgres 15/16 (`PGHOST/PGPORT`) and the `postgrest` + Supabase `auth` binaries (from their GitHub releases) in `$BIN`. Demo login: `elena@acme-global.demo` / `OrbitOS-demo-2026` (owner); also `devon@…` (director), `meiling@…` (contributor), `priya@…` (auditor).
@@ -111,7 +125,7 @@ src/
   app/(auth)/        login, signup, forgot/reset password, join/[code]
   app/(setup)/       onboarding, mfa
   app/(app)/         dashboard, operations, scheduling, culture, compliance, reports, people, settings, profile, notifications
-  app/api/           36 route handlers (billing, webhooks, crons, exports, integrations, members, passkeys…)
+  app/api/           44 route handlers (billing, webhooks incl. WhatsApp, crons, payouts, AI briefs, exports, integrations, members, passkeys…)
   components/        ui kit + one folder per module
   lib/               pure, unit-tested logic (scheduling, metrics, billing, ics, pdf) + server helpers
   middleware.ts      session refresh, protected-route redirects, inactivity timeout, subdomain tenancy
@@ -148,7 +162,7 @@ scripts/             local stack, IntaSend mock, e2e flows, a11y check
 
 * **Four currencies: KES, USD, EUR, GBP.** A workspace picks one at onboarding (suggested from the founder's browser region: US → USD, UK → GBP, euro area → EUR) and can change it in Settings → Organization. Plans are priced in all four in `src/lib/billing/plans.ts` (EUR/GBP are set by hand, not converted). M-Pesa is always charged in KES; cards in the workspace currency. Client invoices can be issued in any of the four, whatever the workspace currency.
 * **`INTASEND_CARD_CURRENCIES`** (default `KES,USD,EUR,GBP`) lists the currencies your IntaSend account can take by card. If the workspace currency isn't listed, plans are charged in USD instead, and client invoices in that currency are sent without a payment link (the email asks for a bank transfer).
-* **Regional formats.** The UI is English, but numbers, money and dates follow the viewer's region: from the browser's language (`Accept-Language`) or **Profile → Region format** (stored per device), defaulting to Kenya. `en-US` shows `$1,234.50` and `Oct 8, 2026, 5:30 PM`; Germany `€1.234,50` and `8 Oct 2026, 17:30`; India groups `1,23,456.50`; Canada/Australia write `US$` to avoid confusion with their own dollar. Timestamps show in the user's profile time zone.
+* **Regional formats.** Language (English, Kiswahili, French) is chosen separately; numbers, money and dates follow the viewer's region: from the browser's language (`Accept-Language`) or **Profile → Region format** (stored per device), defaulting to Kenya. `en-US` shows `$1,234.50` and `Oct 8, 2026, 5:30 PM`; Germany `€1.234,50` and `8 Oct 2026, 17:30`; India groups `1,23,456.50`; Canada/Australia write `US$` to avoid confusion with their own dollar. Timestamps show in the user's profile time zone.
 * **Why not plain `Intl`:** browsers ship trimmed locale data for "English + region" locales, so Node and Chrome disagree (`en-FR` → `1 234,50` vs `1,234.50`; `en-CA` → `$` vs `US$`), which breaks hydration. Each offered region's separators, grouping, date order and clock are spelled out in `src/lib/locale/conventions.ts`. Add a region there and in `REGION_OPTIONS`.
 * Server code uses `await getFormat()` (`src/lib/locale/server.ts`); client components use `useFormat()` (`src/lib/locale/client.tsx`). Relative times render through `<TimeAgo>`, which tolerates the minute ticking over between server render and hydration. Client-facing emails (invoices) and scheduled digests have no viewer, so they use the currency's region (USD → US style, GBP → UK style, EUR → Irish style, KES → Kenyan).
 
@@ -165,8 +179,9 @@ scripts/             local stack, IntaSend mock, e2e flows, a11y check
 ## Verification status
 
 **Proven in this build environment**
-* TypeScript strict: 0 errors · ESLint: 0 warnings · production build: 72 routes (36 pages, 36 API).
-* **117/117 Jest**, **75/75 SQL RLS tests on real Postgres 16**.
+* TypeScript strict: 0 errors · ESLint: 0 warnings · production build: 82 routes (38 pages, 44 API).
+* **139/139 Jest**, **105/105 SQL RLS tests on real Postgres 16**.
+* **36/36 feature flows** (WhatsApp, offline, data saver, M-Pesa payouts, languages, AI chief of staff) in real Chromium against the local stack and mocks.
 * **27/27 end-to-end flows in real Chromium** against real Supabase Auth (GoTrue v2.170) + real PostgREST (v12.2) + Postgres, including: password sign-in; task create/move; expense forced to pending + two-person approval; check-in; poll; kudos; meeting scheduling (calendar-invite endpoint must return 200); training reminders; invoice → hosted payment → webhook → paid + revenue; **M-Pesa plan purchase → polling → plan applied**; **card plan purchase → redirect → webhook**; PDF receipt; audit-package ZIP; report PDF/CSV; invite → sign-up → join as contributor (finance hidden, billing API 403); new founder sign-up → onboarding → dashboard; webhook rejects bad challenge / forged `api_ref`, replay idempotent; crons require `CRON_SECRET`; a German-region browser sees `1.234,56` and switching Profile → Region format to United States shows `1,234.56` / `Oct 8, 2026` with no hydration errors.
 * **No hydration mismatches** on 19 pages in six browser locales (de-DE, en-US, fr-FR, en-ZA, en-CA, sw-KE); the region-format code produces identical output in Node and Chromium (1,728 values compared).
 * **19/19 auth & session flows** in real Chromium, stable across repeated clean runs: passkey registration and passwordless sign-in (real WebAuthn ceremony via Chrome's virtual authenticator, verified server-side by SimpleWebAuthn, session minted through GoTrue); TOTP enrolment with real RFC 6238 codes (wrong code rejected); owners can't enforce 2FA without having it; enforced 2FA blocks directors until enrolled but not contributors; password → TOTP challenge → app; MFA-gated tenant archive (verified zero rows from other workspaces); offboarding confirm → read-only → cancel; “remember this device” off = browser-session cookies, on = 30 days; inactivity timeout; workspace switching (forged switch → 403); expired workspace read-only with a clear error while billing stays usable.
@@ -176,6 +191,7 @@ scripts/             local stack, IntaSend mock, e2e flows, a11y check
 * Builds and boots with **no env vars** (setup notice, honest `503` health).
 
 **Not verifiable here — needs your real accounts**
+* **WhatsApp Cloud API, IntaSend Send Money (B2C) and the Claude API** were exercised against local mocks with the documented request/response shapes. Before relying on them: get the four templates approved and test with a real number; run a small payout in IntaSend sandbox; generate one brief with your real key.
 * **IntaSend live API.** The e2e flows ran against a local mock that mirrors the request/response shapes this app uses. Confirm in IntaSend **sandbox** before going live (especially field names and the webhook payload).
 * **Supabase Realtime and Storage** weren't available in the local stack: live updates and presence showed their honest "paused/offline" states, and file uploads (evidence, vault, avatars) and the storage RLS policies were tested with SQL only, not through the Storage API.
 * **OAuth (Google/Azure) and SAML SSO** need real identity providers; the code paths are implemented and unit-tested (correct provider/domain calls), but not exercised end-to-end. Passkeys were tested with a virtual authenticator, not a physical YubiKey.
@@ -201,7 +217,7 @@ Kept here because they show what the test layers catch:
 * **Copy changed where the design implied things the product can't truthfully claim**: no "FedRAMP ready", no peer benchmarks, no "continuous 24/7 testing", no "settled via Wise/Deel" (payroll is *recorded*), "phishing simulation" → security-awareness training, "enforce hardware keys" → "require two-factor for admins", AWS CloudTrail shown as "coming soon", SCIM removed.
 * **Google Calendar/Outlook** integration is `.ics` email invites + an "Add to Google Calendar" link, not OAuth calendar sync.
 * **Quiet hours** applies to renewal-reminder emails (held until each owner's working hours); check-in reminders are always sent at 16:00 local time, and digests at the time the admin chose.
-* **i18n**: the prompt asked for strings in `src/i18n/en.ts`; they are inline instead (English only). Numbers, dates and money follow each user's region instead — see *Currencies & regional formats*.
+* **i18n**: strings for the most-used screens are in `src/i18n/{en,sw,fr}.ts` (sign-in, navigation, check-ins, notifications, profile, WhatsApp, payouts, emails, briefs); the rest of the app is still English with inline strings. Numbers, dates and money follow each user's region — see *Currencies & regional formats*.
 
 ## Roadmap / not built
-SCIM provisioning · AWS CloudTrail ingestion · Kiswahili UI (UI strings are currently inline in components; adding a language means extracting them with `next-intl`) · native mobile apps · OAuth calendar sync · automatic currency conversion (finance metrics count entries in the workspace's currency only) · automatic card renewal.
+Kiswahili/French for the remaining screens (operations, scheduling, compliance, reports, settings) · local compliance packs (Kenya DPA, Nigeria NDPR, POPIA) · SCIM provisioning · AWS CloudTrail ingestion · native mobile apps · OAuth calendar sync · automatic currency conversion (finance metrics count entries in the workspace's currency only) · automatic card renewal.

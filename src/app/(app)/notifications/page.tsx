@@ -30,7 +30,7 @@ export default async function NotificationsPage() {
                   <span className={`mt-2 h-2 w-2 shrink-0 rounded-full ${n.read_at ? 'bg-transparent' : 'bg-primary-container'}`} aria-hidden />
                   <span className="min-w-0"><span className="block text-label-md">{n.title}{!n.read_at && <span className="sr-only"> (unread)</span>}</span>
                     {n.body && <span className="block text-body-sm text-on-surface-variant">{n.body}</span>}
-                    <span className="block text-body-sm text-outline">{fmt.relative(n.created_at)}</span></span>
+                    <span className="block text-body-sm text-on-surface-variant">{fmt.relative(n.created_at)}</span></span>
                 </Link>
               </li>
             ))}
