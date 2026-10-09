@@ -40,7 +40,7 @@ WEBAUTHN_RP_ID=localhost
 ENV
 if [ "${WITH_INTASEND_MOCK:-1}" = "1" ]; then
   pkill -f "local-stack/intasend-mock.mjs" 2>/dev/null || true
-  setsid nohup node "$DIR/intasend-mock.mjs" < /dev/null > /tmp/intasend-mock.log 2>&1 &
+  INTASEND_MOCK_FAIL_PHONE="${INTASEND_MOCK_FAIL_PHONE:-254700000000}" setsid nohup node "$DIR/intasend-mock.mjs" < /dev/null > /tmp/intasend-mock.log 2>&1 &
   printf 'INTASEND_PUBLISHABLE_KEY=ISPubKey_test_mock\nINTASEND_SECRET_KEY=ISSecretKey_test_mock\nINTASEND_BASE_URL=http://localhost:54400\n' >> "$ROOT/.env.local"
 fi
 if [ "${WITH_WHATSAPP_MOCK:-1}" = "1" ]; then

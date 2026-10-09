@@ -96,3 +96,48 @@ export function normalizeState(s: unknown): IntaSendState | null {
   const v = String(s ?? '').toUpperCase();
   return v === 'PENDING' || v === 'PROCESSING' || v === 'COMPLETE' || v === 'FAILED' ? v : null;
 }
+
+// ───────── Send money (M-Pesa B2C payouts) ─────────
+// Endpoints as used by IntaSend's official SDKs: POST send-money/initiate/ → POST send-money/approve/
+// (with the initiate response, which carries the nonce) → POST send-money/status/ { tracking_id }.
+// Verify against the sandbox before going live (docs/PAYOUTS.md).
+
+export interface PayoutTx { name: string; account: string; amount: number | string; narrative?: string }
+export interface SendMoneyTx { transaction_id?: string; status?: string; status_code?: string; status_description?: string; account?: string; amount?: number | string; request_reference_id?: string }
+export interface SendMoneyBatch {
+  tracking_id: string; status?: string; status_code?: string; nonce?: string; file_id?: string;
+  transactions?: SendMoneyTx[]; [k: string]: unknown;
+}
+
+export function sendMoneyInitiate(i: { transactions: PayoutTx[]; callbackUrl?: string }): Promise<SendMoneyBatch> {
+  return call<SendMoneyBatch>('/api/v1/send-money/initiate/', {
+    method: 'POST', auth: 'secret',
+    body: { provider: 'MPESA-B2C', currency: 'KES', requires_approval: 'YES', transactions: i.transactions, ...(i.callbackUrl ? { callback_url: i.callbackUrl } : {}) },
+  });
+}
+
+/** Releases the batch. IntaSend expects the initiate response back (it includes the nonce). */
+export function sendMoneyApprove(initiated: SendMoneyBatch): Promise<SendMoneyBatch> {
+  return call<SendMoneyBatch>('/api/v1/send-money/approve/', { method: 'POST', auth: 'secret', body: initiated });
+}
+
+export function sendMoneyStatus(trackingId: string): Promise<SendMoneyBatch> {
+  return call<SendMoneyBatch>('/api/v1/send-money/status/', { method: 'POST', auth: 'secret', body: { tracking_id: trackingId } });
+}
+
+export type TxOutcome = 'sent' | 'failed' | 'pending';
+/** TS100 / "Successful" = paid. Explicit failure words or non-TS100 codes on a completed batch = failed. */
+export function txOutcome(tx: SendMoneyTx, batchDone: boolean): TxOutcome {
+  const s = String(tx.status ?? '').toLowerCase();
+  const code = String(tx.status_code ?? '').toUpperCase();
+  if (code === 'TS100' || s === 'successful' || s === 'success' || s === 'completed') return 'sent';
+  if (/fail|reject|cancel|reverse|invalid/.test(s) || (code.startsWith('TF'))) return 'failed';
+  return batchDone ? 'failed' : 'pending';
+}
+/** Batch has finished (each transaction is final) — "Completed" (BC100) or "Failed Processing". */
+export function batchDone(b: SendMoneyBatch): { done: boolean; failedEarly: boolean } {
+  const s = String(b.status ?? '').toLowerCase();
+  const code = String(b.status_code ?? '').toUpperCase();
+  const failedEarly = s.includes('failed processing') || code === 'BF102' || code === 'BF101';
+  return { done: failedEarly || code === 'BC100' || s === 'completed', failedEarly };
+}

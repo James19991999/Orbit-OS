@@ -12,6 +12,7 @@ import { TaskBoard } from '@/components/operations/TaskBoard';
 import { PRIORITY_TONE, dueLabel } from '@/lib/tasks';
 import { OpsActions } from '@/components/operations/OpsActions';
 import { Approvals } from '@/components/operations/Approvals';
+import { Payouts, type PayoutBatchView } from '@/components/operations/Payouts';
 import { FinanceChart } from '@/components/operations/FinanceChart';
 import { ActivityStream, type ActivityEvent } from '@/components/operations/ActivityStream';
 import type { Sprint, Task, FinanceEntry, Invoice, PayrollRun } from '@/lib/types';
@@ -24,7 +25,7 @@ const INVOICE_TONE: Record<string, Tone> = { draft: 'neutral', sent: 'info', due
 export default async function OperationsPage(props: { searchParams: Promise<{ tab?: string }> }) {
   const searchParams = await props.searchParams;
   const ctx = await requireAppContext();
-  const { supabase, org, role, user } = ctx;
+  const { supabase, org, role, user, aal } = ctx;
   const tab = searchParams.tab === 'finance' || searchParams.tab === 'activity' ? searchParams.tab : 'sprints';
   const today = new Date().toISOString().slice(0, 10);
   const members = await loadMembers(supabase, org.id);
@@ -53,7 +54,7 @@ export default async function OperationsPage(props: { searchParams: Promise<{ ta
       <LinkTabs label="Operations sections" tabs={[{ id: 'sprints', label: 'Projects & Sprints' }, { id: 'finance', label: 'Finance & Runway' }, { id: 'activity', label: 'Team Activity' }]} />
       {tab === 'sprints' && <SprintsTab ctxOrgId={org.id} active={active} sprints={sprints} people={people} canManage={can.manage(role)} userId={user.id} supabase={supabase} />}
       {tab === 'finance' && (can.seeFinance(role)
-        ? <FinanceTab supabase={supabase} orgId={org.id} currency={org.currency} invoices={invoices} people={people} userId={user.id} canApprove={can.manage(role)} />
+        ? <FinanceTab supabase={supabase} orgId={org.id} currency={org.currency} invoices={invoices} people={people} userId={user.id} canApprove={can.manage(role)} aal={aal.current} />
         : <Banner tone="info">Finance details are visible to owners, operations directors and auditors. Your dashboard shows the runway summary.</Banner>)}
       {tab === 'activity' && <ActivityTab supabase={supabase} orgId={org.id} cities={Object.fromEntries(members.map((m) => [m.user_id, m.profile.city]))} />}
     </div>
@@ -132,15 +133,20 @@ async function SprintsTab({ ctxOrgId, active, sprints, people, canManage, userId
   );
 }
 
-async function FinanceTab({ supabase, orgId, currency, invoices, people, userId, canApprove }:
-  { supabase: Awaited<ReturnType<typeof requireAppContext>>['supabase']; orgId: string; currency: Currency; invoices: Invoice[]; people: ReturnType<typeof nameMap>; userId: string; canApprove: boolean }) {
+async function FinanceTab({ supabase, orgId, currency, invoices, people, userId, canApprove, aal }:
+  { supabase: Awaited<ReturnType<typeof requireAppContext>>['supabase']; orgId: string; currency: Currency; invoices: Invoice[]; people: ReturnType<typeof nameMap>; userId: string; canApprove: boolean; aal: string | null }) {
   const fmt = await getFormat();
-  const [monthly, entries, pending, payroll] = await Promise.all([
+  const [monthly, entries, pending, payroll, payoutRes] = await Promise.all([
     supabase.rpc('finance_monthly', { p_org: orgId, p_months: 6 }),
     supabase.from('finance_entries').select('*').eq('org_id', orgId).order('occurred_on', { ascending: false }).order('created_at', { ascending: false }).limit(25),
     supabase.from('finance_entries').select('*').eq('org_id', orgId).eq('approval_status', 'pending').order('created_at'),
     supabase.from('payroll_runs').select('*').eq('org_id', orgId).order('period', { ascending: false }).limit(12),
+    supabase.from('payout_batches').select('id, title, status, total_minor, line_count, created_at, created_by, approved_by, failure_reason, lines:payout_lines(id, name, phone, amount_minor, status, failure_reason)').eq('org_id', orgId).order('created_at', { ascending: false }).limit(20),
   ]);
+  const payouts: PayoutBatchView[] = ((must(payoutRes, 'payouts') ?? []) as unknown as (Omit<PayoutBatchView, 'creator' | 'approver'> & { approved_by: string | null })[]).map((b) => ({
+    ...b, total_minor: Number(b.total_minor), lines: b.lines.map((l) => ({ ...l, amount_minor: Number(l.amount_minor) })),
+    creator: people[b.created_by]?.name ?? 'member', approver: b.approved_by ? people[b.approved_by]?.name ?? 'member' : null,
+  }));
   const s = summarizeFinance(must(monthly, 'finance summary') as MonthlyRow[]);
   const ledger = must(entries, 'ledger') as FinanceEntry[];
   const runs = must(payroll, 'payroll') as PayrollRun[];
@@ -164,7 +170,7 @@ async function FinanceTab({ supabase, orgId, currency, invoices, people, userId,
             : <EmptyState className="mt-5" icon="bar_chart" title="No finance data yet" body="Log expenses, revenue, payroll and a cash balance to see burn and runway." />}
         </Card>
         <Card className="xl:col-span-4">
-          <CardHeader title="Recorded payroll" icon="public" subtitle="Imported from your payroll provider — OrbitOS doesn't move money." />
+          <CardHeader title="Payroll" icon="public" subtitle="M-Pesa payouts made here, plus runs recorded from other payroll providers." />
           {lastRun ? (
             <>
               <p className="text-headline-md tnum">{fmt.money(lastRun.total_minor, lastRun.currency)}</p>
@@ -180,6 +186,11 @@ async function FinanceTab({ supabase, orgId, currency, invoices, people, userId,
       <Card id="approvals">
         <CardHeader title="Approvals" icon="fact_check" subtitle="Expenses above your approval threshold need a second owner or director." />
         <Approvals items={must(pending, 'approvals') as FinanceEntry[]} people={people} userId={userId} canApprove={canApprove} />
+      </Card>
+
+      <Card id="payouts">
+        <CardHeader title="M-Pesa payouts" icon="send_money" subtitle="Two-person approval · paid through IntaSend" />
+        <Payouts batches={payouts} canManage={canApprove} userId={userId} aal={aal} memberNames={Object.values(people).map((p) => p.name).filter(Boolean).sort()} />
       </Card>
 
       <div className="grid gap-4 xl:grid-cols-2 xl:items-start">

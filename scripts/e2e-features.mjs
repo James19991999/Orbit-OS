@@ -3,6 +3,7 @@
 // Usage: node scripts/e2e-features.mjs [baseUrl]   (run after `npm run stack:up` and the app on :3000)
 import { chromium } from 'playwright-core';
 import { execFileSync } from 'node:child_process';
+import { createHmac } from 'node:crypto';
 
 const base = process.argv[2] || 'http://localhost:3000';
 const WA = process.env.WA_MOCK || 'http://localhost:54410';
@@ -26,6 +27,18 @@ async function session(email, opts = {}) {
   await page.waitForURL((u) => u.pathname === '/dashboard', { timeout: 30000 });
   return { ctx, page };
 }
+/** RFC 6238 TOTP (SHA-1, 6 digits, 30 s) from a base32 secret. */
+function totp(secret, at = Date.now()) {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let bits = '';
+  for (const c of secret.replace(/=+$/, '').toUpperCase()) bits += alphabet.indexOf(c).toString(2).padStart(5, '0');
+  const key = Buffer.from(bits.match(/.{8}/g).map((b) => parseInt(b, 2)));
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(Math.floor(at / 30_000)));
+  const h = createHmac('sha1', key).update(counter).digest();
+  const o = h[h.length - 1] & 0xf;
+  return String(((h.readUInt32BE(o) & 0x7fffffff) % 1_000_000)).padStart(6, '0');
+}
 const waSent = async (to) => (await fetch(`${WA}/__sent?to=${to}`)).json();
 const waInbound = async (body) => (await fetch(`${WA}/__inbound`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })).json();
 const lastText = async (to) => { const s = await waSent(to); const m = s[s.length - 1]; return m?.text?.body ?? ''; };
@@ -35,7 +48,9 @@ const ELENA = '254711000001'; const DEVON = '254711000002';
 
 // Clean slate for repeated runs.
 sql(`delete from whatsapp_links; delete from whatsapp_verifications; delete from whatsapp_prompts; delete from whatsapp_inbound;
-     update profiles set whatsapp_checkins = true, whatsapp_approvals = true, language = 'en', data_saver = false`);
+     update profiles set whatsapp_checkins = true, whatsapp_approvals = true, language = 'en', data_saver = false;
+     delete from payout_batches; delete from auth.mfa_factors where user_id in (select id from auth.users where email = 'marcus@acme-global.demo');
+     update organizations set enforce_mfa_admins = false, status = 'active' where slug = 'acme-global'`);
 
 async function linkWhatsApp(page, phone) {
   await page.goto(`${base}/profile`, { waitUntil: 'networkidle' });
@@ -215,6 +230,96 @@ await step('Data saver: live updates start paused (Retry turns them on) and the 
   return `avatar photos loaded with data saver: ${imgs}`;
 });
 
+
+// ─────────────── M-Pesa payroll payouts ───────────────
+await step('Payouts: the owner drafts a batch; bad rows are explained per line', async () => {
+  await page.goto(`${base}/operations?tab=finance`, { waitUntil: 'networkidle' });
+  const card = page.locator('#payouts');
+  await card.getByRole('button', { name: 'New M-Pesa payout' }).click();
+  const d = page.locator('dialog[open]');
+  await d.getByLabel('Batch name').fill('E2E October salaries');
+  await d.getByLabel('Name 1').fill('Wanjiru Kamau');
+  await d.getByLabel('M-Pesa number 1').fill('12345');
+  await d.getByLabel('Amount 1 (KES)').fill('45,000');
+  await d.getByRole('button', { name: 'Save draft' }).click();
+  await d.getByText(/Row 1: "12345" is not a Kenyan M-Pesa number/).waitFor({ timeout: 10000 });
+  await d.getByLabel('M-Pesa number 1').fill('0712 000 001');
+  await d.getByRole('button', { name: 'Add person' }).click();
+  await d.getByLabel('Name 2').fill('Unregistered Number');
+  await d.getByLabel('M-Pesa number 2').fill('0700000000');
+  await d.getByLabel('Amount 2 (KES)').fill('1000');
+  await d.getByText('Total KES 46,000.00').waitFor();
+  await d.getByRole('button', { name: 'Save draft' }).click();
+  await card.getByText('E2E October salaries').waitFor({ timeout: 10000 });
+  await card.getByText('Waiting for a second approver').waitFor();
+  const row = sql(`select status || '|' || total_minor || '|' || line_count from payout_batches where title = 'E2E October salaries'`);
+  if (row !== 'draft|4600000|2') throw new Error(row);
+  return 'draft: KES 46,000 to 2 people';
+});
+
+let batchId = '';
+await step('Payouts: the person who drafted it cannot approve it (403)', async () => {
+  batchId = sql(`select id from payout_batches where title = 'E2E October salaries'`);
+  const r = await page.request.post(`${base}/api/payouts/${batchId}`, { data: { action: 'approve' } });
+  const body = await r.json();
+  if (r.status() !== 403 || !/second owner or director/.test(body.error)) throw new Error(`${r.status()} ${body.error}`);
+});
+
+const { ctx: mCtx, page: mpage } = await session('marcus@acme-global.demo');
+await step('Payouts: a second director without two-factor is sent to verify first (403 from the API)', async () => {
+  await mpage.goto(`${base}/operations?tab=finance`, { waitUntil: 'networkidle' });
+  await mpage.locator('#payouts').getByRole('link', { name: 'Verify with 2FA to approve' }).waitFor();
+  const r = await mpage.request.post(`${base}/api/payouts/${batchId}`, { data: { action: 'approve' } });
+  if (r.status() !== 403 || !/two-factor/.test((await r.json()).error)) throw new Error(String(r.status()));
+});
+
+await step('Payouts: after two-factor, the second director approves → IntaSend pays → statuses, payroll run, audit', async () => {
+  await mpage.goto(`${base}/mfa?next=${encodeURIComponent('/operations?tab=finance')}`, { waitUntil: 'networkidle' });
+  const secret = (await mpage.locator('code').first().textContent()).trim();
+  await mpage.getByLabel('6-digit code').fill(totp(secret));
+  await mpage.getByRole('button', { name: 'Verify' }).click();
+  await mpage.waitForURL((u) => u.pathname === '/operations', { timeout: 20000 });
+  await mpage.waitForLoadState('networkidle');
+  const card = mpage.locator('#payouts');
+  await card.getByRole('button', { name: 'Approve & send' }).click();
+  await mpage.locator('dialog[open]').getByRole('button', { name: 'Approve & send' }).click();
+  let status = '';
+  for (let i = 0; i < 40 && !['completed', 'partially_failed', 'failed'].includes(status); i++) { await new Promise((r) => setTimeout(r, 500)); status = sql(`select status from payout_batches where id = '${batchId}'`); }
+  if (status !== 'partially_failed') throw new Error(`batch status ${status}`);
+  const lines = sql(`select string_agg(phone || ':' || status, ',' order by phone) from payout_lines where batch_id = '${batchId}'`);
+  if (lines !== '254700000000:failed,254712000001:sent') throw new Error(lines);
+  const run = sql(`select total_minor || '|' || provider_label || '|' || status from payroll_runs where id = (select payroll_run_id from payout_batches where id = '${batchId}')`);
+  if (run !== '4500000|M-Pesa (IntaSend)|settled') throw new Error(`payroll run: ${run}`);
+  const approver = sql(`select approved_by = (select id from auth.users where email = 'marcus@acme-global.demo') from payout_batches where id = '${batchId}'`);
+  const audited = sql(`select count(*) from audit_log where action in ('payout.drafted', 'payout.approved') and target_id = '${batchId}'`);
+  if (approver !== 't' || audited !== '2') throw new Error(`approver=${approver} audit=${audited}`);
+  await mpage.reload({ waitUntil: 'networkidle' });
+  await card.getByText('Some failed').waitFor();
+  return 'KES 45,000 paid, unregistered number failed, payroll run recorded';
+});
+
+await step('Payouts: approving twice is impossible (the batch is no longer a draft)', async () => {
+  const r = await mpage.request.post(`${base}/api/payouts/${batchId}`, { data: { action: 'approve' } });
+  if (r.status() !== 409) throw new Error(String(r.status()));
+});
+
+await step('Payouts: a contributor cannot create payouts, and the database hides batches from them (RLS)', async () => {
+  const { ctx, page: cp } = await session('wanjiru@acme-global.demo');
+  const r = await cp.request.post(`${base}/api/payouts`, { data: { title: 'Sneaky', lines: [{ name: 'Me', phone: '0712000001', amount_minor: 100000 }] } });
+  await ctx.close();
+  if (r.status() !== 403) throw new Error(String(r.status()));
+  const w = uid('wanjiru@acme-global.demo');
+  const seen = sql(`begin; set local role authenticated; select set_config('request.jwt.claims', json_build_object('sub','${w}','role','authenticated')::text, true); select count(*) from payout_batches; commit;`).split('\n').filter((x) => /^\d+$/.test(x)).pop();
+  if (seen !== '0') throw new Error(`contributor sees ${seen} batches`);
+});
+
+await step('Payouts: a draft can be cancelled', async () => {
+  const r = await page.request.post(`${base}/api/payouts`, { data: { title: 'E2E cancel me', lines: [{ name: 'A', phone: '0712000009', amount_minor: 200000 }] } });
+  const { id } = await r.json();
+  const c = await page.request.post(`${base}/api/payouts/${id}`, { data: { action: 'cancel' } });
+  if (c.status() !== 200 || sql(`select status from payout_batches where id = '${id}'`) !== 'cancelled') throw new Error(String(c.status()));
+});
+await mCtx.close();
 
 await ownerCtx.close(); await dirCtx.close();
 await browser.close();
