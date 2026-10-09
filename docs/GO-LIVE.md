@@ -9,7 +9,7 @@ Plan on about one working day of setup, plus IntaSend's KYC review, which can ta
 | Account | Plan to pick | Why that plan |
 | --- | --- | --- |
 | [Supabase](https://supabase.com/dashboard) | Pro | Daily backups, no pausing when idle, custom SMTP |
-| [Vercel](https://vercel.com) | Pro | Hourly crons (Hobby only runs crons once a day), commercial use allowed |
+| [Vercel](https://vercel.com) | Hobby to test, Pro once you charge customers | Vercel's terms limit Hobby to non-commercial use; hourly jobs run from GitHub Actions on either plan |
 | [Resend](https://resend.com) | Free to start | Sends sign-up, reset, invite and digest emails |
 | [IntaSend](https://intasend.com) | Business account, KYC done | M-Pesa and card payments for subscriptions and invoices |
 | [Sentry](https://sentry.io) | Free (Developer) | Emails you when the app crashes |
@@ -102,7 +102,7 @@ This step puts the app on your domain with every secret set and the five backgro
 2. In Vercel, click **Add New → Project** and import the repo. The framework is detected as Next.js; leave the build settings at their defaults.
 3. Before the first deploy, open **Environment Variables** and add every row below for the **Production** environment.
 4. Deploy, then go to **Settings → Domains** and add `app.yourdomain.com`. Create the CNAME record Vercel shows at your registrar.
-5. Upgrade the team to **Pro**. On Hobby, the hourly digest, reminder and renewal jobs are limited to once a day.
+5. Upgrade the team to **Pro** before you take paying customers (Hobby is for non-commercial use). The hourly jobs don't need Pro: they run from GitHub Actions (see Crons below).
 
 **Environment variables**
 
@@ -135,7 +135,13 @@ Never set `INTASEND_BASE_URL` in production. It exists only for the local test m
 
 **Crons**
 
-`vercel.json` already declares the jobs, so there is nothing to type. After the first deploy, check **Settings → Cron Jobs**: it should list five jobs. Vercel sends `CRON_SECRET` with each call automatically; without that variable every job returns 401.
+Vercel's Hobby plan only allows daily crons, so the jobs are split. `vercel.json` runs the two daily jobs (check **Settings → Cron Jobs** lists `health-snapshot` and `retention`; Vercel sends `CRON_SECRET` automatically). The three hourly jobs run from `.github/workflows/hourly-jobs.yml`, free on GitHub:
+
+1. In GitHub, open the repo → **Settings → Secrets and variables → Actions → New repository secret**, and add `ORBITOS_URL` (your live address, no trailing slash) and `CRON_SECRET` (the same value as in Vercel).
+2. Open the **Actions** tab → **Hourly jobs** → **Run workflow**. The run should go green and log `HTTP 200` for each job.
+3. After that it runs by itself every hour. GitHub sometimes starts it a few minutes late, which the jobs allow for.
+
+On Vercel Pro you can instead put all five jobs back in `vercel.json` and delete the workflow file.
 
 | Job | Schedule (UTC) | What it does |
 | --- | --- | --- |
@@ -269,7 +275,7 @@ Things that can wait until you have paying customers: SAML SSO for enterprise cl
 | "Passkey failed" | `WEBAUTHN_RP_ID` doesn't match the domain in the address bar | Set it to the exact host, e.g. `app.yourdomain.com`, and redeploy |
 | A plan payment succeeds but the plan doesn't change | IntaSend webhook missing or wrong challenge | Check the IntaSend webhook log: 401 means the challenge, 404 the URL. After fixing it, ask IntaSend support to resend the webhook |
 | "Payments are not configured yet" | IntaSend keys missing | Set both keys and redeploy |
-| "Email is not configured", or digests and reminders never send | `RESEND_API_KEY` missing, Vercel Hobby plan, or `CRON_SECRET` missing | Set the Resend key; upgrade Vercel to Pro; check Logs for 401s on `/api/cron` |
+| "Email is not configured", or digests and reminders never send | `RESEND_API_KEY` missing, or the GitHub secrets `ORBITOS_URL` / `CRON_SECRET` missing or wrong | Set the Resend key; check the Actions tab for a failed "Hourly jobs" run (401 = wrong secret) |
 | Live chat and presence say "paused" | Realtime blocked by a network or browser extension | Try another network; check Supabase → Realtime for errors |
 | A workspace became read-only | The trial or plan expired more than 3 days ago | The Owner pays from Settings → Billing; nothing is deleted |
 | An error appears and no one knows why | — | Open Sentry → Issues; the event names the route, user id and stack trace |

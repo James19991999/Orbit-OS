@@ -66,7 +66,7 @@ Verify your sending domain and set `RESEND_API_KEY` + `EMAIL_FROM`. Without it, 
 
 ### 4. Vercel
 1. Import the repo, set the env vars from `.env.example`, deploy.
-2. Crons are in `vercel.json` (digests and renewal reminders run **hourly**; health snapshot and retention daily). Set `CRON_SECRET`; Vercel sends it automatically. *Vercel's Hobby plan has historically limited cron jobs to once a day — check your plan; on Hobby, hourly jobs will not run as scheduled.*
+2. Background jobs: the daily ones (health snapshot, retention) are Vercel crons in `vercel.json`. The hourly ones (digests, check-in reminders, renewal reminders) run from **GitHub Actions** (`.github/workflows/hourly-jobs.yml`) because Vercel Hobby only allows daily crons. Add repo secrets `ORBITOS_URL` and `CRON_SECRET`. On Vercel Pro you can move them back into `vercel.json`.
 3. Optional: `NEXT_PUBLIC_ROOT_DOMAIN=orbitos.io` + a `*.orbitos.io` wildcard domain for subdomain tenancy (`acme.orbitos.io`). Without it, tenancy uses the workspace switcher + a cookie.
 4. Optional: `UPSTASH_REDIS_REST_URL/TOKEN` for distributed rate limiting (in-memory otherwise).
 
