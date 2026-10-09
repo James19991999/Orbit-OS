@@ -1,10 +1,15 @@
+'use client';
 import { cn } from './cn';
 import { initials } from '@/lib/format';
+import { useDataSaver } from '@/components/shell/DataSaver';
 
 const palette = ['bg-[#2563eb]', 'bg-[#0369a1]', 'bg-[#047857]', 'bg-[#7c3aed]', 'bg-[#b45309]', 'bg-[#be123c]', 'bg-[#0f766e]'];
 function hash(s: string) { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h); }
 
 export function Avatar({ name, src, size = 32, online, className }: { name: string; src?: string | null; size?: number; online?: boolean; className?: string }) {
+  // Data saver: initials instead of downloading photos.
+  const saver = useDataSaver();
+  if (saver) src = null;
   return (
     <span className={cn('relative inline-flex shrink-0', className)} style={{ width: size, height: size }}>
       {src ? (

@@ -156,6 +156,66 @@ await step('WhatsApp: unlinking removes the number', async () => {
 
 // ── (more feature flows are appended below) ──
 
+// ─────────────── Low-bandwidth: installable, offline, data saver ───────────────
+await step('PWA: manifest, icons and service worker are served without signing in', async () => {
+  const m = await (await fetch(`${base}/manifest.webmanifest`)).json();
+  if (m.display !== 'standalone' || m.start_url !== '/dashboard' || !m.icons.some((i) => i.purpose === 'maskable')) throw new Error(JSON.stringify(m));
+  const sw = await fetch(`${base}/sw.js`);
+  const icon = await fetch(`${base}/icon-512.png`);
+  const off = await fetch(`${base}/offline`, { redirect: 'manual' });
+  if (sw.status !== 200 || !/javascript/.test(sw.headers.get('content-type') || '') || icon.status !== 200 || off.status !== 200) throw new Error(`sw=${sw.status} icon=${icon.status} offline=${off.status}`);
+});
+
+await step('Offline: with no connection, pages fall back to the offline page (service worker)', async () => {
+  const { ctx, page: p } = await session('wanjiru@acme-global.demo');
+  await p.goto(`${base}/dashboard`, { waitUntil: 'networkidle' });
+  await p.waitForFunction(() => navigator.serviceWorker?.controller != null || navigator.serviceWorker?.ready, null, { timeout: 15000 });
+  await p.evaluate(() => navigator.serviceWorker.ready);
+  await p.reload({ waitUntil: 'networkidle' }); // page now controlled by the worker
+  await ctx.setOffline(true);
+  await p.goto(`${base}/scheduling`).catch(() => undefined);
+  await p.getByRole('heading', { name: "You're offline" }).waitFor({ timeout: 15000 });
+  await ctx.setOffline(false);
+  await ctx.close();
+});
+
+await step('Offline: a check-in written offline is kept on the device and sent on reconnect', async () => {
+  const email = 'tomas@acme-global.demo';
+  const me = uid(email);
+  sql(`delete from check_ins where user_id = '${me}' and for_date = (now() at time zone 'Europe/Lisbon')::date`);
+  const { ctx, page: p } = await session(email);
+  await p.goto(`${base}/culture`, { waitUntil: 'networkidle' });
+  await p.getByRole('button', { name: 'Check in' }).first().click();
+  const d = p.locator('dialog[open]');
+  await d.getByLabel('What did you ship today?').fill('Offline check-in from a matatu');
+  await ctx.setOffline(true);
+  await d.getByRole('button', { name: 'Save check-in' }).click();
+  await p.getByText(/saved on this device/).first().waitFor({ timeout: 10000 });
+  await p.getByRole('status').filter({ hasText: /You're offline/ }).first().waitFor({ timeout: 10000 });
+  if (sql(`select count(*) from check_ins where user_id = '${me}' and shipped like 'Offline check-in%'`) !== '0') throw new Error('saved while offline?');
+  await ctx.setOffline(false);
+  await p.getByText(/Sent 1 check-in saved while you were offline/).waitFor({ timeout: 15000 });
+  const n = sql(`select count(*) from check_ins where user_id = '${me}' and shipped = 'Offline check-in from a matatu'`);
+  await ctx.close();
+  if (n !== '1') throw new Error(`rows after reconnect: ${n}`);
+  return 'queued offline → sent once on reconnect';
+});
+
+await step('Data saver: live updates start paused (Retry turns them on) and the setting persists', async () => {
+  await page.goto(`${base}/profile`, { waitUntil: 'networkidle' });
+  await page.locator('#data').getByRole('switch', { name: 'Data saver' }).click();
+  await page.getByText('Saved').first().waitFor({ timeout: 10000 });
+  if (sql(`select data_saver from profiles where id = '${uid('elena@acme-global.demo')}'`) !== 't') throw new Error('not stored');
+  await page.goto(`${base}/operations?tab=activity`, { waitUntil: 'networkidle' });
+  await page.getByText(/Live updates paused/).first().waitFor({ timeout: 10000 });
+  const imgs = await page.locator('main img[src*="avatar"], header img[src*="avatar"]').count();
+  await page.goto(`${base}/profile`, { waitUntil: 'networkidle' });
+  await page.locator('#data').getByRole('switch', { name: 'Data saver' }).click();
+  await page.getByText('Saved').first().waitFor({ timeout: 10000 });
+  return `avatar photos loaded with data saver: ${imgs}`;
+});
+
+
 await ownerCtx.close(); await dirCtx.close();
 await browser.close();
 const passed = results.filter(([c]) => c).length;

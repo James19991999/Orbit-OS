@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import { ToastProvider } from '@/components/ui/Toast';
+import { ServiceWorker } from '@/components/shell/ServiceWorker';
 import { appUrl } from '@/lib/env';
 import './globals.css';
 
@@ -11,7 +12,9 @@ export const metadata: Metadata = {
   description: 'Run a distributed company from one place: executive dashboard, operations & runway, time-zone scheduling, culture, compliance and reports.',
   applicationName: 'OrbitOS',
   openGraph: { type: 'website', siteName: 'OrbitOS', title: 'OrbitOS', description: 'The distributed operating system for remote-first enterprises.' },
-  icons: { icon: '/icon.svg' },
+  icons: { icon: '/icon.svg', apple: '/apple-touch-icon.png' },
+  manifest: '/manifest.webmanifest',
+  appleWebApp: { capable: true, title: 'OrbitOS', statusBarStyle: 'black-translucent' },
 };
 
 // WCAG 1.4.4: the Stitch export disabled pinch-zoom (maximum-scale=1, user-scalable=no). We do not.
@@ -39,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Skip to content
         </a>
         <ToastProvider>{children}</ToastProvider>
+        <ServiceWorker />
       </body>
     </html>
   );

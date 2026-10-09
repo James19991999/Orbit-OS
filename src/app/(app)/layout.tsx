@@ -4,6 +4,7 @@ import { requireAppContext, isWritable } from '@/lib/context';
 import { can } from '@/lib/roles';
 import { AppShell } from '@/components/shell/AppShell';
 import { LocaleProvider } from '@/lib/locale/client';
+import { DataSaverProvider } from '@/components/shell/DataSaver';
 import { getLocale } from '@/lib/locale/server';
 
 export const dynamic = 'force-dynamic';
@@ -18,6 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const locale = await getLocale();
   return (
     <LocaleProvider locale={locale} timeZone={ctx.profile.timezone || 'UTC'}>
+    <DataSaverProvider enabled={Boolean(ctx.profile.data_saver)}>
     <AppShell
       user={{ id: ctx.user.id, name: ctx.profile.full_name || ctx.user.email || 'Member', email: ctx.user.email ?? '', avatar: ctx.profile.avatar_url, theme: ctx.profile.theme, timezone: ctx.profile.timezone }}
       org={{ name: ctx.org.name, slug: ctx.org.slug, plan: ctx.org.plan, expiresAt: ctx.org.plan_expires_at, readOnly: !isWritable(ctx.org), timeoutHours: ctx.org.session_timeout_hours, status: ctx.org.status, autoDetectTz: ctx.org.auto_detect_timezone }}
@@ -26,6 +28,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     >
       {children}
     </AppShell>
+    </DataSaverProvider>
     </LocaleProvider>
   );
 }

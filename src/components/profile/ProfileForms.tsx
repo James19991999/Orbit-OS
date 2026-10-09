@@ -167,3 +167,16 @@ export function RegionFormat({ saved }: { saved: string }) {
     </div>
   );
 }
+
+/** Data saver: no live updates until asked, initials instead of photos. */
+export function DataSaverToggle({ userId, enabled }: { userId: string; enabled: boolean }) {
+  const router = useRouter();
+  const save = useAction(async (v: boolean) => unwrap(await requireBrowserClient().from('profiles').update({ data_saver: v }).eq('id', userId).select('id')), { success: 'Saved' });
+  return (
+    <div className="flex flex-col gap-3">
+      <Switch label="Data saver" description="For slow or expensive connections: live updates and presence stay off until you tap Retry on a screen, and profile photos show as initials." checked={enabled} onChange={async (v) => { if (await save.run(v)) router.refresh(); }} />
+      <p className="text-body-sm text-on-surface-variant">You can also install OrbitOS on your phone: open this site in Chrome or Safari and choose <strong>Add to Home screen</strong>. Check-ins you write while offline are kept on the device and sent when you reconnect.</p>
+      <InlineError message={save.error} />
+    </div>
+  );
+}

@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { getBrowserClient } from '@/lib/supabase/client';
+import { useDataSaver } from '@/components/shell/DataSaver';
 
 export type LiveStatus = 'connecting' | 'live' | 'paused';
 
@@ -16,12 +17,14 @@ export function useRealtime(
 ) {
   const [status, setStatus] = useState<LiveStatus>('connecting');
   const [attempt, setAttempt] = useState(0);
+  const saver = useDataSaver();
   const cb = useRef(onChange);
   cb.current = onChange;
 
   useEffect(() => {
     const supabase = getBrowserClient();
-    if (!supabase) { setStatus('paused'); return; }
+    // Data saver: stay paused until the person taps Retry (attempt > 0) on this screen.
+    if (!supabase || (saver && attempt === 0)) { setStatus('paused'); return; }
     setStatus('connecting');
     const channel = supabase
       .channel(`${key}:${attempt}`)
@@ -37,7 +40,7 @@ export function useRealtime(
         else if (s === 'CHANNEL_ERROR' || s === 'TIMED_OUT' || s === 'CLOSED') setStatus('paused');
       });
     return () => { supabase.removeChannel(channel).catch(() => undefined); };
-  }, [key, table, filter, attempt]);
+  }, [key, table, filter, attempt, saver]);
 
   return { status, retry: () => setAttempt((a) => a + 1) };
 }

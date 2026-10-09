@@ -1,6 +1,7 @@
 'use client';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { getBrowserClient } from '@/lib/supabase/client';
+import { useDataSaver } from '@/components/shell/DataSaver';
 
 export interface PresenceMeta { user_id: string; name: string; city: string | null; room?: string | null; typing?: boolean }
 
@@ -9,9 +10,10 @@ export function usePresence(topic: string, me: PresenceMeta | null) {
   const [peers, setPeers] = useState<PresenceMeta[]>([]);
   const [status, setStatus] = useState<'connecting' | 'live' | 'paused'>('connecting');
   const [track, setTrack] = useState<((m: Partial<PresenceMeta>) => void) | null>(null);
+  const saver = useDataSaver();
   useEffect(() => {
     const sb = getBrowserClient();
-    if (!sb || !me) { setStatus('paused'); return; }
+    if (!sb || !me || saver) { setStatus('paused'); return; }
     const ch = sb.channel(topic, { config: { presence: { key: me.user_id } } });
     let current: PresenceMeta = me;
     ch.on('presence', { event: 'sync' }, () => {
@@ -26,7 +28,7 @@ export function usePresence(topic: string, me: PresenceMeta | null) {
     });
     return () => { void sb.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [topic, me?.user_id]);
+  }, [topic, me?.user_id, saver]);
   return { peers, status, update: track ?? (() => undefined) };
 }
 

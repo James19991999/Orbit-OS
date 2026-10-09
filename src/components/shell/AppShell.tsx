@@ -11,6 +11,7 @@ import { Logo } from './Logo';
 import { NotificationsBell } from './NotificationsBell';
 import { applyTheme, type ThemePref } from './theme';
 import { TimezonePrompt } from './TimezonePrompt';
+import { NetworkStatus } from './NetworkStatus';
 import type { Role } from '@/lib/types';
 import { useFormat } from '@/lib/locale/client';
 
@@ -85,6 +86,7 @@ export function AppShell({ user, org, role, workspaces, children }: ShellProps) 
         </div>
       )}
 
+      <NetworkStatus />
       {org.autoDetectTz && <TimezonePrompt userId={user.id} profileTz={user.timezone} />}
 
       <main id="main" className="mx-auto max-w-canvas px-4 pb-28 pt-4 lg:px-8 lg:pb-10 lg:pt-6">{children}</main>

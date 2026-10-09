@@ -4,6 +4,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button, Dialog, Textarea, InlineError, ProgressBar } from '@/components/ui';
 import { requireBrowserClient } from '@/lib/supabase/client';
 import { useAction, unwrap } from '@/hooks/useAction';
+import { useToast } from '@/components/ui';
+import { queueCheckin, isOfflineError } from '@/lib/offline/queue';
 import type { CheckIn } from '@/lib/types';
 
 const MOODS = [{ v: 1, e: '😫', l: 'Rough' }, { v: 2, e: '😕', l: 'Meh' }, { v: 3, e: '😐', l: 'Okay' }, { v: 4, e: '🙂', l: 'Good' }, { v: 5, e: '🤩', l: 'Great' }];
@@ -11,20 +13,40 @@ const MOODS = [{ v: 1, e: '😫', l: 'Rough' }, { v: 2, e: '😕', l: 'Meh' }, {
 export function RollCall({ orgId, userId, completed, total, mine, canWrite, today }:
   { orgId: string; userId: string; completed: number; total: number; mine: CheckIn | null; canWrite: boolean; today: string }) {
   const router = useRouter();
+  const { toast } = useToast();
   const sp = useSearchParams();
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({ shipped: mine?.shipped ?? '', blockers: mine?.blockers ?? '', mood: mine?.mood ?? 4 });
   const [err, setErr] = useState<string | null>(null);
   useEffect(() => { if (sp.get('tab') === 'roll-call' && canWrite && !mine) setOpen(true); }, [sp, canWrite, mine]);
-  const save = useAction(async () => unwrap(await requireBrowserClient().from('check_ins')
-    .upsert({ org_id: orgId, user_id: userId, for_date: today, shipped: f.shipped.trim(), blockers: f.blockers.trim() || null, mood: f.mood }, { onConflict: 'org_id,user_id,for_date' })
-    .select('id')), { success: 'Check-in saved' });
+  const row = () => ({ org_id: orgId, user_id: userId, for_date: today, shipped: f.shipped.trim(), blockers: f.blockers.trim() || null, mood: f.mood });
+  // Offline, or the request never reached the server: keep it on this device and send it on reconnect.
+  const save = useAction(async (): Promise<'saved' | 'queued'> => {
+    const r = row();
+    if (typeof navigator !== 'undefined' && navigator.onLine === false && queueCheckin(r)) return 'queued';
+    try {
+      unwrap(await requireBrowserClient().from('check_ins').upsert(r, { onConflict: 'org_id,user_id,for_date' }).select('id'));
+      return 'saved';
+    } catch (e) {
+      if (isOfflineError(e) && queueCheckin(r)) return 'queued';
+      throw e;
+    }
+  });
   const pct = total ? Math.round((completed / total) * 100) : 0;
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!f.shipped.trim()) return setErr('Share at least one thing you shipped or moved forward.');
     setErr(null);
-    if (await save.run()) { setOpen(false); router.refresh(); }
+    const r = await save.run();
+    if (r === 'queued') {
+      setOpen(false);
+      window.dispatchEvent(new Event('orbit:queued'));
+      toast("You're offline — check-in saved on this device and will be sent when you reconnect.");
+    } else if (r === 'saved') {
+      toast('Check-in saved', 'success');
+      setOpen(false);
+      router.refresh();
+    }
   }
   return (
     <div>
