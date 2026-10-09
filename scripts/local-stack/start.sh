@@ -43,4 +43,9 @@ if [ "${WITH_INTASEND_MOCK:-1}" = "1" ]; then
   setsid nohup node "$DIR/intasend-mock.mjs" < /dev/null > /tmp/intasend-mock.log 2>&1 &
   printf 'INTASEND_PUBLISHABLE_KEY=ISPubKey_test_mock\nINTASEND_SECRET_KEY=ISSecretKey_test_mock\nINTASEND_BASE_URL=http://localhost:54400\n' >> "$ROOT/.env.local"
 fi
+if [ "${WITH_WHATSAPP_MOCK:-1}" = "1" ]; then
+  pkill -f "local-stack/whatsapp-mock.mjs" 2>/dev/null || true
+  setsid nohup node "$DIR/whatsapp-mock.mjs" < /dev/null > /tmp/whatsapp-mock.log 2>&1 &
+  printf 'WHATSAPP_TOKEN=local-wa-token\nWHATSAPP_PHONE_NUMBER_ID=MOCKPHONE\nWHATSAPP_APP_SECRET=local-wa-app-secret\nWHATSAPP_VERIFY_TOKEN=local-wa-verify\nWHATSAPP_API_BASE=http://localhost:54410/v21.0\n' >> "$ROOT/.env.local"
+fi
 echo "stack up: gateway http://localhost:54321 (auth + rest), db=$DB; wrote .env.local"

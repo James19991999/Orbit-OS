@@ -25,13 +25,15 @@ export function FinanceEntryDialog({ open, onClose, orgId, currency, thresholdMi
   const save = useAction(async () => unwrap(await requireBrowserClient().from('finance_entries').insert({
     org_id: orgId, kind: f.kind, amount_minor: minor, currency, category: f.category.trim() || null, vendor: f.vendor.trim() || null,
     occurred_on: f.occurred_on, note: f.note.trim() || null,
-  }).select('approval_status').single()) as { approval_status: string });
+  }).select('id, approval_status').single()) as { id: string; approval_status: string });
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (minor === null || minor <= 0) return setErr('Enter an amount greater than zero (up to 2 decimals).');
     setErr(null);
     const r = await save.run();
     if (r) {
+      // Ask approvers on WhatsApp (best effort — the in-app approval queue works regardless).
+      if (r.approval_status === 'pending') void postJson(`/api/finance/${r.id}/notify`).catch(() => undefined);
       onClose();
       setF({ kind: defaultKind, amount: '', category: '', vendor: '', occurred_on: today, note: '' });
       router.refresh();

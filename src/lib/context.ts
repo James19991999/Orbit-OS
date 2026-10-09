@@ -40,6 +40,7 @@ export const getAuthContext = cache(async (): Promise<Omit<AppContext, 'org' | '
     id: user.id, email: user.email ?? null, full_name: (user.user_metadata?.full_name as string) || user.email || 'Member',
     avatar_url: null, timezone: 'Africa/Nairobi', work_start: '09:00', work_end: '17:00', city: null, country_code: null,
     theme: 'system', email_notifications: true, checkin_reminders: true,
+    language: 'en', data_saver: false, whatsapp_checkins: true, whatsapp_approvals: true,
   };
 
   const wanted = (await headers()).get('x-orbit-tenant') || (await cookies()).get(ORG_COOKIE)?.value;
