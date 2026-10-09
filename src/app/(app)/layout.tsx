@@ -5,6 +5,8 @@ import { can } from '@/lib/roles';
 import { AppShell } from '@/components/shell/AppShell';
 import { LocaleProvider } from '@/lib/locale/client';
 import { DataSaverProvider } from '@/components/shell/DataSaver';
+import { I18nProvider } from '@/i18n/client';
+import { getLanguage } from '@/i18n/server';
 import { getLocale } from '@/lib/locale/server';
 
 export const dynamic = 'force-dynamic';
@@ -16,8 +18,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     const path = (await headers()).get('x-orbit-path') || '/dashboard';
     redirect(`/mfa?required=1&next=${encodeURIComponent(path)}`);
   }
-  const locale = await getLocale();
+  const [locale, lang] = await Promise.all([getLocale(), getLanguage()]);
   return (
+    <I18nProvider lang={lang}>
     <LocaleProvider locale={locale} timeZone={ctx.profile.timezone || 'UTC'}>
     <DataSaverProvider enabled={Boolean(ctx.profile.data_saver)}>
     <AppShell
@@ -30,5 +33,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     </AppShell>
     </DataSaverProvider>
     </LocaleProvider>
+    </I18nProvider>
   );
 }

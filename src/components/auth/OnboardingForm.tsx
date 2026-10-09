@@ -7,6 +7,7 @@ import { getBrowserClient } from '@/lib/supabase/client';
 import { errorMessage, postJson } from '@/hooks/useAction';
 import { CURRENCIES, CURRENCY_NAMES, type Currency } from '@/lib/format';
 import { currencyForLocale } from '@/lib/locale';
+import { useT } from '@/i18n/client';
 
 export function slugify(name: string): string {
   return name.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
@@ -22,6 +23,7 @@ function zones(): string[] {
 
 export function OnboardingForm({ userId, defaultName, hasWorkspaces }: { userId: string; defaultName: string; hasWorkspaces: boolean }) {
   const router = useRouter();
+  const t = useT();
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [slugTouched, setSlugTouched] = useState(false);
@@ -57,9 +59,9 @@ export function OnboardingForm({ userId, defaultName, hasWorkspaces }: { userId:
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (name.trim().length < 2) return setError('Enter your company name.');
-    if (slugState === 'taken') return setError('That workspace domain is taken.');
-    if (slugState === 'invalid') return setError('The domain can use 3–40 lowercase letters, numbers and hyphens.');
+    if (name.trim().length < 2) return setError(t('onb.err_name'));
+    if (slugState === 'taken') return setError(t('onb.err_taken'));
+    if (slugState === 'invalid') return setError(t('onb.err_invalid'));
     const supabase = getBrowserClient();
     if (!supabase) return;
     setBusy(true);
@@ -81,32 +83,32 @@ export function OnboardingForm({ userId, defaultName, hasWorkspaces }: { userId:
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h1 className="text-headline-lg-mobile md:text-headline-lg">Set up your workspace</h1>
-        <p className="mt-1 text-body-md text-on-surface-variant">You&apos;ll be the owner. Invite your team next.</p>
+        <h1 className="text-headline-lg-mobile md:text-headline-lg">{t('onb.title')}</h1>
+        <p className="mt-1 text-body-md text-on-surface-variant">{t('onb.subtitle')}</p>
       </div>
       <form onSubmit={submit} className="card flex flex-col gap-4 p-5" noValidate>
-        <Input label="Company name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Acme Global" required autoFocus />
+        <Input label={t('onb.company')} value={name} onChange={(e) => setName(e.target.value)} placeholder="Acme Global" required autoFocus />
         <div>
-          <Input label="Workspace domain" value={slug} onChange={(e) => { setSlugTouched(true); setSlug(e.target.value.toLowerCase()); }}
+          <Input label={t('onb.domain')} value={slug} onChange={(e) => { setSlugTouched(true); setSlug(e.target.value.toLowerCase()); }}
             hint={`${slug || 'your-company'}.${root}`} autoCapitalize="none" spellCheck={false} />
           <p className="mt-1 flex items-center gap-1 text-body-sm" aria-live="polite">
-            {slugState === 'checking' && <span className="text-on-surface-variant">Checking…</span>}
-            {slugState === 'free' && <span className="flex items-center gap-1 text-healthy"><Icon name="check_circle" className="text-[16px]" />Available</span>}
-            {slugState === 'taken' && <span className="text-alert">Already taken</span>}
-            {slugState === 'invalid' && <span className="text-alert">3–40 lowercase letters, numbers or hyphens</span>}
+            {slugState === 'checking' && <span className="text-on-surface-variant">{t('onb.checking')}</span>}
+            {slugState === 'free' && <span className="flex items-center gap-1 text-healthy"><Icon name="check_circle" className="text-[16px]" />{t('onb.available')}</span>}
+            {slugState === 'taken' && <span className="text-alert">{t('onb.taken')}</span>}
+            {slugState === 'invalid' && <span className="text-alert">{t('onb.invalid')}</span>}
           </p>
         </div>
-        <Select label="Billing & reporting currency" value={currency} onChange={(e) => setCurrency(e.target.value as Currency)}
+        <Select label={t('onb.currency')} value={currency} onChange={(e) => setCurrency(e.target.value as Currency)}
           options={CURRENCIES.map((c) => ({ value: c, label: `${c} — ${CURRENCY_NAMES[c]}` }))} />
-        <Select label="Your time zone" value={tz} onChange={(e) => setTz(e.target.value)} options={tzList.map((z) => ({ value: z, label: z.replace(/_/g, ' ') }))} />
+        <Select label={t('onb.tz')} value={tz} onChange={(e) => setTz(e.target.value)} options={tzList.map((z) => ({ value: z, label: z.replace(/_/g, ' ') }))} />
         <div className="grid grid-cols-2 gap-3">
-          <Input label="Work day starts" type="time" value={ws} onChange={(e) => setWs(e.target.value)} />
-          <Input label="Work day ends" type="time" value={we} onChange={(e) => setWe(e.target.value)} />
+          <Input label={t('onb.start')} type="time" value={ws} onChange={(e) => setWs(e.target.value)} />
+          <Input label={t('onb.end')} type="time" value={we} onChange={(e) => setWe(e.target.value)} />
         </div>
         <InlineError message={error} />
-        <Button type="submit" loading={busy} disabled={slugState === 'checking'}>Create workspace</Button>
+        <Button type="submit" loading={busy} disabled={slugState === 'checking'}>{t('onb.create')}</Button>
       </form>
-      {hasWorkspaces && <p className="text-center"><Link href="/dashboard" className="text-primary hover:underline">Back to your workspace</Link></p>}
+      {hasWorkspaces && <p className="text-center"><Link href="/dashboard" className="text-primary hover:underline">{t('onb.back')}</Link></p>}
     </div>
   );
 }

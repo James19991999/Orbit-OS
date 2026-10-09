@@ -321,6 +321,72 @@ await step('Payouts: a draft can be cancelled', async () => {
 });
 await mCtx.close();
 
+// ─────────────── Languages: Kiswahili and French ───────────────
+const hydration = (pg, sink) => pg.on('console', (m) => { if (m.type() === 'error' && /hydrat|did not match|server rendered/i.test(m.text())) sink.push(m.text().slice(0, 160)); });
+
+await step('Languages: a French browser gets the sign-in page in French (Accept-Language), with no hydration errors', async () => {
+  const ctx = await browser.newContext({ locale: 'fr-FR', extraHTTPHeaders: { 'accept-language': 'fr-FR,fr;q=0.9' } });
+  const pg = await ctx.newPage(); const errs = []; hydration(pg, errs);
+  await pg.goto(`${base}/login`, { waitUntil: 'networkidle' });
+  await pg.getByRole('heading', { name: 'Connexion à OrbitOS' }).waitFor({ timeout: 10000 });
+  await pg.getByRole('button', { name: 'Se connecter' }).waitFor();
+  const lang = await pg.evaluate(() => document.documentElement.lang);
+  await ctx.close();
+  if (lang !== 'fr') throw new Error(`html lang=${lang}`);
+  if (errs.length) throw new Error(errs.join(' | '));
+  return 'heading, button and <html lang> in French';
+});
+
+await step('Languages: picking Kiswahili on the sign-in page switches it and remembers the choice', async () => {
+  const ctx = await browser.newContext();
+  const pg = await ctx.newPage();
+  await pg.goto(`${base}/login`, { waitUntil: 'networkidle' });
+  await pg.getByLabel('Language').selectOption('sw');
+  await pg.getByRole('heading', { name: 'Ingia kwenye OrbitOS' }).waitFor({ timeout: 10000 });
+  await pg.goto(`${base}/signup`, { waitUntil: 'networkidle' });
+  const ok = await pg.getByRole('button', { name: /Unda/ }).count();
+  await ctx.close();
+  if (!ok) throw new Error('sign-up page not in Kiswahili after reload');
+});
+
+await step('Languages: a member switches to Kiswahili — navigation, profile and check-in are translated and saved to the profile', async () => {
+  const { ctx, page: wp } = await session('wanjiru@acme-global.demo');
+  const errs = []; hydration(wp, errs);
+  await wp.goto(`${base}/profile`, { waitUntil: 'networkidle' });
+  // The picker only acts once the page is interactive; retry if the first change landed before hydration.
+  for (let i = 0; i < 3; i++) {
+    await wp.locator('#language select').selectOption(i % 2 ? 'en' : 'sw');
+    if (i % 2) continue;
+    if (await wp.getByRole('heading', { name: 'Wasifu na usalama' }).waitFor({ timeout: 6000 }).then(() => true, () => false)) break;
+  }
+  await wp.getByRole('heading', { name: 'Wasifu na usalama' }).waitFor({ timeout: 10000 }).catch(async () => { throw new Error(`after switching: h1=${await wp.locator('h1').allInnerTexts()}`); });
+  const w = uid('wanjiru@acme-global.demo');
+  const saved = sql(`select language from profiles where id = '${w}'`);
+  const nav = await wp.getByRole('link', { name: 'Dashibodi' }).count();
+  await wp.goto(`${base}/culture?tab=roll-call`, { waitUntil: 'networkidle' });
+  const btn = await wp.getByRole('button', { name: /Toa ripoti|Hariri ripoti yangu/ }).count();
+  // Back to English for later runs
+  await wp.goto(`${base}/profile`, { waitUntil: 'networkidle' });
+  await wp.locator('#language select').selectOption('en');
+  await wp.getByRole('heading', { name: 'Profile & security' }).waitFor({ timeout: 15000 }).catch(async () => { throw new Error(`switching back: h1=${await wp.locator('h1').allInnerTexts()}`); });
+  await ctx.close();
+  if (saved !== 'sw') throw new Error(`profile.language=${saved}`);
+  if (!nav) throw new Error('navigation not translated');
+  if (!btn) throw new Error('check-in button not translated');
+  if (errs.length) throw new Error(errs.join(' | '));
+  return 'saved to profile; nav, profile and check-in in Kiswahili';
+});
+
+await step('Languages: WhatsApp replies follow the profile language (French)', async () => {
+  const e = uid('elena@acme-global.demo');
+  sql(`update profiles set language = 'fr' where id = '${e}'`);
+  await waInbound({ from: ELENA, text: 'HELP' });
+  await new Promise((r) => setTimeout(r, 800));
+  const txt = await lastText(ELENA);
+  sql(`update profiles set language = 'en' where id = '${e}'`);
+  if (!/OrbitOS sur WhatsApp|Répondez/i.test(txt)) throw new Error(txt.slice(0, 120));
+});
+
 await ownerCtx.close(); await dirCtx.close();
 await browser.close();
 const passed = results.filter(([c]) => c).length;

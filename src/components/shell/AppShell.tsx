@@ -14,6 +14,7 @@ import { TimezonePrompt } from './TimezonePrompt';
 import { NetworkStatus } from './NetworkStatus';
 import type { Role } from '@/lib/types';
 import { useFormat } from '@/lib/locale/client';
+import { useT } from '@/i18n/client';
 
 export interface ShellProps {
   user: { id: string; name: string; email: string; avatar: string | null; theme: ThemePref; timezone: string };
@@ -25,10 +26,12 @@ export interface ShellProps {
 
 export function AppShell({ user, org, role, workspaces, children }: ShellProps) {
   const fmt = useFormat();
+  const t = useT();
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
-  const section = NAV.find((n) => isActive(pathname, n.href))?.label
-    ?? (pathname.startsWith('/profile') ? 'Profile' : pathname.startsWith('/notifications') ? 'Notifications' : 'Workspace');
+  const navItem = NAV.find((n) => isActive(pathname, n.href));
+  const section = navItem ? t(navItem.labelKey)
+    : t(pathname.startsWith('/profile') ? 'nav.profile' : pathname.startsWith('/notifications') ? 'nav.notifications' : 'nav.workspace');
 
   useSessionGuard(org.timeoutHours);
   useEffect(() => { applyTheme(user.theme); }, [user.theme]);
@@ -37,9 +40,9 @@ export function AppShell({ user, org, role, workspaces, children }: ShellProps) 
   return (
     <div className="min-h-screen lg:pl-64">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-outline-variant bg-surface-container-lowest lg:flex" aria-label="Primary">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-outline-variant bg-surface-container-lowest lg:flex" aria-label={t('nav.primary')}>
         <div className="flex h-16 items-center px-5"><Logo href="/dashboard" /></div>
-        <nav aria-label="Main navigation" className="flex-1 overflow-y-auto px-3 py-2">
+        <nav aria-label={t('nav.main')} className="flex-1 overflow-y-auto px-3 py-2">
           <ul className="flex flex-col gap-0.5">
             {NAV.map((n) => {
               const active = isActive(pathname, n.href);
@@ -49,7 +52,7 @@ export function AppShell({ user, org, role, workspaces, children }: ShellProps) 
                     className={cn('flex h-10 items-center gap-3 rounded px-3 text-label-md transition-colors',
                       active ? 'bg-primary-container/15 text-on-surface shadow-[inset_2px_0_0_rgb(var(--c-primary-container))]' : 'text-on-surface-variant hover:bg-on-surface/5 hover:text-on-surface')}>
                     <Icon name={n.icon} filled={active} className={active ? 'text-primary' : ''} />
-                    {n.label}
+                    {t(n.labelKey)}
                   </Link>
                 </li>
               );
@@ -57,9 +60,9 @@ export function AppShell({ user, org, role, workspaces, children }: ShellProps) 
           </ul>
         </nav>
         <div className="border-t border-outline-variant p-4 text-body-sm text-on-surface-variant">
-          <p className="text-label-xs uppercase">Plan</p>
-          <p className="mt-1 text-on-surface capitalize">{org.plan} · {org.readOnly ? 'Expired' : `until ${fmt.date(org.expiresAt)}`}</p>
-          {role === 'owner' && <Link href="/settings/billing" className="mt-1 inline-block text-primary underline-offset-2 hover:underline">Manage billing</Link>}
+          <p className="text-label-xs uppercase">{t('shell.plan')}</p>
+          <p className="mt-1 text-on-surface capitalize">{org.plan} · {org.readOnly ? t('shell.expired') : t('shell.until', { date: fmt.date(org.expiresAt) })}</p>
+          {role === 'owner' && <Link href="/settings/billing" className="mt-1 inline-block text-primary underline-offset-2 hover:underline">{t('shell.manage_billing')}</Link>}
         </div>
       </aside>
 
@@ -80,8 +83,8 @@ export function AppShell({ user, org, role, workspaces, children }: ShellProps) 
         <div className="px-4 pt-4 lg:px-8">
           <Banner tone="warning">
             {org.status !== 'active'
-              ? <>This workspace is <strong>{org.status}</strong>. It is read-only.</>
-              : <>Your plan has expired, so this workspace is read-only. {role === 'owner' ? <Link className="underline" href="/settings/billing">Renew with M-Pesa or card</Link> : 'Ask the workspace owner to renew.'}</>}
+              ? <>{t('shell.readonly_status', { status: org.status })}</>
+              : <>{t('shell.readonly_expired')} {role === 'owner' ? <Link className="underline" href="/settings/billing">{t('shell.renew')}</Link> : t('shell.ask_owner')}</>}
           </Banner>
         </div>
       )}
@@ -92,7 +95,7 @@ export function AppShell({ user, org, role, workspaces, children }: ShellProps) 
       <main id="main" className="mx-auto max-w-canvas px-4 pb-28 pt-4 lg:px-8 lg:pb-10 lg:pt-6">{children}</main>
 
       {/* Mobile bottom nav */}
-      <nav aria-label="Main navigation" className="fixed inset-x-0 bottom-0 z-40 border-t border-outline-variant bg-surface-container-lowest/90 pb-safe backdrop-blur-xl shadow-[0_-1px_12px_rgba(0,0,0,0.35)] lg:hidden">
+      <nav aria-label={t('nav.main')} className="fixed inset-x-0 bottom-0 z-40 border-t border-outline-variant bg-surface-container-lowest/90 pb-safe backdrop-blur-xl shadow-[0_-1px_12px_rgba(0,0,0,0.35)] lg:hidden">
         <ul className="grid grid-cols-6">
           {NAV.filter((n) => n.primary).map((n) => {
             const active = isActive(pathname, n.href);
@@ -101,7 +104,7 @@ export function AppShell({ user, org, role, workspaces, children }: ShellProps) 
                 <Link href={n.href} aria-current={active ? 'page' : undefined}
                   className={cn('flex h-16 flex-col items-center justify-center gap-1 text-[10px] font-semibold tracking-wide', active ? 'text-primary' : 'text-on-surface-variant')}>
                   <Icon name={n.icon} filled={active} className="text-[22px]" />
-                  {n.label}
+                  {t(n.labelKey)}
                 </Link>
               </li>
             );
@@ -109,17 +112,17 @@ export function AppShell({ user, org, role, workspaces, children }: ShellProps) 
           <li>
             <button type="button" onClick={() => setMoreOpen(true)} aria-haspopup="dialog"
               className="flex h-16 w-full flex-col items-center justify-center gap-1 text-[10px] font-semibold tracking-wide text-on-surface-variant">
-              <Icon name="menu" className="text-[22px]" />More
+              <Icon name="menu" className="text-[22px]" />{t('nav.more')}
             </button>
           </li>
         </ul>
       </nav>
-      <Dialog open={moreOpen} onClose={() => setMoreOpen(false)} title="More">
+      <Dialog open={moreOpen} onClose={() => setMoreOpen(false)} title={t('nav.more')}>
         <ul className="grid grid-cols-2 gap-2">
-          {[...NAV.filter((n) => !n.primary), { href: '/profile', label: 'Profile', icon: 'person' }, { href: '/notifications', label: 'Notifications', icon: 'notifications' }].map((n) => (
+          {[...NAV.filter((n) => !n.primary), { href: '/profile', label: 'Profile', labelKey: 'nav.profile' as const, icon: 'person' }, { href: '/notifications', label: 'Notifications', labelKey: 'nav.notifications' as const, icon: 'notifications' }].map((n) => (
             <li key={n.href}>
               <Link href={n.href} className="flex h-14 items-center gap-3 rounded-lg border border-outline-variant bg-surface-container px-4 text-label-md">
-                <Icon name={n.icon} className="text-secondary" />{n.label}
+                <Icon name={n.icon} className="text-secondary" />{t(n.labelKey)}
               </Link>
             </li>
           ))}
@@ -166,6 +169,7 @@ function OrgSwitcher({ current, workspaces }: { current: ShellProps['org']; work
   const [busy, setBusy] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
+  const t = useT();
   const ref = useClickOutside(open, () => setOpen(false));
   async function choose(slug: string) {
     if (slug === current.slug) { setOpen(false); return; }
@@ -175,7 +179,7 @@ function OrgSwitcher({ current, workspaces }: { current: ShellProps['org']; work
       setOpen(false);
       router.refresh();
     } catch (e) {
-      toast(`Could not switch workspace: ${errorMessage(e)}`, 'error');
+      toast(t('shell.switch_failed', { error: errorMessage(e) }), 'error');
     } finally {
       setBusy(null);
     }
@@ -183,19 +187,19 @@ function OrgSwitcher({ current, workspaces }: { current: ShellProps['org']; work
   return (
     <div className="relative" ref={ref}>
       <button type="button" onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open}
-        aria-label={`Current workspace: ${current.name}. Switch workspace`}
+        aria-label={t('shell.current_ws', { name: current.name })}
         className="flex h-9 max-w-[11rem] items-center gap-1 rounded border border-outline-variant bg-surface-container px-2.5 text-label-sm text-on-surface hover:bg-surface-container-high">
         <span className="truncate">{current.name}</span>
         <Icon name="expand_more" className="text-[18px]" />
       </button>
       {open && (
-        <div role="menu" aria-label="Workspaces" className="absolute right-0 top-11 z-50 w-64 rounded-lg border border-outline-variant bg-surface-container-high p-1 shadow-l2">
+        <div role="menu" aria-label={t('shell.workspaces')} className="absolute right-0 top-11 z-50 w-64 rounded-lg border border-outline-variant bg-surface-container-high p-1 shadow-l2">
           {workspaces.map((w) => (
             <button key={w.slug} role="menuitemradio" aria-checked={w.slug === current.slug} type="button" onClick={() => choose(w.slug)} disabled={!!busy}
               className="flex w-full items-center justify-between gap-2 rounded px-3 py-2 text-left text-body-md hover:bg-on-surface/5 disabled:opacity-60">
               <span className="min-w-0">
                 <span className="block truncate text-on-surface">{w.name}</span>
-                <span className="block text-body-sm capitalize text-on-surface-variant">{w.role}</span>
+                <span className="block text-body-sm text-on-surface-variant">{t(`role.${w.role}`)}</span>
               </span>
               {busy === w.slug ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />
                 : w.slug === current.slug ? <Icon name="check" className="text-primary" /> : null}
@@ -203,7 +207,7 @@ function OrgSwitcher({ current, workspaces }: { current: ShellProps['org']; work
           ))}
           <div className="my-1 border-t border-outline-variant" />
           <Link role="menuitem" href="/onboarding?new=1" className="flex items-center gap-2 rounded px-3 py-2 text-body-md text-on-surface-variant hover:bg-on-surface/5">
-            <Icon name="add" />Create workspace
+            <Icon name="add" />{t('shell.create_ws')}
           </Link>
         </div>
       )}
@@ -217,6 +221,7 @@ function ProfileMenu({ user }: { user: ShellProps['user'] }) {
   const [theme, setTheme] = useState<ThemePref>(user.theme);
   const router = useRouter();
   const { toast } = useToast();
+  const t = useT();
   const ref = useClickOutside(open, () => setOpen(false));
 
   async function signOut() {
@@ -230,43 +235,43 @@ function ProfileMenu({ user }: { user: ShellProps['user'] }) {
       router.replace('/login');
       router.refresh();
     } catch (e) {
-      toast(`Sign-out failed: ${errorMessage(e)}`, 'error');
+      toast(t('shell.signout_failed', { error: errorMessage(e) }), 'error');
       setSigningOut(false);
     }
   }
-  async function pickTheme(t: ThemePref) {
-    setTheme(t);
-    applyTheme(t);
+  async function pickTheme(th: ThemePref) {
+    setTheme(th);
+    applyTheme(th);
     try {
       const supabase = getBrowserClient();
       if (supabase) {
-        const { error } = await supabase.from('profiles').update({ theme: t }).eq('id', user.id);
+        const { error } = await supabase.from('profiles').update({ theme: th }).eq('id', user.id);
         if (error) throw error;
       }
     } catch (e) {
-      toast(`Theme applied on this device, but not saved to your profile: ${errorMessage(e)}`, 'error');
+      toast(t('shell.theme_not_saved', { error: errorMessage(e) }), 'error');
     }
   }
   return (
     <div className="relative" ref={ref}>
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} aria-label="Account menu" className="rounded-full p-1 hover:bg-on-surface/5">
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} aria-label={t('shell.account_menu')} className="rounded-full p-1 hover:bg-on-surface/5">
         <Avatar name={user.name} src={user.avatar} size={30} />
       </button>
       {open && (
-        <div role="menu" aria-label="Account" className="absolute right-0 top-11 z-50 w-64 rounded-lg border border-outline-variant bg-surface-container-high p-1 shadow-l2">
+        <div role="menu" aria-label={t('shell.account')} className="absolute right-0 top-11 z-50 w-64 rounded-lg border border-outline-variant bg-surface-container-high p-1 shadow-l2">
           <div className="px-3 py-2">
             <p className="truncate text-label-md text-on-surface">{user.name}</p>
             <p className="truncate text-body-sm text-on-surface-variant">{user.email}</p>
           </div>
           <div className="my-1 border-t border-outline-variant" />
-          <Link role="menuitem" href="/profile" className="flex items-center gap-2 rounded px-3 py-2 text-body-md hover:bg-on-surface/5"><Icon name="person" />Profile & security</Link>
-          <div className="px-3 py-2" role="group" aria-label="Theme">
-            <p className="mb-1 text-label-xs uppercase text-on-surface-variant">Theme</p>
+          <Link role="menuitem" href="/profile" className="flex items-center gap-2 rounded px-3 py-2 text-body-md hover:bg-on-surface/5"><Icon name="person" />{t('shell.profile_security')}</Link>
+          <div className="px-3 py-2" role="group" aria-label={t('shell.theme')}>
+            <p className="mb-1 text-label-xs uppercase text-on-surface-variant">{t('shell.theme')}</p>
             <div className="flex gap-1">
-              {(['system', 'dark', 'light'] as const).map((t) => (
-                <button key={t} type="button" role="menuitemradio" aria-checked={theme === t} onClick={() => pickTheme(t)}
-                  className={cn('h-8 flex-1 rounded border text-label-sm capitalize', theme === t ? 'border-primary-container bg-primary-container/15 text-on-surface' : 'border-outline-variant text-on-surface-variant')}>
-                  {t}
+              {(['system', 'dark', 'light'] as const).map((th) => (
+                <button key={th} type="button" role="menuitemradio" aria-checked={theme === th} onClick={() => pickTheme(th)}
+                  className={cn('h-8 flex-1 rounded border text-label-sm', theme === th ? 'border-primary-container bg-primary-container/15 text-on-surface' : 'border-outline-variant text-on-surface-variant')}>
+                  {t(`shell.theme.${th}`)}
                 </button>
               ))}
             </div>
@@ -274,7 +279,7 @@ function ProfileMenu({ user }: { user: ShellProps['user'] }) {
           <div className="my-1 border-t border-outline-variant" />
           <button role="menuitem" type="button" onClick={signOut} disabled={signingOut}
             className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-body-md text-alert hover:bg-on-surface/5 disabled:opacity-60">
-            <Icon name="logout" />{signingOut ? 'Signing out…' : 'Sign out'}
+            <Icon name="logout" />{signingOut ? t('shell.signing_out') : t('shell.signout')}
           </button>
         </div>
       )}

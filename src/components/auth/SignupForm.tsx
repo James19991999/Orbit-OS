@@ -6,9 +6,11 @@ import { Button, Input, InlineError, Banner } from '@/components/ui';
 import { getBrowserClient } from '@/lib/supabase/client';
 import { errorMessage } from '@/hooks/useAction';
 import { safeNext } from '@/lib/auth/redirect';
+import { useT } from '@/i18n/client';
 
 export function SignupForm({ next, invitedEmail }: { next?: string; invitedEmail?: string }) {
   const router = useRouter();
+  const t = useT();
   const [name, setName] = useState('');
   const [email, setEmail] = useState(invitedEmail ?? '');
   const [password, setPassword] = useState('');
@@ -20,9 +22,9 @@ export function SignupForm({ next, invitedEmail }: { next?: string; invitedEmail
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (name.trim().length < 2) return setError('Please enter your full name.');
-    if (!/^\S+@\S+\.\S+$/.test(email)) return setError('Please enter a valid work email.');
-    if (password.length < 10) return setError('Use at least 10 characters for your password.');
+    if (name.trim().length < 2) return setError(t('signup.err_name'));
+    if (!/^\S+@\S+\.\S+$/.test(email)) return setError(t('signup.err_email'));
+    if (password.length < 10) return setError(t('signup.err_password'));
     const supabase = getBrowserClient();
     if (!supabase) return;
     setBusy(true);
@@ -47,9 +49,9 @@ export function SignupForm({ next, invitedEmail }: { next?: string; invitedEmail
   if (checkInbox) {
     return (
       <div className="flex flex-col gap-4 text-center">
-        <h1 className="text-headline-lg-mobile">Check your inbox</h1>
-        <Banner tone="info">We sent a confirmation link to <strong>{email}</strong>. Open it on this device to finish setting up your workspace.</Banner>
-        <Link href="/login" className="text-primary hover:underline">Back to sign in</Link>
+        <h1 className="text-headline-lg-mobile">{t('signup.check_inbox')}</h1>
+        <Banner tone="info">{t('signup.sent', { email })}</Banner>
+        <Link href="/login" className="text-primary hover:underline">{t('auth.back_to_signin')}</Link>
       </div>
     );
   }
@@ -57,18 +59,18 @@ export function SignupForm({ next, invitedEmail }: { next?: string; invitedEmail
   return (
     <div className="flex flex-col gap-5">
       <div className="text-center">
-        <h1 className="text-headline-lg-mobile md:text-headline-lg">Create your workspace</h1>
-        <p className="mt-1 text-body-md text-on-surface-variant">14-day free trial of Pro. No card or M-Pesa needed to start.</p>
+        <h1 className="text-headline-lg-mobile md:text-headline-lg">{t('signup.title')}</h1>
+        <p className="mt-1 text-body-md text-on-surface-variant">{t('signup.subtitle')}</p>
       </div>
       <form onSubmit={submit} className="card flex flex-col gap-4 p-5" noValidate>
-        <Input label="Full name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} required />
-        <Input label="Work email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required readOnly={!!invitedEmail} />
-        <Input label="Password" type="password" autoComplete="new-password" hint="At least 10 characters." value={password} onChange={(e) => setPassword(e.target.value)} required />
+        <Input label={t('signup.full_name')} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} required />
+        <Input label={t('auth.work_email')} type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required readOnly={!!invitedEmail} />
+        <Input label={t('auth.password')} type="password" autoComplete="new-password" hint={t('auth.min_password')} value={password} onChange={(e) => setPassword(e.target.value)} required />
         <InlineError message={error} />
-        <Button type="submit" loading={busy}>Create account</Button>
-        <p className="text-body-sm text-on-surface-variant">By continuing you agree to the <Link href="/legal/terms" className="text-primary hover:underline">Terms</Link> and <Link href="/legal/privacy" className="text-primary hover:underline">Privacy Policy</Link>.</p>
+        <Button type="submit" loading={busy}>{t('signup.create')}</Button>
+        <p className="text-body-sm text-on-surface-variant">{t('signup.agree_1')} <Link href="/legal/terms" className="text-primary hover:underline">{t('signup.terms')}</Link> {t('signup.and')} <Link href="/legal/privacy" className="text-primary hover:underline">{t('auth.privacy')}</Link>.</p>
       </form>
-      <p className="text-center text-body-md text-on-surface-variant">Already have an account? <Link href={`/login${next ? `?next=${encodeURIComponent(next)}` : ''}`} className="text-primary hover:underline">Sign in</Link></p>
+      <p className="text-center text-body-md text-on-surface-variant">{t('signup.have_account')} <Link href={`/login${next ? `?next=${encodeURIComponent(next)}` : ''}`} className="text-primary hover:underline">{t('auth.sign_in')}</Link></p>
     </div>
   );
 }

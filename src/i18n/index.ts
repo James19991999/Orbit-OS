@@ -29,7 +29,10 @@ export function resolveLanguage(cookie: string | null | undefined, acceptLanguag
 
 /** Translate a key, filling {name}-style placeholders. Missing translations fall back to English. */
 export function translate(lang: Language, key: MessageKey, vars?: Record<string, string | number>): string {
-  const raw = DICTS[lang]?.[key] ?? en[key];
+  // Singular form: "<key>_one" is used when count is 1 (if the language defines it).
+  const oneKey = `${key}_one` as MessageKey;
+  const useOne = vars?.count === 1 && (oneKey in en);
+  const raw = (useOne ? DICTS[lang]?.[oneKey] ?? (lang === 'en' ? en[oneKey] : undefined) : undefined) ?? DICTS[lang]?.[key] ?? en[key];
   if (!vars) return raw;
   return raw.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
 }

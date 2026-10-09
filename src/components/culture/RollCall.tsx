@@ -7,12 +7,14 @@ import { useAction, unwrap } from '@/hooks/useAction';
 import { useToast } from '@/components/ui';
 import { queueCheckin, isOfflineError } from '@/lib/offline/queue';
 import type { CheckIn } from '@/lib/types';
+import { useT } from '@/i18n/client';
 
-const MOODS = [{ v: 1, e: '😫', l: 'Rough' }, { v: 2, e: '😕', l: 'Meh' }, { v: 3, e: '😐', l: 'Okay' }, { v: 4, e: '🙂', l: 'Good' }, { v: 5, e: '🤩', l: 'Great' }];
+const MOODS = [{ v: 1, e: '😫' }, { v: 2, e: '😕' }, { v: 3, e: '😐' }, { v: 4, e: '🙂' }, { v: 5, e: '🤩' }] as const;
 
 export function RollCall({ orgId, userId, completed, total, mine, canWrite, today }:
   { orgId: string; userId: string; completed: number; total: number; mine: CheckIn | null; canWrite: boolean; today: string }) {
   const router = useRouter();
+  const t = useT();
   const { toast } = useToast();
   const sp = useSearchParams();
   const [open, setOpen] = useState(false);
@@ -35,15 +37,15 @@ export function RollCall({ orgId, userId, completed, total, mine, canWrite, toda
   const pct = total ? Math.round((completed / total) * 100) : 0;
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!f.shipped.trim()) return setErr('Share at least one thing you shipped or moved forward.');
+    if (!f.shipped.trim()) return setErr(t('checkin.need_shipped'));
     setErr(null);
     const r = await save.run();
     if (r === 'queued') {
       setOpen(false);
       window.dispatchEvent(new Event('orbit:queued'));
-      toast("You're offline — check-in saved on this device and will be sent when you reconnect.");
+      toast(t('checkin.saved_offline'));
     } else if (r === 'saved') {
-      toast('Check-in saved', 'success');
+      toast(t('checkin.saved'), 'success');
       setOpen(false);
       router.refresh();
     }
@@ -51,22 +53,22 @@ export function RollCall({ orgId, userId, completed, total, mine, canWrite, toda
   return (
     <div>
       <div className="flex items-end justify-between gap-2">
-        <p className="text-headline-md tnum">{pct}% <span className="text-body-sm text-on-surface-variant">completed today</span></p>
+        <p className="text-headline-md tnum">{pct}% <span className="text-body-sm text-on-surface-variant">{t('checkin.completed_today')}</span></p>
         <span className="text-body-sm text-on-surface-variant tnum">{completed}/{total}</span>
       </div>
-      <div className="mt-2"><ProgressBar value={completed} max={total} label="Check-in completion" tone="healthy" /></div>
-      <p className="mt-2 text-body-sm text-on-surface-variant">What did you ship today? Keep your distributed node in sync.</p>
-      {canWrite && <Button className="mt-3" icon={mine ? 'edit' : 'edit_note'} variant={mine ? 'secondary' : 'primary'} onClick={() => setOpen(true)}>{mine ? 'Edit my check-in' : 'Check in'}</Button>}
-      <Dialog open={open} onClose={() => setOpen(false)} title="Async check-in"
-        footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button><Button type="submit" form="ci-form" loading={save.pending}>Save check-in</Button></>}>
+      <div className="mt-2"><ProgressBar value={completed} max={total} label={t('checkin.progress')} tone="healthy" /></div>
+      <p className="mt-2 text-body-sm text-on-surface-variant">{t('checkin.prompt')}</p>
+      {canWrite && <Button className="mt-3" icon={mine ? 'edit' : 'edit_note'} variant={mine ? 'secondary' : 'primary'} onClick={() => setOpen(true)}>{mine ? t('checkin.edit') : t('checkin.cta')}</Button>}
+      <Dialog open={open} onClose={() => setOpen(false)} title={t('checkin.title')}
+        footer={<><Button variant="ghost" onClick={() => setOpen(false)}>{t('checkin.cancel')}</Button><Button type="submit" form="ci-form" loading={save.pending}>{t('checkin.save')}</Button></>}>
         <form id="ci-form" onSubmit={submit} className="grid gap-4" noValidate>
-          <Textarea label="What did you ship today?" value={f.shipped} onChange={(e) => setF({ ...f, shipped: e.target.value })} maxLength={2000} />
-          <Textarea label="Anything blocking you? (optional)" rows={2} value={f.blockers} onChange={(e) => setF({ ...f, blockers: e.target.value })} />
+          <Textarea label={t('checkin.shipped')} value={f.shipped} onChange={(e) => setF({ ...f, shipped: e.target.value })} maxLength={2000} />
+          <Textarea label={t('checkin.blockers')} rows={2} value={f.blockers} onChange={(e) => setF({ ...f, blockers: e.target.value })} />
           <fieldset>
-            <legend className="mb-2 text-label-sm text-on-surface-variant">How are you feeling?</legend>
+            <legend className="mb-2 text-label-sm text-on-surface-variant">{t('checkin.feeling')}</legend>
             <div className="flex gap-2" role="radiogroup">
               {MOODS.map((m) => (
-                <button key={m.v} type="button" role="radio" aria-checked={f.mood === m.v} aria-label={m.l} onClick={() => setF({ ...f, mood: m.v })}
+                <button key={m.v} type="button" role="radio" aria-checked={f.mood === m.v} aria-label={t(`checkin.mood.${m.v}`)} onClick={() => setF({ ...f, mood: m.v })}
                   className={`flex h-12 flex-1 flex-col items-center justify-center rounded border text-[20px] ${f.mood === m.v ? 'border-primary-container bg-primary-container/15' : 'border-outline-variant'}`}>
                   <span aria-hidden>{m.e}</span>
                 </button>

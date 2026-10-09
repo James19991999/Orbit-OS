@@ -4,8 +4,10 @@ import Link from 'next/link';
 import { Button, Input, InlineError, Banner } from '@/components/ui';
 import { getBrowserClient } from '@/lib/supabase/client';
 import { errorMessage } from '@/hooks/useAction';
+import { useT } from '@/i18n/client';
 
 export function ForgotForm() {
+  const t = useT();
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
@@ -13,7 +15,7 @@ export function ForgotForm() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!/^\S+@\S+\.\S+$/.test(email)) return setError('Enter the email you sign in with.');
+    if (!/^\S+@\S+\.\S+$/.test(email)) return setError(t('forgot.err_email'));
     const supabase = getBrowserClient();
     if (!supabase) return;
     setBusy(true);
@@ -30,19 +32,19 @@ export function ForgotForm() {
   return (
     <div className="flex flex-col gap-5">
       <div className="text-center">
-        <h1 className="text-headline-lg-mobile md:text-headline-lg">Reset your password</h1>
-        <p className="mt-1 text-body-md text-on-surface-variant">We&apos;ll email you a secure link.</p>
+        <h1 className="text-headline-lg-mobile md:text-headline-lg">{t('forgot.title')}</h1>
+        <p className="mt-1 text-body-md text-on-surface-variant">{t('forgot.subtitle')}</p>
       </div>
       {sent ? (
-        <Banner tone="info">If an account exists for <strong>{email}</strong>, a reset link is on its way. It expires in 1 hour.</Banner>
+        <Banner tone="info">{t('forgot.sent', { email })}</Banner>
       ) : (
         <form onSubmit={submit} className="card flex flex-col gap-4 p-5" noValidate>
-          <Input label="Work email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <Input label={t('auth.work_email')} type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           <InlineError message={error} />
-          <Button type="submit" loading={busy}>Send reset link</Button>
+          <Button type="submit" loading={busy}>{t('forgot.send')}</Button>
         </form>
       )}
-      <p className="text-center"><Link href="/login" className="text-primary hover:underline">Back to sign in</Link></p>
+      <p className="text-center"><Link href="/login" className="text-primary hover:underline">{t('auth.back_to_signin')}</Link></p>
     </div>
   );
 }

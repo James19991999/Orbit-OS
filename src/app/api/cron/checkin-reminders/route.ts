@@ -1,14 +1,16 @@
 import { formatInTimeZone } from 'date-fns-tz';
 import { handler, json, requireCronSecret } from '@/lib/api';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { sendEmail, emailLayout, isEmailConfigured } from '@/lib/email';
+import { sendEmail, emailLayout, isEmailConfigured, escapeHtml } from '@/lib/email';
 import { appUrl } from '@/lib/env';
 import { linkedUsers, sendCheckinReminder } from '@/lib/whatsapp/outbound';
+import { isLanguage, makeT } from '@/i18n';
+
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
-type Row = { org_id: string; user_id: string; org: { name: string; status: string }; profile: { full_name: string; email: string | null; timezone: string; checkin_reminders: boolean } };
+type Row = { org_id: string; user_id: string; org: { name: string; status: string }; profile: { full_name: string; email: string | null; timezone: string; checkin_reminders: boolean; language: string | null } };
 
 /**
  * Hourly: at 16:00 local time on weekdays, reminds members who haven't checked in today.
@@ -18,7 +20,7 @@ export const GET = handler(async (req) => {
   requireCronSecret(req);
   const admin = getAdminClient();
   const now = new Date();
-  const { data, error } = await admin.from('memberships').select('org_id, user_id, org:organizations(name, status), profile:profiles(full_name, email, timezone, checkin_reminders)').eq('status', 'active').in('role', ['owner', 'director', 'contributor']);
+  const { data, error } = await admin.from('memberships').select('org_id, user_id, org:organizations(name, status), profile:profiles(full_name, email, timezone, checkin_reminders, language)').eq('status', 'active').in('role', ['owner', 'director', 'contributor']);
   if (error) throw new Error(error.message);
   const due: Row[] = [];
   for (const m of (data ?? []) as unknown as Row[]) {
@@ -38,8 +40,9 @@ export const GET = handler(async (req) => {
       try { await sendCheckinReminder(admin, person, { id: m.org_id, name: m.org.name }); whatsapp++; continue; } catch (e) { console.error('[checkin-reminders] whatsapp failed, falling back to email', (e as Error).message); }
     }
     if (!isEmailConfigured() || !m.profile.email) continue;
-    const r = await sendEmail({ to: m.profile.email, subject: `${m.org.name}: what did you ship today?`,
-      html: emailLayout('Async roll call', `<p>Hi ${m.profile.full_name.split(' ')[0]}, take 30 seconds to share what you shipped today so your teammates in other time zones stay in sync.</p>`, { label: 'Check in', url: `${appUrl()}/culture?tab=roll-call` }) });
+    const t = makeT(isLanguage(m.profile.language) ? m.profile.language : 'en');
+    const r = await sendEmail({ to: m.profile.email, subject: t('email.checkin.subject', { org: m.org.name }),
+      html: emailLayout(t('email.checkin.title'), `<p>${escapeHtml(t('email.checkin.body', { name: m.profile.full_name.split(' ')[0] }))}</p>`, { label: t('email.checkin.cta'), url: `${appUrl()}/culture?tab=roll-call` }) });
     if (r.sent) email++;
   }
   return json({ due: due.length, whatsapp, email });

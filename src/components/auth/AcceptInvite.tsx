@@ -4,9 +4,11 @@ import { useRouter } from 'next/navigation';
 import { Button, InlineError } from '@/components/ui';
 import { getBrowserClient } from '@/lib/supabase/client';
 import { errorMessage, postJson } from '@/hooks/useAction';
+import { useT } from '@/i18n/client';
 
 export function AcceptInvite({ code, signedInAs }: { code: string; signedInAs: string }) {
   const router = useRouter();
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   async function accept() {
@@ -27,8 +29,8 @@ export function AcceptInvite({ code, signedInAs }: { code: string; signedInAs: s
   }
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-body-sm text-on-surface-variant">Signed in as {signedInAs}</p>
-      <Button onClick={accept} loading={busy}>Accept invite</Button>
+      <p className="text-body-sm text-on-surface-variant">{t('join.signed_in_as', { email: signedInAs })}</p>
+      <Button onClick={accept} loading={busy}>{t('join.accept')}</Button>
       <InlineError message={error} />
     </div>
   );

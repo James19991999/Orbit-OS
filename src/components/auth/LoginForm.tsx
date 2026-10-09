@@ -7,6 +7,7 @@ import { Button, Input, Checkbox, Icon, Banner, InlineError } from '@/components
 import { getBrowserClient, setRememberDevice } from '@/lib/supabase/client';
 import { safeNext } from '@/lib/auth/redirect';
 import { errorMessage, postJson } from '@/hooks/useAction';
+import { useT } from '@/i18n/client';
 
 const TENANT_KEY = 'orbit_tenant';
 const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'orbitos.io';
@@ -22,6 +23,7 @@ function writeTenant(slug: string) {
 
 export function LoginForm({ next, reason, error: initialError }: { next?: string; reason?: string; error?: string }) {
   const router = useRouter();
+  const t = useT();
   const target = safeNext(next);
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [tenantInput, setTenantInput] = useState('');
@@ -47,20 +49,20 @@ export function LoginForm({ next, reason, error: initialError }: { next?: string
     const slug = slugRaw.trim().toLowerCase();
     setTenantError(null);
     if (!slug) { setTenant(null); writeTenant(''); return; }
-    if (!/^[a-z0-9-]{3,40}$/.test(slug)) { setTenantError('Use 3–40 lowercase letters, numbers or hyphens.'); return; }
+    if (!/^[a-z0-9-]{3,40}$/.test(slug)) { setTenantError(t('login.ws_invalid')); return; }
     const supabase = getBrowserClient();
     if (!supabase) return;
     setTenantBusy(true);
     try {
       const { data, error: e } = await supabase.rpc('org_by_slug', { p_slug: slug });
       if (e) throw e;
-      const t = (data as Tenant[] | null)?.[0];
-      if (!t) { setTenantError('No workspace found with that domain.'); setTenant(null); return; }
-      setTenant(t);
+      const found = (data as Tenant[] | null)?.[0];
+      if (!found) { setTenantError(t('login.ws_not_found')); setTenant(null); return; }
+      setTenant(found);
       setEditingTenant(false);
-      if (save) writeTenant(t.slug);
+      if (save) writeTenant(found.slug);
     } catch (err) {
-      setTenantError(`Couldn't look up workspace: ${errorMessage(err)}`);
+      setTenantError(t('login.ws_lookup_failed', { error: errorMessage(err) }));
     } finally {
       setTenantBusy(false);
     }
@@ -93,7 +95,7 @@ export function LoginForm({ next, reason, error: initialError }: { next?: string
       await afterSignIn();
     } catch (err) {
       const msg = errorMessage(err);
-      setError(/invalid login credentials/i.test(msg) ? 'Incorrect email or password.' : /email not confirmed/i.test(msg) ? 'Please confirm your email first — check your inbox.' : msg);
+      setError(/invalid login credentials/i.test(msg) ? t('login.err_credentials') : /email not confirmed/i.test(msg) ? t('login.err_unconfirmed') : msg);
       setBusy(null);
     }
   }
@@ -114,7 +116,7 @@ export function LoginForm({ next, reason, error: initialError }: { next?: string
       });
       if (err) throw err;
     } catch (err) {
-      setError(`${provider === 'google' ? 'Google' : 'Azure AD'} sign-in failed: ${errorMessage(err)}`);
+      setError(t('login.err_oauth', { provider: provider === 'google' ? 'Google' : 'Azure AD', error: errorMessage(err) }));
       setBusy(null);
     }
   }
@@ -133,14 +135,14 @@ export function LoginForm({ next, reason, error: initialError }: { next?: string
       if (data?.url) window.location.href = data.url;
       else throw new Error('Identity provider did not return a redirect URL');
     } catch (err) {
-      setError(`SSO sign-in failed: ${errorMessage(err)}`);
+      setError(t('login.err_sso', { error: errorMessage(err) }));
       setBusy(null);
     }
   }
 
   async function onPasskey() {
     setError(null);
-    if (!email.trim()) { setError('Enter your work email first, then use your passkey.'); return; }
+    if (!email.trim()) { setError(t('login.err_passkey_email')); return; }
     setBusy('passkey');
     setRememberDevice(remember);
     try {
@@ -151,7 +153,7 @@ export function LoginForm({ next, reason, error: initialError }: { next?: string
       await afterSignIn();
     } catch (err) {
       const msg = errorMessage(err);
-      setError(/NotAllowedError|timed out|cancel/i.test(msg) ? 'Passkey sign-in was cancelled.' : `Passkey sign-in failed: ${msg}`);
+      setError(/NotAllowedError|timed out|cancel/i.test(msg) ? t('login.err_passkey_cancelled') : t('login.err_passkey', { error: msg }));
       setBusy(null);
     }
   }
@@ -162,19 +164,19 @@ export function LoginForm({ next, reason, error: initialError }: { next?: string
         <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-lg border border-outline-variant bg-surface-container shadow-glow">
           <Icon name="deployed_code" className="text-[28px] text-primary" />
         </span>
-        <h1 className="text-headline-lg-mobile md:text-headline-lg">Sign in to OrbitOS</h1>
-        <p className="mt-1 text-body-md text-on-surface-variant">The distributed operating system for remote-first companies</p>
+        <h1 className="text-headline-lg-mobile md:text-headline-lg">{t('login.title')}</h1>
+        <p className="mt-1 text-body-md text-on-surface-variant">{t('login.subtitle')}</p>
       </div>
 
-      {reason === 'timeout' && <Banner tone="info">You were signed out after a period of inactivity.</Banner>}
-      {reason === 'signed_up' && <Banner tone="info">Account created. Check your inbox to confirm your email, then sign in.</Banner>}
-      {reason === 'password_updated' && <Banner tone="info">Password updated. Sign in with your new password.</Banner>}
+      {reason === 'timeout' && <Banner tone="info">{t('login.timeout')}</Banner>}
+      {reason === 'signed_up' && <Banner tone="info">{t('login.signed_up')}</Banner>}
+      {reason === 'password_updated' && <Banner tone="info">{t('login.password_updated')}</Banner>}
 
       <section className="card p-5" aria-labelledby="tenant-label">
         <div className="flex items-center justify-between gap-3">
-          <p id="tenant-label" className="flex items-center gap-2 text-label-xs uppercase text-on-surface-variant"><Icon name="domain" className="text-[16px]" />Workspace domain</p>
+          <p id="tenant-label" className="flex items-center gap-2 text-label-xs uppercase text-on-surface-variant"><Icon name="domain" className="text-[16px]" />{t('login.ws_domain')}</p>
           {!editingTenant && (
-            <button type="button" onClick={() => setEditingTenant(true)} className="text-label-sm text-primary hover:underline">Switch</button>
+            <button type="button" onClick={() => setEditingTenant(true)} className="text-label-sm text-primary hover:underline">{t('login.switch')}</button>
           )}
         </div>
         {!editingTenant && tenant ? (
@@ -182,57 +184,57 @@ export function LoginForm({ next, reason, error: initialError }: { next?: string
         ) : (
           <form className="mt-2 flex items-end gap-2" onSubmit={(e) => { e.preventDefault(); void lookupTenant(tenantInput); }}>
             <div className="flex-1">
-              <Input label="Workspace subdomain" hideLabel placeholder="your-company" value={tenantInput} onChange={(e) => setTenantInput(e.target.value)}
+              <Input label={t('login.ws_subdomain')} hideLabel placeholder="your-company" value={tenantInput} onChange={(e) => setTenantInput(e.target.value)}
                 autoCapitalize="none" autoCorrect="off" spellCheck={false} aria-describedby="tenant-suffix" />
             </div>
             <span id="tenant-suffix" className="pb-3 text-body-sm text-on-surface-variant md:pb-2.5">.{rootDomain}</span>
-            <Button type="submit" variant="secondary" size="sm" className="mb-1" loading={tenantBusy}>Save</Button>
+            <Button type="submit" variant="secondary" size="sm" className="mb-1" loading={tenantBusy}>{t('login.save')}</Button>
           </form>
         )}
         <InlineError message={tenantError} />
-        {!tenant && editingTenant && <p className="mt-1 text-body-sm text-on-surface-variant">Optional — enables your company&apos;s single sign-on.</p>}
+        {!tenant && editingTenant && <p className="mt-1 text-body-sm text-on-surface-variant">{t('login.ws_optional')}</p>}
       </section>
 
       <div className="flex flex-col gap-2">
         <Button variant="secondary" icon="security_key" onClick={onSso} disabled={!tenant?.sso_domain || !!busy} loading={busy === 'sso'}
           aria-describedby={!tenant?.sso_domain ? 'sso-hint' : undefined} className="justify-start">
-          Continue with Okta / SAML
+          {t('login.sso')}
         </Button>
-        {!tenant?.sso_domain && <p id="sso-hint" className="text-body-sm text-on-surface-variant">{tenant ? 'SSO is not configured for this workspace. Ask your admin.' : 'Set your workspace domain to use SAML single sign-on.'}</p>}
-        <Button variant="secondary" icon="cloud_sync" onClick={() => onOAuth('google')} disabled={!!busy} loading={busy === 'google'} className="justify-start">Continue with Google Workspace</Button>
-        <Button variant="secondary" icon="corporate_fare" onClick={() => onOAuth('azure')} disabled={!!busy} loading={busy === 'azure'} className="justify-start">Continue with Microsoft Entra ID (Azure AD)</Button>
+        {!tenant?.sso_domain && <p id="sso-hint" className="text-body-sm text-on-surface-variant">{tenant ? t('login.sso_not_configured') : t('login.sso_need_domain')}</p>}
+        <Button variant="secondary" icon="cloud_sync" onClick={() => onOAuth('google')} disabled={!!busy} loading={busy === 'google'} className="justify-start">{t('login.google')}</Button>
+        <Button variant="secondary" icon="corporate_fare" onClick={() => onOAuth('azure')} disabled={!!busy} loading={busy === 'azure'} className="justify-start">{t('login.azure')}</Button>
       </div>
 
       <div className="flex items-center gap-3 text-label-xs uppercase text-on-surface-variant" aria-hidden>
-        <span className="h-px flex-1 bg-outline-variant" />or work email<span className="h-px flex-1 bg-outline-variant" />
+        <span className="h-px flex-1 bg-outline-variant" />{t('login.or_email')}<span className="h-px flex-1 bg-outline-variant" />
       </div>
 
       <form onSubmit={onPassword} className="flex flex-col gap-4" noValidate>
-        <Input label="Work email" type="email" name="email" autoComplete="username webauthn" placeholder="name@company.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        <Input label={t('auth.work_email')} type="email" name="email" autoComplete="username webauthn" placeholder="name@company.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
         <div className="relative">
-          <Input label="Password" type={showPw ? 'text' : 'password'} name="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-          <button type="button" onClick={() => setShowPw((s) => !s)} aria-label={showPw ? 'Hide password' : 'Show password'} aria-pressed={showPw}
+          <Input label={t('auth.password')} type={showPw ? 'text' : 'password'} name="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+          <button type="button" onClick={() => setShowPw((s) => !s)} aria-label={showPw ? t('login.hide_password') : t('login.show_password')} aria-pressed={showPw}
             className="absolute bottom-1.5 right-1.5 rounded p-1.5 text-on-surface-variant hover:text-on-surface md:bottom-1">
             <Icon name={showPw ? 'visibility_off' : 'visibility'} />
           </button>
         </div>
         <div className="flex items-center justify-between gap-3">
-          <Checkbox label="Remember this device for 30 days" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-          <Link href="/forgot-password" className="shrink-0 text-label-sm text-primary hover:underline">Forgot password?</Link>
+          <Checkbox label={t('login.remember')} checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+          <Link href="/forgot-password" className="shrink-0 text-label-sm text-primary hover:underline">{t('login.forgot')}</Link>
         </div>
         <InlineError message={error} />
-        <Button type="submit" icon="login" loading={busy === 'password'} disabled={!!busy || !email || !password}>Sign in</Button>
+        <Button type="submit" icon="login" loading={busy === 'password'} disabled={!!busy || !email || !password}>{t('auth.sign_in')}</Button>
       </form>
 
-      <Button variant="ghost" icon="fingerprint" onClick={onPasskey} loading={busy === 'passkey'} disabled={!!busy}>Use a passkey (YubiKey, Touch ID, Face ID)</Button>
+      <Button variant="ghost" icon="fingerprint" onClick={onPasskey} loading={busy === 'passkey'} disabled={!!busy}>{t('login.passkey')}</Button>
 
-      <p className="text-center text-body-md text-on-surface-variant">New to OrbitOS? <Link href="/signup" className="text-primary hover:underline">Create a workspace</Link></p>
+      <p className="text-center text-body-md text-on-surface-variant">{t('login.new')} <Link href="/signup" className="text-primary hover:underline">{t('login.create_ws')}</Link></p>
 
       <p className="flex items-center justify-center gap-2 text-body-sm text-on-surface-variant" role="status">
-        <Icon name="lock" className="text-[16px]" />Encrypted session (TLS) ·
+        <Icon name="lock" className="text-[16px]" />{t('login.encrypted')}
         <span className="inline-flex items-center gap-1.5">
           <span className={`h-1.5 w-1.5 rounded-full ${health === 'ok' ? 'bg-healthy pulse-dot' : health === 'degraded' ? 'bg-warning' : 'bg-outline'}`} aria-hidden />
-          {health === 'ok' ? 'All systems operational' : health === 'degraded' ? 'Service degraded' : 'Checking status…'}
+          {health === 'ok' ? t('login.status_ok') : health === 'degraded' ? t('login.status_degraded') : t('login.status_checking')}
         </span>
       </p>
     </div>
