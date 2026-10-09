@@ -48,4 +48,9 @@ if [ "${WITH_WHATSAPP_MOCK:-1}" = "1" ]; then
   setsid nohup node "$DIR/whatsapp-mock.mjs" < /dev/null > /tmp/whatsapp-mock.log 2>&1 &
   printf 'WHATSAPP_TOKEN=local-wa-token\nWHATSAPP_PHONE_NUMBER_ID=MOCKPHONE\nWHATSAPP_APP_SECRET=local-wa-app-secret\nWHATSAPP_VERIFY_TOKEN=local-wa-verify\nWHATSAPP_API_BASE=http://localhost:54410/v21.0\n' >> "$ROOT/.env.local"
 fi
+if [ "${WITH_AI_MOCK:-1}" = "1" ]; then
+  pkill -f "local-stack/ai-mock.mjs" 2>/dev/null || true
+  setsid nohup node "$DIR/ai-mock.mjs" < /dev/null > /tmp/ai-mock.log 2>&1 &
+  printf 'ANTHROPIC_API_KEY=local-anthropic-key\nANTHROPIC_BASE_URL=http://localhost:54420\nANTHROPIC_MODEL=claude-haiku-5-5\n' >> "$ROOT/.env.local"
+fi
 echo "stack up: gateway http://localhost:54321 (auth + rest), db=$DB; wrote .env.local"

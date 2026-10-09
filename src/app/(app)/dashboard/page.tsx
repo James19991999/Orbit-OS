@@ -11,6 +11,8 @@ import { planAllows } from '@/lib/billing/plans';
 import { Card, CardHeader, Icon, Pill, KpiTile, LinkButton, EmptyState, Banner, ProgressBar } from '@/components/ui';
 import { LiveSync } from '@/components/dashboard/LiveSync';
 import { getFormat } from '@/lib/locale/server';
+import { getT } from '@/i18n/server';
+import { ChiefOfStaff, type BriefView } from '@/components/dashboard/ChiefOfStaff';
 
 export const metadata: Metadata = { title: 'Dashboard' };
 
@@ -22,6 +24,11 @@ export default async function DashboardPage(props: { searchParams: Promise<{ wel
   const searchParams = await props.searchParams;
   const ctx = await requireAppContext();
   const d = await loadDashboard(ctx.supabase, ctx.org, ctx.role, ctx.user.id);
+  const t = await getT();
+  // RLS limits briefs to owners/directors; the latest of either kind for this person.
+  const brief = ctx.org.ai_enabled && (ctx.role === 'owner' || ctx.role === 'director')
+    ? ((await ctx.supabase.from('ai_briefs').select('id, kind, content, source, created_at').eq('org_id', ctx.org.id).eq('user_id', ctx.user.id).order('created_at', { ascending: false }).limit(1)).data?.[0] as BriefView | undefined) ?? null
+    : null;
   const now = new Date();
   const qd = quarterDay(now);
   const cur = ctx.org.currency;
@@ -120,6 +127,13 @@ export default async function DashboardPage(props: { searchParams: Promise<{ wel
           {d.urgent.length > 6 && <p className="mt-3 text-body-sm text-on-surface-variant">+{d.urgent.length - 6} more</p>}
         </Card>
       </div>
+
+      {(ctx.role === 'owner' || ctx.role === 'director') && (
+        <Card id="chief-of-staff" aria-labelledby="cos-h">
+          <CardHeader title={<span id="cos-h">{t('ai.title')}</span>} icon="auto_awesome" />
+          <ChiefOfStaff enabled={ctx.org.ai_enabled} isOwner={ctx.role === 'owner'} brief={brief} />
+        </Card>
+      )}
 
       <div className="grid gap-4 xl:grid-cols-12">
         <Card className="xl:col-span-8" aria-labelledby="pulse-h">

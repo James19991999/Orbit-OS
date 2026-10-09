@@ -10,9 +10,10 @@ const Body = z.object({
   session_timeout_hours: z.union([z.literal(1), z.literal(4), z.literal(8), z.literal(12), z.literal(24)]).optional(),
   sso_domain: z.string().regex(/^[a-z0-9.-]+\.[a-z]{2,}$/i).max(253).nullable().optional(),
   audit_retention_years: z.number().int().min(1).max(10).optional(),
+  ai_enabled: z.boolean().optional(),
 }).strict();
 
-/** Owner-only security settings. These columns are not client-writable (see RLS column grants). */
+/** Owner-only security and data-sharing settings (incl. sending workspace data to Claude for briefs). These columns are not client-writable (see RLS column grants). */
 export const PATCH = handler(async (req) => {
   const ctx = await requireApiContext({ roles: ['owner'], writable: true });
   const body = await parseBody(req, Body);

@@ -50,7 +50,9 @@ const ELENA = '254711000001'; const DEVON = '254711000002';
 sql(`delete from whatsapp_links; delete from whatsapp_verifications; delete from whatsapp_prompts; delete from whatsapp_inbound;
      update profiles set whatsapp_checkins = true, whatsapp_approvals = true, language = 'en', data_saver = false;
      delete from payout_batches; delete from auth.mfa_factors where user_id in (select id from auth.users where email = 'marcus@acme-global.demo');
-     update organizations set enforce_mfa_admins = false, status = 'active' where slug = 'acme-global'`);
+     update organizations set enforce_mfa_admins = false, status = 'active' where slug = 'acme-global';
+     delete from organizations where slug like 'side-project-%'; -- extra workspaces left by e2e-flows would make replies ambiguous
+     delete from ai_briefs; update organizations set ai_enabled = false`);
 
 async function linkWhatsApp(page, phone) {
   await page.goto(`${base}/profile`, { waitUntil: 'networkidle' });
@@ -324,6 +326,17 @@ await mCtx.close();
 // ─────────────── Languages: Kiswahili and French ───────────────
 const hydration = (pg, sink) => pg.on('console', (m) => { if (m.type() === 'error' && /hydrat|did not match|server rendered/i.test(m.text())) sink.push(m.text().slice(0, 160)); });
 
+/** The picker only acts once the page is interactive; re-pick if the first change landed before hydration. */
+async function pickLanguage(pg, value, heading) {
+  for (let i = 0; i < 3; i++) {
+    const other = value === 'en' ? 'fr' : 'en';
+    if (i) { await pg.locator('#language select').selectOption(other); await pg.waitForTimeout(500); }
+    await pg.locator('#language select').selectOption(value);
+    if (await pg.getByRole('heading', { name: heading }).waitFor({ timeout: 6000 }).then(() => true, () => false)) return;
+  }
+  throw new Error(`language ${value}: h1=${await pg.locator('h1').allInnerTexts()}`);
+}
+
 await step('Languages: a French browser gets the sign-in page in French (Accept-Language), with no hydration errors', async () => {
   const ctx = await browser.newContext({ locale: 'fr-FR', extraHTTPHeaders: { 'accept-language': 'fr-FR,fr;q=0.9' } });
   const pg = await ctx.newPage(); const errs = []; hydration(pg, errs);
@@ -353,13 +366,7 @@ await step('Languages: a member switches to Kiswahili — navigation, profile an
   const { ctx, page: wp } = await session('wanjiru@acme-global.demo');
   const errs = []; hydration(wp, errs);
   await wp.goto(`${base}/profile`, { waitUntil: 'networkidle' });
-  // The picker only acts once the page is interactive; retry if the first change landed before hydration.
-  for (let i = 0; i < 3; i++) {
-    await wp.locator('#language select').selectOption(i % 2 ? 'en' : 'sw');
-    if (i % 2) continue;
-    if (await wp.getByRole('heading', { name: 'Wasifu na usalama' }).waitFor({ timeout: 6000 }).then(() => true, () => false)) break;
-  }
-  await wp.getByRole('heading', { name: 'Wasifu na usalama' }).waitFor({ timeout: 10000 }).catch(async () => { throw new Error(`after switching: h1=${await wp.locator('h1').allInnerTexts()}`); });
+  await pickLanguage(wp, 'sw', 'Wasifu na usalama');
   const w = uid('wanjiru@acme-global.demo');
   const saved = sql(`select language from profiles where id = '${w}'`);
   const nav = await wp.getByRole('link', { name: 'Dashibodi' }).count();
@@ -367,8 +374,7 @@ await step('Languages: a member switches to Kiswahili — navigation, profile an
   const btn = await wp.getByRole('button', { name: /Toa ripoti|Hariri ripoti yangu/ }).count();
   // Back to English for later runs
   await wp.goto(`${base}/profile`, { waitUntil: 'networkidle' });
-  await wp.locator('#language select').selectOption('en');
-  await wp.getByRole('heading', { name: 'Profile & security' }).waitFor({ timeout: 15000 }).catch(async () => { throw new Error(`switching back: h1=${await wp.locator('h1').allInnerTexts()}`); });
+  await pickLanguage(wp, 'en', 'Profile & security');
   await ctx.close();
   if (saved !== 'sw') throw new Error(`profile.language=${saved}`);
   if (!nav) throw new Error('navigation not translated');
@@ -385,6 +391,107 @@ await step('Languages: WhatsApp replies follow the profile language (French)', a
   const txt = await lastText(ELENA);
   sql(`update profiles set language = 'en' where id = '${e}'`);
   if (!/OrbitOS sur WhatsApp|Répondez/i.test(txt)) throw new Error(txt.slice(0, 120));
+});
+
+// ─────────────── AI chief of staff ───────────────
+const AI = process.env.AI_MOCK || 'http://localhost:54420';
+const aiLast = async () => (await fetch(`${AI}/__last`)).json();
+const aiFail = (on) => fetch(`${AI}/__fail`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ on }) });
+sql(`update organizations set ai_enabled = false where slug = 'acme-global'; delete from ai_briefs;`);
+
+await step('AI: off by default — directors and contributors cannot turn it on, and briefs are refused', async () => {
+  await dpage.goto(`${base}/dashboard`, { waitUntil: 'networkidle' });
+  await dpage.locator('#chief-of-staff').getByText('The workspace owner can turn this on.').waitFor({ timeout: 10000 });
+  const r1 = await dpage.request.patch(`${base}/api/settings/auth`, { data: { ai_enabled: true } });
+  const r2 = await dpage.request.post(`${base}/api/ai/brief`, { data: { kind: 'weekly' } });
+  if (r1.status() !== 403 || r2.status() !== 409) throw new Error(`enable=${r1.status()} brief=${r2.status()}`);
+  if (sql(`select ai_enabled from organizations where slug = 'acme-global'`) !== 'f') throw new Error('turned on');
+});
+
+await step('AI: the owner reads the privacy note and turns it on (audited)', async () => {
+  await page.goto(`${base}/dashboard`, { waitUntil: 'networkidle' });
+  const card = page.locator('#chief-of-staff');
+  await card.getByText(/sent to Anthropic \(Claude\)/).waitFor({ timeout: 10000 });
+  await card.getByRole('button', { name: 'Turn on the AI chief of staff' }).click();
+  await card.getByRole('button', { name: "Write this week's brief" }).waitFor({ timeout: 15000 });
+  if (sql(`select ai_enabled from organizations where slug = 'acme-global'`) !== 't') throw new Error('not saved');
+  if (sql(`select count(*) from audit_log where action = 'org.auth_settings_updated' and metadata->>'ai_enabled' = 'true'`) === '0') throw new Error('not audited');
+});
+
+await step('AI: "Write this week\'s brief" calls Claude with fenced workspace data and shows the brief', async () => {
+  const card = page.locator('#chief-of-staff');
+  await card.getByRole('button', { name: "Write this week's brief" }).click();
+  await card.getByTestId('brief').getByText(/Mock brief \(English\) for Acme Global/).waitFor({ timeout: 30000 });
+  await card.getByText('Written by Claude').waitFor();
+  const { last } = await aiLast();
+  const prompt = last.messages[0].content;
+  if (last.model !== 'claude-haiku-5-5' || !/Write in English/.test(last.system) || !prompt.startsWith('<workspace_data>')) throw new Error('bad request to Claude');
+  const text = await card.getByTestId('brief').innerText();
+  if (/\*\*|^##/m.test(text)) throw new Error('markdown not tidied');
+  const row = sql(`select kind || '|' || source || '|' || period_key from ai_briefs where user_id = '${uid('elena@acme-global.demo')}'`);
+  if (!/^weekly\|ai\|\d{4}-W\d{2}$/.test(row)) throw new Error(row);
+  return row;
+});
+
+await step('AI: a director gets today\'s check-in summary in Kiswahili', async () => {
+  sql(`update profiles set language = 'sw' where id = '${uid('devon@acme-global.demo')}'`);
+  await dpage.goto(`${base}/dashboard`, { waitUntil: 'networkidle' });
+  const card = dpage.locator('#chief-of-staff');
+  await card.getByRole('button', { name: 'Fupisha ripoti za leo' }).click();
+  await card.getByTestId('brief').getByText(/Mock brief \(Kiswahili\)/).waitFor({ timeout: 30000 });
+  sql(`update profiles set language = 'en' where id = '${uid('devon@acme-global.demo')}'`);
+  return sql(`select kind || '|' || language from ai_briefs where user_id = '${uid('devon@acme-global.demo')}'`);
+});
+
+await step('AI: if Claude is down, the brief still arrives as an automatic summary', async () => {
+  await aiFail(true);
+  const r = await page.request.post(`${base}/api/ai/brief`, { data: { kind: 'checkins' } });
+  await aiFail(false);
+  const j = await r.json();
+  if (r.status() !== 200 || j.brief?.source !== 'rules' || !/checked in today/.test(j.brief.content)) throw new Error(`${r.status()} ${JSON.stringify(j).slice(0, 160)}`);
+  return j.brief.content.split('\n')[0];
+});
+
+await step('AI: contributors cannot generate or read briefs (API 403, RLS hides rows)', async () => {
+  const { ctx, page: cp } = await session('wanjiru@acme-global.demo');
+  const r = await cp.request.post(`${base}/api/ai/brief`, { data: { kind: 'weekly' } });
+  const hasCard = await cp.locator('#chief-of-staff').count();
+  await ctx.close();
+  const w = uid('wanjiru@acme-global.demo');
+  const seen = sql(`begin; set local role authenticated; select set_config('request.jwt.claims', json_build_object('sub','${w}','role','authenticated')::text, true); select count(*) from ai_briefs; commit;`).split('\n').filter((x) => /^\d+$/.test(x)).pop();
+  if (r.status() !== 403 || hasCard || seen !== '0') throw new Error(`api=${r.status()} card=${hasCard} rows=${seen}`);
+});
+
+await step('AI: Monday 08:00 local — the weekly brief is written once and delivered in-app and on WhatsApp', async () => {
+  const e = uid('elena@acme-global.demo');
+  sql(`delete from ai_briefs; update profiles set timezone = 'Africa/Nairobi' where id = '${e}';
+       insert into whatsapp_links (user_id, phone) values ('${e}', '${ELENA}') on conflict do nothing;
+       update profiles set whatsapp_checkins = true where id = '${e}'`);
+  const at = '2026-10-12T05:00:00Z'; // Monday 08:00 in Nairobi
+  const cron = (q) => fetch(`${base}/api/cron/ai-briefs?at=${q}`, { headers: { authorization: 'Bearer local-cron-secret' } }).then((r) => r.json());
+  const before = (await waSent(ELENA)).length;
+  const r1 = await cron(at);
+  const r2 = await cron(at);
+  const r3 = await cron('2026-10-12T09:00:00Z'); // noon in Nairobi: not due
+  const tpl = (await waSent(ELENA)).slice(before).filter((m) => m.template?.name === 'orbitos_weekly_brief');
+  const notif = sql(`select count(*) from notifications where user_id = '${e}' and kind = 'ai_brief'`);
+  const rows = sql(`select count(*) from ai_briefs where user_id = '${e}' and kind = 'weekly' and period_key = '2026-W42'`);
+  sql(`delete from whatsapp_links where user_id = '${e}'`);
+  if (r1.written < 1 || r2.written !== 0 || r3.written !== 0) throw new Error(JSON.stringify([r1, r2, r3]));
+  if (rows !== '1' || notif === '0' || tpl.length !== 1) throw new Error(`rows=${rows} notif=${notif} wa=${tpl.length}`);
+  const p = tpl[0].template.components[0].parameters.map((x) => x.text);
+  if (p.some((x) => /\n/.test(x))) throw new Error('newline in WhatsApp template parameter');
+  return `brief once; WhatsApp: "${p[2].slice(0, 70)}…"`;
+});
+
+await step('AI: when the owner turns it off, nothing more is generated', async () => {
+  const card = page.locator('#chief-of-staff');
+  await page.goto(`${base}/dashboard`, { waitUntil: 'networkidle' });
+  await card.getByRole('button', { name: 'Turn off' }).click();
+  await card.getByRole('button', { name: 'Turn on the AI chief of staff' }).waitFor({ timeout: 15000 });
+  sql(`delete from ai_briefs`);
+  const r = await fetch(`${base}/api/cron/ai-briefs?at=2026-10-19T05:00:00Z`, { headers: { authorization: 'Bearer local-cron-secret' } }).then((x) => x.json());
+  if (r.written !== 0) throw new Error(JSON.stringify(r));
 });
 
 await ownerCtx.close(); await dirCtx.close();

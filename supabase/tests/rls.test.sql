@@ -238,6 +238,62 @@ select tests.expect_error($$update public.finance_entries set approval_status = 
 select tests.expect_error($$insert into public.activity_events (org_id, kind, title) values (current_setting('tests.org_a')::uuid, 'fake', 'x')$$, 'activity stream not client-writable');
 reset role;
 
+-- ── 9c. WhatsApp, payouts, AI briefs, language ──
+insert into public.whatsapp_links (user_id, phone) values ('00000000-0000-0000-0000-00000000000a', '254711000001'), ('00000000-0000-0000-0000-00000000000b', '254711000002');
+insert into public.whatsapp_prompts (user_id, org_id, kind) values ('00000000-0000-0000-0000-00000000000b', current_setting('tests.org_a')::uuid, 'checkin');
+insert into public.payout_batches (org_id, title, created_by, total_minor, line_count) values (current_setting('tests.org_a')::uuid, 'Salaries test', '00000000-0000-0000-0000-00000000000a', 500000, 1);
+insert into public.payout_lines (batch_id, org_id, name, phone, amount_minor) select id, org_id, 'Bob', '254711000002', 500000 from public.payout_batches where title = 'Salaries test';
+select tests.expect_error(format($$insert into public.payout_lines (batch_id, org_id, name, phone, amount_minor) select id, org_id, 'X', '0711000002', 500000 from public.payout_batches where title = 'Salaries test'$$), 'payout line phone must be 2547/2541 + 8 digits');
+select tests.expect_error(format($$insert into public.payout_lines (batch_id, org_id, name, phone, amount_minor) select id, org_id, 'X', '254711000003', 30000000 from public.payout_batches where title = 'Salaries test'$$), 'payout line above the M-Pesa per-transfer limit rejected');
+insert into public.ai_briefs (org_id, user_id, kind, period_key, content, source) values (current_setting('tests.org_a')::uuid, '00000000-0000-0000-0000-00000000000a', 'weekly', '2026-W41', 'Brief', 'rules');
+select tests.expect_error(format($$insert into public.ai_briefs (org_id, user_id, kind, period_key, content, source) values (%L, '00000000-0000-0000-0000-00000000000a', 'weekly', '2026-W41', 'Again', 'rules')$$, current_setting('tests.org_a')), 'one weekly brief per person per week');
+
+select tests.login('00000000-0000-0000-0000-00000000000b');
+set role authenticated;
+select tests.eq((select count(*)::text from public.whatsapp_links), '1', 'contributor sees only their own WhatsApp link');
+select tests.expect_error($$insert into public.whatsapp_links (user_id, phone) values (auth.uid(), '254700000009')$$, 'WhatsApp numbers can only be linked by the server (after a code)');
+select tests.expect_error($$update public.whatsapp_links set phone = '254700000009'$$, 'linked number cannot be changed by the client');
+select tests.eq((select count(*)::text from public.whatsapp_prompts), '0', 'WhatsApp prompts are server-only');
+select tests.eq((select count(*)::text from public.whatsapp_verifications), '0', 'WhatsApp codes are server-only');
+select tests.eq((select count(*)::text from public.payout_batches), '0', 'contributor cannot see payout batches');
+select tests.eq((select count(*)::text from public.payout_lines), '0', 'contributor cannot see payout lines (other people''s pay)');
+select tests.eq((select count(*)::text from public.ai_briefs), '0', 'contributor cannot read AI briefs');
+update public.profiles set language = 'sw', data_saver = true where id = auth.uid();
+select tests.eq((select language || '|' || data_saver from public.profiles where id = auth.uid()), 'sw|true', 'members set their own language and data saver');
+select tests.expect_error($$update public.profiles set language = 'de' where id = auth.uid()$$, 'unsupported language rejected');
+select tests.expect_error($$update public.profiles set email = 'spoof@x.test' where id = auth.uid()$$, 'profile email is not client-editable');
+reset role;
+
+select tests.login('00000000-0000-0000-0000-00000000000c');
+set role authenticated;
+select tests.eq((select count(*)::text from public.payout_batches), '1', 'auditor can see payout batches');
+select tests.eq((select count(*)::text from public.ai_briefs), '0', 'auditor cannot read AI briefs');
+reset role;
+
+select tests.login('00000000-0000-0000-0000-00000000000a');
+set role authenticated;
+select tests.eq((select count(*)::text from public.payout_lines), '1', 'owner sees payout lines');
+select tests.eq((select count(*)::text from public.ai_briefs), '1', 'owner reads their brief');
+select tests.expect_error($$update public.payout_batches set status = 'approved'$$, 'payout approval only through the server (two-person + MFA checks)');
+select tests.expect_error(format($$insert into public.payout_batches (org_id, title, created_by) values (%L, 'Direct', auth.uid())$$, current_setting('tests.org_a')), 'payout batches cannot be inserted by the client');
+select tests.expect_error(format($$insert into public.ai_briefs (org_id, user_id, kind, period_key, content, source) values (%L, auth.uid(), 'weekly', 'x', 'y', 'ai')$$, current_setting('tests.org_a')), 'AI briefs cannot be forged by the client');
+select tests.expect_error($$update public.organizations set ai_enabled = true where slug = 'alpha-co'$$, 'sending data to the AI is switched on only through the owner API');
+select tests.expect_error($$select public.decide_expense_as(auth.uid(), gen_random_uuid(), 'approved')$$, 'decide_expense_as is not callable by clients');
+select tests.expect_error($$select public.checkin_as(auth.uid(), gen_random_uuid(), 'x', null, 3)$$, 'checkin_as is not callable by clients');
+reset role;
+
+select tests.login('00000000-0000-0000-0000-00000000000d');
+set role authenticated;
+select tests.eq((select count(*)::text from public.payout_batches) || '|' || (select count(*) from public.ai_briefs) || '|' || (select count(*) from public.whatsapp_links), '0|0|0', 'other workspace sees no payouts, briefs or links');
+reset role;
+
+-- server-side helpers (service role): decisions and WhatsApp check-ins respect roles
+select tests.eq(public.decide_expense_as('00000000-0000-0000-0000-00000000000b', (select id from public.finance_entries where vendor = 'BigVendor'), 'approved'), 'forbidden', 'contributor cannot approve via WhatsApp');
+select tests.eq(public.decide_expense_as('00000000-0000-0000-0000-00000000000a', (select id from public.finance_entries where vendor = 'BigVendor'), 'approved'), 'own_expense', 'owner cannot approve their own expense via WhatsApp');
+select tests.eq(public.checkin_as('00000000-0000-0000-0000-00000000000e', current_setting('tests.org_a')::uuid, 'x', null, 3), 'forbidden', 'non-member cannot check in via WhatsApp');
+select tests.eq(public.checkin_as('00000000-0000-0000-0000-00000000000b', current_setting('tests.org_a')::uuid, 'Shipped via WhatsApp', 'none', 5), 'saved', 'member checks in via WhatsApp');
+select tests.eq((select shipped from public.check_ins where user_id = '00000000-0000-0000-0000-00000000000b' order by for_date desc limit 1), 'Shipped via WhatsApp', 'WhatsApp check-in replaces today''s row');
+
 -- ── 10. Anonymous ──
 set role anon;
 select set_config('request.jwt.claims', '', false);

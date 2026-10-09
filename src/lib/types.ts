@@ -10,7 +10,7 @@ export interface Organization {
   sso_domain: string | null; enforce_mfa_admins: boolean; session_timeout_hours: number;
   core_window_start: string; core_window_end: string; golden_overlap_min_hours: number;
   quiet_hours: boolean; auto_detect_timezone: boolean;
-  expense_approval_threshold_minor: number; hourly_cost_minor: number; seat_autoscale: boolean; audit_retention_years: number;
+  expense_approval_threshold_minor: number; hourly_cost_minor: number; seat_autoscale: boolean; audit_retention_years: number; ai_enabled: boolean;
   created_at: string;
 }
 
