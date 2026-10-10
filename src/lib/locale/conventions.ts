@@ -78,11 +78,24 @@ const MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'Ju
 
 export type DateStyle = 'short' | 'long' | 'datetime' | 'month';
 
+// Creating Intl formatters is slow (and much slower on phones), so one is kept per time zone.
+const PARTS_FMT = new Map<string, Intl.DateTimeFormat>();
+function partsFormatter(timeZone: string): Intl.DateTimeFormat {
+  let f = PARTS_FMT.get(timeZone);
+  if (!f) {
+    try {
+      f = new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' });
+    } catch {
+      f = partsFormatter('UTC'); // unknown zone → UTC
+    }
+    PARTS_FMT.set(timeZone, f);
+  }
+  return f;
+}
+
 function partsIn(d: Date, timeZone: string) {
   // en-US numeric parts are present in every ICU build; only the numbers are used.
-  let tz = timeZone;
-  try { new Intl.DateTimeFormat('en-US', { timeZone: tz }); } catch { tz = 'UTC'; }
-  const p = new Intl.DateTimeFormat('en-US', { timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' }).formatToParts(d);
+  const p = partsFormatter(timeZone || 'UTC').formatToParts(d);
   const get = (t: string) => Number(p.find((x) => x.type === t)?.value ?? 0);
   return { y: get('year'), m: get('month'), d: get('day'), h: get('hour') % 24, min: get('minute') };
 }

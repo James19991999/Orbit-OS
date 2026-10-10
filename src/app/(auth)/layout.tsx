@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { Logo } from '@/components/shell/Logo';
 import { I18nProvider } from '@/i18n/client';
 import { getLanguage, getT } from '@/i18n/server';

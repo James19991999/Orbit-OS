@@ -87,7 +87,7 @@ export default async function ReportsPage(props: { searchParams: Promise<{ perio
       <Card glow>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="flex items-center gap-2 text-headline-sm"><Icon name="bolt" className="text-secondary" />Distributed velocity · {r.period.label}</h2>
-          {r.eng.pointsChangePct !== null && <Pill tone={r.eng.pointsChangePct >= 0 ? 'healthy' : 'warning'}>{signed(r.eng.pointsChangePct, 1, '%')} vs previous period</Pill>}
+          {r.eng.pointsChangePct !== null && <Pill tone={r.eng.pointsChangePct >= 0 ? 'healthy' : 'warning'}>{signed(r.eng.pointsChangePct, 1, '%')} points vs previous period</Pill>}
         </div>
         <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-3">
           <div>
@@ -96,7 +96,7 @@ export default async function ReportsPage(props: { searchParams: Promise<{ perio
             <p className="mt-1 text-body-sm text-on-surface-variant">Completed ÷ committed points for sprints that ended in the period. Compared with your own history, not other companies.</p>
           </div>
           <Stat label="Sync load" value={`${r.sync.meetingHours.toFixed(0)} h`} sub={`${r.sync.hoursSaved >= 0 ? `${r.sync.hoursSaved.toFixed(0)} h fewer` : `${(-r.sync.hoursSaved).toFixed(0)} h more`} than previous · ${fmt.money(Math.abs(r.sync.costDiffMinor), cur, { compact: true })} ${r.sync.costDiffMinor >= 0 ? 'saved' : 'added'}`} />
-          <Stat label="Async decision rate" value={pc(r.sync.asyncRate)} sub={`${r.sync.meetings} meetings · async-first share`} />
+          <Stat label="Async-first meetings" value={pc(r.sync.asyncRate)} sub={`of ${r.sync.meetings} meetings`} />
         </div>
       </Card>
 
@@ -116,7 +116,7 @@ export default async function ReportsPage(props: { searchParams: Promise<{ perio
                   <li key={i.meetingId} className="flex items-start justify-between gap-3 py-3 first:pt-0">
                     <div>
                       <h3 className="text-label-md">{label}</h3>
-                      <p className="text-body-sm text-on-surface-variant">{i.insideAfter} of {i.total} attendees inside working hours instead of {i.insideBefore}.</p>
+                      <p className="text-body-sm text-on-surface-variant">Puts {i.insideAfter} of {i.total} attendees inside working hours (now {i.insideBefore}).</p>
                     </div>
                     <AdoptInsight meetingId={i.meetingId} newStart={new Date(i.newStart).toISOString()} label={label} canAdopt={can.write(role)} />
                   </li>

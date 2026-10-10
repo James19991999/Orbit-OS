@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { requireAppContext } from '@/lib/context';
 import { loadDashboard } from '@/lib/data/dashboard';
 import { HEALTH_FORMULA } from '@/lib/metrics/health';
@@ -150,12 +150,12 @@ export default async function DashboardPage(props: { searchParams: Promise<{ wel
               ) : <p className="mt-2 text-body-sm text-on-surface-variant">No active sprint. <Link href="/operations" className="text-primary underline">Plan one</Link></p>}
             </li>
             <li className="rounded-lg border border-outline-variant bg-surface-container-low p-4">
-              <p className="flex items-center gap-2 text-label-sm text-on-surface-variant"><Icon name="hourglass_top" className="text-[18px]" />Global sync window</p>
+              <p className="flex items-center gap-2 text-label-sm text-on-surface-variant"><Icon name="hourglass_top" className="text-[18px]" />Overlap window</p>
               {d.overlap.best ? (
                 <>
                   <p className="mt-2 text-headline-md tnum">{fmtUtcTime(d.overlap.best.start)}–{fmtUtcTime(d.overlap.best.end)} <span className="text-body-sm text-on-surface-variant">UTC</span></p>
                   <p className="mt-1 text-body-sm text-on-surface-variant tnum">
-                    {d.overlap.coveragePct}% of team overlap · {inWindow ? `${Math.max(0, Math.round(remainingMs / 60_000))} min left` : `${d.overlap.hours.toFixed(1)} h today`}
+                    {d.overlap.best.count} of {d.members.length} people · {inWindow ? `${Math.max(0, Math.round(remainingMs / 60_000))} min left` : d.overlap.hours >= 1 ? `${Number(d.overlap.hours.toFixed(1))} h today` : `${Math.round(d.overlap.hours * 60)} min today`}
                   </p>
                 </>
               ) : <p className="mt-2 text-body-sm text-on-surface-variant">No shared working hours today.</p>}
@@ -163,11 +163,11 @@ export default async function DashboardPage(props: { searchParams: Promise<{ wel
             <li className="rounded-lg border border-outline-variant bg-surface-container-low p-4">
               <p className="flex items-center gap-2 text-label-sm text-on-surface-variant"><Icon name="sentiment_satisfied" className="text-[18px]" />Weekly morale</p>
               <p className="mt-2 text-headline-md tnum">{d.mood7 !== null ? d.mood7.toFixed(1) : '—'} <span className="text-body-sm text-on-surface-variant">/ 5.0</span></p>
-              {moodDelta !== null && (
-                <p className={`mt-1 flex items-center gap-1 text-body-sm tnum ${moodDelta >= 0 ? 'text-healthy' : 'text-alert'}`}>
-                  <Icon name={moodDelta >= 0 ? 'arrow_upward' : 'arrow_downward'} className="text-[16px]" />{signed(moodDelta, 1)} vs 30-day average
-                </p>
-              )}
+              {moodDelta !== null && (Math.abs(moodDelta) < 0.05
+                ? <p className="mt-1 text-body-sm text-on-surface-variant">Same as 30-day average</p>
+                : <p className={`mt-1 flex items-center gap-1 text-body-sm tnum ${moodDelta > 0 ? 'text-healthy' : 'text-alert'}`}>
+                    <Icon name={moodDelta > 0 ? 'arrow_upward' : 'arrow_downward'} className="text-[16px]" />{signed(moodDelta, 1)} vs 30-day average
+                  </p>)}
             </li>
           </ul>
         </Card>

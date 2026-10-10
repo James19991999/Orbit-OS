@@ -158,7 +158,8 @@ describe('misc', () => {
   });
   it('audit labels', () => {
     expect(auditLabel('auth.login_failed')).toBe('Failed sign-in attempt');
-    expect(auditLabel('compliance_controls.status_changed')).toBe('compliance controls status changed');
+    expect(auditLabel('compliance_controls.status_changed')).toBe('Control status changed');
+    expect(auditLabel('widgets.colour_changed')).toBe('widgets colour changed');
   });
   it('CSV importers validate rows', () => {
     const p = parsePayrollCsv('period,countries,total,provider\n2026-09,9,12500000.00,Deel\nbad,1,1,x');

@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Input, InlineError } from '@/components/ui';
-import { getBrowserClient } from '@/lib/supabase/client';
 import { errorMessage } from '@/hooks/useAction';
 import { useT } from '@/i18n/client';
 
@@ -18,6 +17,7 @@ export function ResetForm() {
     setError(null);
     if (pw.length < 10) return setError(t('reset.err_short'));
     if (pw !== pw2) return setError(t('reset.err_match'));
+    const { getBrowserClient } = await import('@/lib/supabase/client'); // loaded on submit, not with the page
     const supabase = getBrowserClient();
     if (!supabase) return;
     setBusy(true);

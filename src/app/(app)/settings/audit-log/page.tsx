@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { requireAppContext } from '@/lib/context';
 import { loadMembers, nameMap, must } from '@/lib/data/members';
 import { can } from '@/lib/roles';
-import { auditLabel } from '@/lib/audit-labels';
+import { auditLabel, auditTargetLabel } from '@/lib/audit-labels';
 import { Card, Icon, Banner, EmptyState } from '@/components/ui';
 import type { AuditEntry } from '@/lib/types';
 
@@ -43,7 +43,7 @@ export default async function AuditLogPage(props: { searchParams: Promise<{ q?: 
       </form>
       <Card>
         {rows.length === 0 ? <EmptyState icon="history" title="No events match" /> : (
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="w-full text-left text-body-md">
               <thead><tr className="border-b border-outline-variant text-label-xs uppercase text-on-surface-variant"><th scope="col" className="py-2 pr-3">When (UTC)</th><th scope="col" className="py-2 pr-3">Event</th><th scope="col" className="py-2 pr-3">Actor</th><th scope="col" className="py-2 pr-3">Target</th><th scope="col" className="py-2">IP</th></tr></thead>
               <tbody>
@@ -52,8 +52,8 @@ export default async function AuditLogPage(props: { searchParams: Promise<{ q?: 
                     <td className="py-2 pr-3 tnum text-on-surface-variant">{r.created_at.slice(0, 16).replace('T', ' ')}</td>
                     <td className="py-2 pr-3"><span className={r.action.includes('failed') ? 'text-alert' : ''}>{auditLabel(r.action)}</span><span className="block font-mono text-body-sm text-on-surface-variant">{r.action}</span></td>
                     <td className="py-2 pr-3">{r.actor_id ? people[r.actor_id]?.name ?? 'Former member' : 'System'}</td>
-                    <td className="py-2 pr-3 text-body-sm">{r.target_type}{r.target_type === 'membership' && r.target_id && people[r.target_id] ? `: ${people[r.target_id].name}` : ''}
-                      {Object.keys(r.metadata ?? {}).length > 0 && <details><summary className="cursor-pointer text-primary">details</summary><pre className="max-w-md overflow-x-auto whitespace-pre-wrap break-all text-body-sm">{JSON.stringify(r.metadata, null, 1)}</pre></details>}</td>
+                    <td className="py-2 pr-3 text-body-sm">{auditTargetLabel(r.target_type)}{r.target_type === 'membership' && r.target_id && people[r.target_id] ? `: ${people[r.target_id].name}` : ''}
+                      {Object.keys(r.metadata ?? {}).length > 0 && <details><summary className="cursor-pointer text-primary">details</summary><pre className="relative max-w-md overflow-x-auto whitespace-pre-wrap break-all text-body-sm">{JSON.stringify(r.metadata, null, 1)}</pre></details>}</td>
                     <td className="py-2 font-mono text-body-sm text-on-surface-variant">{r.ip ?? ''}</td>
                   </tr>
                 ))}

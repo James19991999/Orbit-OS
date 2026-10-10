@@ -57,8 +57,8 @@ export function Integrations({ slack, github, emailConfigured, canEdit }: { slac
           </div>
         )}
       </Row>
-      <Row icon="calendar_month" name="Google Calendar & Outlook" desc="Meeting invites are emailed as standard .ics files, and every meeting has an Add-to-Google-Calendar link. No calendar OAuth is required." status={<Pill tone={emailConfigured ? 'healthy' : 'warning'}>{emailConfigured ? 'Via email invites' : 'Needs email'}</Pill>} />
-      <Row icon="mail" name="Email (Resend)" desc="Invites, reminders, receipts and digests." status={<Pill tone={emailConfigured ? 'healthy' : 'warning'}>{emailConfigured ? 'Configured' : 'Set RESEND_API_KEY'}</Pill>} />
+      <Row icon="calendar_month" name="Google Calendar & Outlook" desc="Meeting invites are emailed as standard .ics files, and every meeting has an Add-to-Google-Calendar link. No calendar OAuth is required." status={<Pill tone={emailConfigured ? 'healthy' : 'warning'}>{emailConfigured ? 'Via email invites' : 'Needs email set up'}</Pill>} />
+      <Row icon="mail" name="Email (Resend)" desc="Invites, reminders, receipts and digests." status={<Pill tone={emailConfigured ? 'healthy' : 'warning'}>{emailConfigured ? 'Configured' : 'Not set up'}</Pill>} />
       <Row icon="cloud_sync" name="AWS CloudTrail" desc="Streaming infrastructure audit events into the security log." status={<Pill tone="neutral">Coming soon</Pill>} />
       <li className="sr-only" aria-live="polite">{clip.status === 'copied' ? 'Copied' : ''}</li>
     </ul>

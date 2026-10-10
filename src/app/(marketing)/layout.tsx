@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { Logo } from '@/components/shell/Logo';
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {

@@ -176,6 +176,30 @@ scripts/             local stack, IntaSend mock, e2e flows, a11y check
 
 ---
 
+## Performance
+
+Lighthouse (median of 3 runs, production build):
+
+| Pages | Desktop | Mobile (simulated slow 4G, 4× slower CPU) |
+|---|---|---|
+| Public: home, pricing, security, trust, sign-in, sign-up | 100 | 93–100 |
+| Signed-in app: dashboard, operations, scheduling, culture, compliance, reports, people, settings, profile | 99–100 | 75–92 (heaviest: operations, culture) |
+
+Accessibility, best practices and SEO are 100 on every page measured. What keeps it fast:
+* **Fonts:** the icon font is subset to the ~210 icons used (3.4 MB → 23 KB) and Geist to Latin (70 → 36 KB each), preloaded. Icons sit in fixed squares, so nothing shifts as fonts load. After adding an icon, run `npm run fonts` (needs `pip install fonttools brotli`).
+* **Less JavaScript at start-up:**
+  * Sentry loads after the page is idle (~130 KB).
+  * The passkey library loads only when a passkey is used.
+  * Supabase loads only on submit on the sign-in, sign-up and reset pages, and is evaluated on first use in the app.
+* **Links prefetch on intent** (hover, focus, touch) instead of prefetching every link in view.
+* **Live updates connect when idle.**
+* **Timezone formatters are cached.**
+* **Offline page:** a self-contained `public/offline.html`, so it keeps working across releases.
+
+The remaining mobile cost on the app is React and Next.js start-up plus the Supabase client. Real devices on a normal connection paint signed-in pages in under half a second.
+
+---
+
 ## Verification status
 
 **Proven in this build environment**

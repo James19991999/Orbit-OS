@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { Avatar, Icon, EmptyState, TimeAgo } from '@/components/ui';
 import { useRealtime } from '@/hooks/useRealtime';
 

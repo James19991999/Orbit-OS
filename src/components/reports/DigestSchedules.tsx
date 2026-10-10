@@ -52,7 +52,7 @@ export function DigestSchedules({ orgId, items, canManage, defaultEmail, allowed
               <p className="mt-1 text-body-sm text-on-surface-variant">{s.last_run_at ? <>Last dispatch <TimeAgo date={s.last_run_at} />{s.last_status ? ` · ${s.last_status}` : ''}</> : 'Not sent yet'}</p>
               {canManage && (
                 <div className="mt-2 flex gap-2">
-                  <Button size="sm" variant="secondary" icon="refresh" loading={running === s.id} onClick={() => run(s)}>Run test dispatch</Button>
+                  <Button size="sm" variant="secondary" icon="refresh" loading={running === s.id} onClick={() => run(s)}>Send now</Button>
                   <Button size="sm" variant="ghost" icon="delete" onClick={() => remove(s)}>Delete</Button>
                 </div>
               )}
@@ -82,7 +82,7 @@ export function DigestSchedules({ orgId, items, canManage, defaultEmail, allowed
           <InlineError message={err ?? create.error} />
         </div>
       </Dialog>
-      <p className="mt-3 flex items-center gap-1.5 text-body-sm text-on-surface-variant"><Icon name="info" className="text-[16px]" />Digests run from an hourly scheduled job (Vercel Cron).</p>
+      <p className="mt-3 flex items-center gap-1.5 text-body-sm text-on-surface-variant"><Icon name="info" className="text-[16px]" />Digests are checked every hour and sent at the time you choose (UTC).</p>
     </div>
   );
 }

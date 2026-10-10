@@ -16,7 +16,8 @@
     "test:all": "npm run typecheck && npm run lint && npm test && npm run test:db",
     "test:e2e:security": "node scripts/e2e-security.mjs",
     "test:e2e:features": "node scripts/e2e-features.mjs",
-    "db:bundle": "node scripts/build-setup-sql.mjs"
+    "db:bundle": "node scripts/build-setup-sql.mjs",
+    "fonts": "python3 scripts/build-icon-font.py"
   },
   "dependencies": {
     "@sentry/nextjs": "10.75.1",

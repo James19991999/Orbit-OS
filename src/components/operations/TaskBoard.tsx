@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { Avatar, Icon, Pill, cn, useToast } from '@/components/ui';
 import { requireBrowserClient } from '@/lib/supabase/client';
 import { errorMessage } from '@/hooks/useAction';
@@ -38,7 +38,7 @@ export function TaskBoard({ initial, people, canEditAll, userId }: { initial: Ta
   }
 
   return (
-    <div className="-mx-4 overflow-x-auto px-4 pb-2">
+    <div className="relative -mx-4 overflow-x-auto px-4 pb-2">
       <div className="grid min-w-[900px] grid-cols-5 gap-3">
         {COLUMNS.map((col) => {
           const list = tasks.filter((t) => t.status === col);
@@ -62,7 +62,7 @@ export function TaskBoard({ initial, people, canEditAll, userId }: { initial: Ta
                     </div>
                     {t.status === 'blocked' && t.blocked_reason && <p className="mt-1 flex items-start gap-1 text-body-sm text-alert"><Icon name="error" className="text-[14px]" />{t.blocked_reason}</p>}
                     <div className="mt-2 flex items-center justify-between gap-2 text-body-sm text-on-surface-variant">
-                      <span className="flex items-center gap-1.5">{who && <Avatar name={who.name} src={who.avatar} size={20} />}<span className="tnum">{t.points} pts</span></span>
+                      <span className="flex items-center gap-1.5">{who && <Avatar name={who.name} src={who.avatar} size={20} />}<span className="tnum">{t.points} {t.points === 1 ? 'pt' : 'pts'}</span></span>
                       {due && <span className={cn('tnum', due.includes('overdue') && t.status !== 'done' && 'text-alert')}>{due}</span>}
                     </div>
                     {canEdit(t) && (

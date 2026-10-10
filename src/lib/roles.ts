@@ -1,9 +1,9 @@
 import type { Role } from './types';
 
 export const ROLE_LABEL: Record<Role, string> = {
-  owner: 'Founder / SuperAdmin',
-  director: 'Operations Director',
-  contributor: 'Team Contributor',
+  owner: 'Owner',
+  director: 'Director',
+  contributor: 'Contributor',
   auditor: 'Auditor (read-only)',
 };
 

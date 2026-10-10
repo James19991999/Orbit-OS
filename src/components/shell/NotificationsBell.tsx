@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { Icon, cn, TimeAgo } from '@/components/ui';
 import { getBrowserClient } from '@/lib/supabase/client';
 import { useRealtime } from '@/hooks/useRealtime';

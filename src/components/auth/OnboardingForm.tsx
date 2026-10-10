@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { Button, Input, Select, InlineError, Icon } from '@/components/ui';
 import { getBrowserClient } from '@/lib/supabase/client';
 import { errorMessage, postJson } from '@/hooks/useAction';

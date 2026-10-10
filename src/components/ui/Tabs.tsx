@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { cn } from './cn';
 
@@ -9,7 +9,7 @@ export function LinkTabs({ tabs, param = 'tab', label }: { tabs: { id: string; l
   const sp = useSearchParams();
   const current = sp.get(param) ?? tabs[0]?.id;
   return (
-    <nav aria-label={label} className="-mx-1 overflow-x-auto">
+    <nav aria-label={label} className="relative -mx-1 overflow-x-auto">
       <ul className="flex min-w-max gap-1 rounded-lg border border-outline-variant bg-surface-container-low p-1">
         {tabs.map((t) => {
           const active = t.id === current;

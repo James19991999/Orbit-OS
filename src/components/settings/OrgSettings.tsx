@@ -74,7 +74,7 @@ export function LegalEntities({ orgId, items, canEdit }: { orgId: string; items:
   );
 }
 
-export function AuthSettings({ org, isOwner, ssoAllowed }: { org: Pick<Organization, 'enforce_mfa_admins' | 'session_timeout_hours' | 'sso_domain' | 'slug'>; isOwner: boolean; ssoAllowed: boolean }) {
+export function AuthSettings({ org, isOwner, ssoAllowed }: { org: Pick<Organization, 'enforce_mfa_admins' | 'session_timeout_hours' | 'sso_domain' | 'slug' | 'audit_retention_years'>; isOwner: boolean; ssoAllowed: boolean }) {
   const router = useRouter();
   const [sso, setSso] = useState(org.sso_domain ?? '');
   const save = useAction(async (patch: Record<string, unknown>) => postJson('/api/settings/auth', patch, 'PATCH'), { success: 'Security settings saved' });
@@ -99,11 +99,27 @@ export function AuthSettings({ org, isOwner, ssoAllowed }: { org: Pick<Organizat
           </ol>
         </details>
       </div>
-      <Switch label="Require two-factor authentication for owners and directors" description="Admins without an authenticator app are asked to set one up before they can continue."
+      <Switch label="Require two-factor authentication for owners and directors" description="Owners and directors without an authenticator app are asked to set one up before they can continue."
         checked={org.enforce_mfa_admins} disabled={!isOwner || save.pending} onChange={async (v) => { if (await save.run({ enforce_mfa_admins: v })) router.refresh(); }} />
       <Select label="Session inactivity timeout" value={String(org.session_timeout_hours)} disabled={!isOwner || save.pending}
         onChange={async (e) => { if (await save.run({ session_timeout_hours: Number(e.target.value) })) router.refresh(); }}
         options={[1, 4, 8, 12, 24].map((h) => ({ value: String(h), label: `${h} hour${h === 1 ? '' : 's'}` }))} hint="Members are signed out after this long without activity." />
+      <Select label="Keep the audit log for" value={String(org.audit_retention_years)} disabled={!isOwner || save.pending}
+        onChange={async (e) => { if (await save.run({ audit_retention_years: Number(e.target.value) })) router.refresh(); }}
+        options={[1, 2, 3, 5, 7, 10].map((y) => ({ value: String(y), label: `${y} year${y === 1 ? '' : 's'}` }))} hint="Older entries are deleted by the daily clean-up. Entries can never be edited." />
+      <InlineError message={save.error} />
+    </div>
+  );
+}
+
+/** Owner-facing: notify owners when 95% of seats are in use (checked daily). */
+export function SeatAlertToggle({ orgId, enabled, canEdit }: { orgId: string; enabled: boolean; canEdit: boolean }) {
+  const router = useRouter();
+  const save = useAction(async (v: boolean) => unwrap(await requireBrowserClient().from('organizations').update({ seat_autoscale: v }).eq('id', orgId).select('id')), { success: 'Saved' });
+  return (
+    <div className="flex flex-col gap-2">
+      <Switch label="Alert me at 95% of seats" description="Owners get a notification when the workspace is almost full, so you can add seats before anyone is blocked." checked={enabled} disabled={!canEdit || save.pending}
+        onChange={async (v) => { if (await save.run(v)) router.refresh(); }} />
       <InlineError message={save.error} />
     </div>
   );
@@ -112,13 +128,13 @@ export function AuthSettings({ org, isOwner, ssoAllowed }: { org: Pick<Organizat
 export function TimezoneEngine({ org, canEdit }: { org: Pick<Organization, 'id' | 'core_window_start' | 'core_window_end' | 'golden_overlap_min_hours' | 'quiet_hours' | 'auto_detect_timezone'>; canEdit: boolean }) {
   const router = useRouter();
   const [f, setF] = useState({ start: org.core_window_start.slice(0, 5), end: org.core_window_end.slice(0, 5), overlap: String(org.golden_overlap_min_hours) });
-  const save = useAction(async (patch: Record<string, unknown>) => unwrap(await requireBrowserClient().from('organizations').update(patch).eq('id', org.id).select('id')), { success: 'Timezone engine saved' });
+  const save = useAction(async (patch: Record<string, unknown>) => unwrap(await requireBrowserClient().from('organizations').update(patch).eq('id', org.id).select('id')), { success: 'Time zone settings saved' });
   return (
     <div className="flex flex-col gap-5">
       <form className="grid gap-3 sm:grid-cols-4" onSubmit={async (e) => { e.preventDefault(); if (await save.run({ core_window_start: f.start, core_window_end: f.end, golden_overlap_min_hours: Number(f.overlap) })) router.refresh(); }}>
         <Input label="Core window starts (local)" type="time" value={f.start} onChange={(e) => setF({ ...f, start: e.target.value })} disabled={!canEdit} />
         <Input label="Core window ends (local)" type="time" value={f.end} onChange={(e) => setF({ ...f, end: e.target.value })} disabled={!canEdit} />
-        <Input label="Golden overlap target (h)" type="number" step="0.5" min={0.5} max={8} value={f.overlap} onChange={(e) => setF({ ...f, overlap: e.target.value })} disabled={!canEdit} />
+        <Input label="Overlap window target (hours)" type="number" step="0.5" min={0.5} max={8} value={f.overlap} onChange={(e) => setF({ ...f, overlap: e.target.value })} disabled={!canEdit} />
         {canEdit && <div className="flex items-end"><Button type="submit" variant="secondary" loading={save.pending}>Save</Button></div>}
       </form>
       <Switch label="Quiet hours" description="Hold non-urgent emails (renewal reminders) until each recipient's working hours. Check-in reminders are always sent at 16:00 local time." checked={org.quiet_hours} disabled={!canEdit}
@@ -159,7 +175,7 @@ export function GovernanceActions({ slug, isOwner, archiveAllowed, offboarding, 
         <Button variant="secondary" icon="cloud_download" onClick={archive} loading={archiving} disabled={!archiveAllowed || !aal2}>Request full tenant archive (.zip)</Button>
         {offboarding
           ? <Button variant="secondary" icon="undo" onClick={async () => { if (await cancel.run()) router.refresh(); }} loading={cancel.pending}>Cancel offboarding</Button>
-          : <Button variant="danger" icon="lock_reset" onClick={() => setOpen(true)} disabled={!aal2}>Initiate suspension / offboarding</Button>}
+          : <Button variant="danger" icon="lock_reset" onClick={() => setOpen(true)} disabled={!aal2}>Close workspace</Button>}
       </div>
       {!archiveAllowed && <p className="text-body-sm text-on-surface-variant">Full archives are included on Enterprise.</p>}
       {offboarding && deletionAt && <p className="text-body-sm text-alert">This workspace is read-only and will be permanently deleted on {fmt.date(deletionAt, 'long')}.</p>}

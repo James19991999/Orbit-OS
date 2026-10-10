@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 
 export function Logo({ href = '/', compact }: { href?: string; compact?: boolean }) {
   return (

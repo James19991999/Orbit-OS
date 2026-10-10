@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { cn } from './cn';
 import { Icon } from './Icon';
 import { Pill, type Tone } from './Pill';

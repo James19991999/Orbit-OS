@@ -1,6 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { useRouter } from 'next/navigation';
 import { Button, Dialog, Input, Textarea, InlineError, Pill, EmptyState, Banner, Icon } from '@/components/ui';
 import { postJson, errorMessage } from '@/hooks/useAction';
@@ -105,7 +105,7 @@ export function Payouts({ batches, canManage, userId, aal, memberNames }:
                 </div>
                 <details className="mt-2">
                   <summary className="cursor-pointer text-body-sm text-primary">{t('pay.show', { count: b.line_count })}</summary>
-                  <div className="mt-2 overflow-x-auto">
+                  <div className="relative mt-2 overflow-x-auto">
                     <table className="w-full text-left text-body-sm">
                       <thead><tr className="border-b border-outline-variant text-label-xs uppercase text-on-surface-variant"><th scope="col" className="py-1 pr-3">{t('pay.col.name')}</th><th scope="col" className="py-1 pr-3">{t('pay.col.mpesa')}</th><th scope="col" className="py-1 pr-3 text-right">{t('pay.col.amount')}</th><th scope="col" className="py-1">{t('pay.col.status')}</th></tr></thead>
                       <tbody>

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { requireAppContext } from '@/lib/context';
 import { loadMembers, nameMap, must } from '@/lib/data/members';
 import { readiness, daysUntil } from '@/lib/compliance/readiness';

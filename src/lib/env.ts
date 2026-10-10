@@ -17,3 +17,9 @@ export const LAST_SEEN_COOKIE = 'orbit_last_seen';
 export const TIMEOUT_COOKIE = 'orbit_timeout_h';
 export const THEME_COOKIE = 'orbit_theme';
 export const REMEMBER_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
+
+/** Public contact address shown on the security and privacy pages (NEXT_PUBLIC_CONTACT_EMAIL). */
+export function contactEmail(): string | null {
+  const v = (process.env.NEXT_PUBLIC_CONTACT_EMAIL || '').trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? v : null;
+}

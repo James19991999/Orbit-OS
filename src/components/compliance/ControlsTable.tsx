@@ -37,7 +37,7 @@ export function ControlsTable({ orgId, controls: initial, evidence, people, canM
         <Select label="Show" value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)}
           options={[{ value: 'all', label: `All (${controls.length})` }, ...(Object.keys(STATUS) as ControlStatus[]).map((s) => ({ value: s, label: `${STATUS[s].label} (${controls.filter((c) => c.status === s).length})` }))]} />
       </div>
-      <div className="overflow-x-auto">
+      <div className="relative overflow-x-auto">
         <table className="w-full text-left text-body-md">
           <thead><tr className="border-b border-outline-variant text-label-xs uppercase text-on-surface-variant">
             <th scope="col" className="py-2 pr-3">Control</th><th scope="col" className="py-2 pr-3">Owner</th><th scope="col" className="py-2 pr-3">Status</th><th scope="col" className="py-2 pr-3">Reviewed</th><th scope="col" className="py-2">Evidence</th>

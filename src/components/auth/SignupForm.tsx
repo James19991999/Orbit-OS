@@ -1,9 +1,8 @@
 'use client';
 import { useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { useRouter } from 'next/navigation';
 import { Button, Input, InlineError, Banner } from '@/components/ui';
-import { getBrowserClient } from '@/lib/supabase/client';
 import { errorMessage } from '@/hooks/useAction';
 import { safeNext } from '@/lib/auth/redirect';
 import { useT } from '@/i18n/client';
@@ -25,6 +24,7 @@ export function SignupForm({ next, invitedEmail }: { next?: string; invitedEmail
     if (name.trim().length < 2) return setError(t('signup.err_name'));
     if (!/^\S+@\S+\.\S+$/.test(email)) return setError(t('signup.err_email'));
     if (password.length < 10) return setError(t('signup.err_password'));
+    const { getBrowserClient } = await import('@/lib/supabase/client'); // loaded on submit, not with the page
     const supabase = getBrowserClient();
     if (!supabase) return;
     setBusy(true);
@@ -68,9 +68,9 @@ export function SignupForm({ next, invitedEmail }: { next?: string; invitedEmail
         <Input label={t('auth.password')} type="password" autoComplete="new-password" hint={t('auth.min_password')} value={password} onChange={(e) => setPassword(e.target.value)} required />
         <InlineError message={error} />
         <Button type="submit" loading={busy}>{t('signup.create')}</Button>
-        <p className="text-body-sm text-on-surface-variant">{t('signup.agree_1')} <Link href="/legal/terms" className="text-primary hover:underline">{t('signup.terms')}</Link> {t('signup.and')} <Link href="/legal/privacy" className="text-primary hover:underline">{t('auth.privacy')}</Link>.</p>
+        <p className="text-body-sm text-on-surface-variant">{t('signup.agree_1')} <Link href="/legal/terms" className="text-primary underline">{t('signup.terms')}</Link> {t('signup.and')} <Link href="/legal/privacy" className="text-primary underline">{t('auth.privacy')}</Link>.</p>
       </form>
-      <p className="text-center text-body-md text-on-surface-variant">{t('signup.have_account')} <Link href={`/login${next ? `?next=${encodeURIComponent(next)}` : ''}`} className="text-primary hover:underline">{t('auth.sign_in')}</Link></p>
+      <p className="text-center text-body-md text-on-surface-variant">{t('signup.have_account')} <Link href={`/login${next ? `?next=${encodeURIComponent(next)}` : ''}`} className="text-primary underline">{t('auth.sign_in')}</Link></p>
     </div>
   );
 }

@@ -35,7 +35,7 @@ export function GiveKudos({ orgId, userId, people }: { orgId: string; userId: st
   return (
     <>
       <Button icon="stars" onClick={() => setOpen(true)} disabled={!others.length}>Give kudos</Button>
-      <Dialog open={open} onClose={() => setOpen(false)} title="Celebrate impact" description="Send a peer recognition token."
+      <Dialog open={open} onClose={() => setOpen(false)} title="Celebrate impact" description="Thank a teammate for great work."
         footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button><Button type="submit" form="kudos-form" loading={save.pending}>Send kudos</Button></>}>
         <form id="kudos-form" onSubmit={submit} className="grid gap-4" noValidate>
           <Select label="Teammate" value={f.to} onChange={(e) => setF({ ...f, to: e.target.value })} options={[{ value: '', label: 'Choose…' }, ...others.map((p) => ({ value: p.id, label: p.name }))]} />

@@ -18,7 +18,7 @@ export interface Plan {
  *  Annual = 10× monthly (2 months free). EUR/GBP are set by hand rather than converted, so they stay round. */
 export const PLANS: Record<PlanId, Plan> = {
   starter: {
-    id: 'starter', name: 'Starter', tagline: 'For small remote teams getting organised',
+    id: 'starter', name: 'Starter', tagline: 'For small remote teams getting organized',
     includedSeats: 10,
     monthly: { KES: 490_000, USD: 3_900, EUR: 3_700, GBP: 3_200 },
     annual: { KES: 4_900_000, USD: 39_000, EUR: 37_000, GBP: 32_000 },
@@ -30,15 +30,15 @@ export const PLANS: Record<PlanId, Plan> = {
     includedSeats: 50,
     monthly: { KES: 1_490_000, USD: 11_900, EUR: 10_900, GBP: 9_500 },
     annual: { KES: 14_900_000, USD: 119_000, EUR: 109_000, GBP: 95_000 },
-    features: ['Up to 50 seats', 'Everything in Starter', 'Google Workspace & Azure AD sign-in', '3 compliance frameworks', 'Scheduled report digests'],
+    features: ['Up to 50 seats', 'Everything in Starter', 'Google Workspace & Microsoft Entra ID sign-in', '3 compliance frameworks', 'Scheduled report digests'],
     limits: { frameworks: 3, sso: 'oauth', auditPackage: false, scheduledDigests: true, tenantArchive: false },
   },
   enterprise: {
-    id: 'enterprise', name: 'Enterprise', tagline: 'For regulated, multi-entity organisations',
+    id: 'enterprise', name: 'Enterprise', tagline: 'For regulated, multi-entity organizations',
     includedSeats: 200,
     monthly: { KES: 3_990_000, USD: 31_900, EUR: 29_900, GBP: 25_900 },
     annual: { KES: 39_900_000, USD: 319_000, EUR: 299_000, GBP: 259_000 },
-    features: ['200 seats + blocks of 10', 'Everything in Pro', 'SAML single sign-on (Okta)', 'All compliance frameworks', 'Audit-ready package & tenant archive'],
+    features: ['200 seats + blocks of 10', 'Everything in Pro', 'SAML single sign-on (Okta, Entra ID, Google)', 'All compliance frameworks', 'Audit-ready package & tenant archive'],
     limits: { frameworks: 99, sso: 'saml', auditPackage: true, scheduledDigests: true, tenantArchive: true },
   },
 };

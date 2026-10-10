@@ -5,7 +5,7 @@ import type { ReportSchedule } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-/** "Run test dispatch" — sends the digest now and records the real outcome. */
+/** "Send now" — sends the digest now and records the real outcome. */
 export const POST = handler<{ params: Promise<{ id: string }> }>(async (req, route) => {
   const params = await route.params;
   const ctx = await requireApiContext({ roles: ['owner', 'director'] });

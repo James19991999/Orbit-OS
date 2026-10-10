@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { getAuthContext } from '@/lib/context';
 import { getAdminClient, hasServiceRole } from '@/lib/supabase/admin';
 import { isSupabaseConfigured } from '@/lib/env';

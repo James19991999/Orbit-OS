@@ -2,7 +2,6 @@
 import { useRouter } from 'next/navigation';
 import { LANGUAGES, isLanguage } from '@/i18n';
 import { useLang, useT, setLanguageCookie } from '@/i18n/client';
-import { getBrowserClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui';
 
 /** Language picker. Signed in: saved to the profile (also used for emails and WhatsApp). Always: a device cookie. */
@@ -15,6 +14,7 @@ export function LanguageSelect({ userId, compact }: { userId?: string; compact?:
     if (!isLanguage(v)) return;
     setLanguageCookie(v);
     if (userId) {
+      const { getBrowserClient } = await import('@/lib/supabase/client');
       const { error } = await getBrowserClient()!.from('profiles').update({ language: v }).eq('id', userId);
       if (error) { toast(error.message, 'error'); return; }
     }

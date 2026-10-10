@@ -1,10 +1,10 @@
 'use client';
 import { useEffect } from 'react';
-import * as Sentry from '@sentry/nextjs';
+import { captureClientError } from '@/lib/observability/capture';
 import { ErrorState } from '@/components/ui';
 
 export default function AppError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
-  useEffect(() => { Sentry.captureException(error); }, [error]);
+  useEffect(() => { captureClientError(error); }, [error]);
   return (
     <div className="mx-auto max-w-xl py-10">
       <h1 className="mb-4 text-headline-md">This page couldn&apos;t load</h1>

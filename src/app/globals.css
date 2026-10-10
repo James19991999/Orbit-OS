@@ -2,14 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@font-face {
-  font-family: 'Material Symbols Outlined';
-  font-style: normal;
-  font-weight: 100 700;
-  font-display: block;
-  src: url('../../node_modules/material-symbols/material-symbols-outlined.woff2') format('woff2');
-}
-
 /* Dark theme = DESIGN.md front-matter tokens (the ones the Stitch screens actually use). */
 :root, [data-theme='dark'] {
   color-scheme: dark;
@@ -79,7 +71,12 @@
 
 @layer components {
   .ms {
-    font-family: 'Material Symbols Outlined';
+    font-family: var(--font-icons), 'Material Symbols Outlined';
+    /* Square box from the first paint, so nothing shifts when the icon font arrives. */
+    width: 1em;
+    height: 1em;
+    overflow: hidden;
+    flex-shrink: 0;
     font-weight: normal;
     font-style: normal;
     font-size: 1.25rem;

@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { useRouter } from 'next/navigation';
 import { Button, EmptyState, Icon, Select, useToast } from '@/components/ui';
 import { requireBrowserClient } from '@/lib/supabase/client';

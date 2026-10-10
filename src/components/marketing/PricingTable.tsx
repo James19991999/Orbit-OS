@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { Icon, Select } from '@/components/ui';
 import { PLANS, type PlanId } from '@/lib/billing/plans';
 import { CURRENCIES, CURRENCY_NAMES, formatMoney, type Currency } from '@/lib/format';
@@ -25,7 +25,7 @@ export function PricingTable() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <p className="text-body-sm text-on-surface-variant">Prices per workspace, before any local taxes. Annual plans get 2 months free.</p>
+        <p className="text-body-sm text-on-surface-variant">Prices per workspace, before local taxes. Every workspace starts with a 14-day Pro trial.</p>
         <div className="w-full sm:w-64">
           <Select label="Show prices in" value={currency} onChange={(e) => setCurrency(e.target.value as Currency)}
             options={CURRENCIES.map((c) => ({ value: c, label: `${c} — ${CURRENCY_NAMES[c]}` }))} />
@@ -36,7 +36,7 @@ export function PricingTable() {
           const p = PLANS[id];
           return (
             <li key={id} className={`card flex flex-col p-6 ${id === 'pro' ? 'border-primary-container shadow-glow' : ''}`}>
-              <h3 className="text-headline-sm">{p.name}</h3>
+              <h2 className="text-headline-sm">{p.name}</h2>
               <p className="text-body-sm text-on-surface-variant">{p.tagline}</p>
               <p className="mt-4 text-headline-lg tnum">{money(p.monthly[currency], currency)}<span className="text-body-sm text-on-surface-variant"> /month</span></p>
               <p className="text-body-sm text-on-surface-variant tnum">

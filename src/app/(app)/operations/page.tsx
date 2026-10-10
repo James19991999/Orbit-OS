@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { requireAppContext } from '@/lib/context';
 import { loadMembers, nameMap, must } from '@/lib/data/members';
 import { sprintProgress } from '@/lib/metrics/sprint';
@@ -197,7 +197,7 @@ async function FinanceTab({ supabase, orgId, currency, invoices, people, userId,
         <Card>
           <CardHeader title="Invoices" icon="request_quote" subtitle="Paid by clients via IntaSend (M-Pesa or card)" />
           {invoices.length === 0 ? <EmptyState icon="request_quote" title="No invoices yet" /> : (
-            <div className="overflow-x-auto">
+            <div className="relative overflow-x-auto">
               <table className="w-full text-left text-body-md">
                 <thead><tr className="border-b border-outline-variant text-label-xs uppercase text-on-surface-variant"><th scope="col" className="py-2 pr-3">Invoice</th><th scope="col" className="py-2 pr-3">Client</th><th scope="col" className="py-2 pr-3 text-right">Amount</th><th scope="col" className="py-2">Status</th></tr></thead>
                 <tbody>
@@ -220,7 +220,7 @@ async function FinanceTab({ supabase, orgId, currency, invoices, people, userId,
         <Card>
           <CardHeader title="Ledger" icon="receipt_long" subtitle="Latest 25 entries" />
           {ledger.length === 0 ? <EmptyState icon="receipt_long" title="No entries yet" /> : (
-            <div className="overflow-x-auto">
+            <div className="relative overflow-x-auto">
               <table className="w-full text-left text-body-md">
                 <thead><tr className="border-b border-outline-variant text-label-xs uppercase text-on-surface-variant"><th scope="col" className="py-2 pr-3">Date</th><th scope="col" className="py-2 pr-3">Entry</th><th scope="col" className="py-2 text-right">Amount</th></tr></thead>
                 <tbody>

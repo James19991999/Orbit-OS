@@ -1,5 +1,6 @@
+import { SeatAlertToggle } from '@/components/settings/OrgSettings';
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { requireAppContext, isWritable } from '@/lib/context';
 import { must } from '@/lib/data/members';
 import { PLANS } from '@/lib/billing/plans';
@@ -35,12 +36,13 @@ export default async function BillingPage() {
       </div>
       {!isWritable(org) && <Banner tone="warning">The workspace is read-only until the plan is renewed.</Banner>}
       {role !== 'owner' && <Banner tone="info">Only workspace owners can change the plan.</Banner>}
+      <Card><CardHeader title="Seat alerts" icon="group" /><SeatAlertToggle orgId={org.id} enabled={org.seat_autoscale} canEdit={role === 'owner' && isWritable(org)} /></Card>
       <BillingPlans currentPlan={org.plan} currency={cardCurrencyFor(org.currency)} activeMembers={membersRes.count ?? 0} canPay={role === 'owner'} configured={isIntaSendConfigured()} />
       {canSee && (
         <Card>
           <CardHeader title="Payment history" icon="receipt_long" subtitle="Processed by IntaSend" />
           {payments.length === 0 ? <EmptyState icon="receipt" title="No payments yet" /> : (
-            <div className="overflow-x-auto">
+            <div className="relative overflow-x-auto">
               <table className="w-full text-left text-body-md">
                 <thead><tr className="border-b border-outline-variant text-label-xs uppercase text-on-surface-variant">
                   <th scope="col" className="py-2 pr-3">Date</th><th scope="col" className="py-2 pr-3">Plan</th><th scope="col" className="py-2 pr-3">Method</th><th scope="col" className="py-2 pr-3 text-right">Amount</th><th scope="col" className="py-2 pr-3">Status</th><th scope="col" className="py-2"><span className="sr-only">Receipt</span></th>

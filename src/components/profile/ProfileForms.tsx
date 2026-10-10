@@ -1,9 +1,8 @@
 'use client';
 import { useT } from '@/i18n/client';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { useRouter } from 'next/navigation';
-import { startRegistration } from '@simplewebauthn/browser';
 import { Avatar, Button, Input, Select, Switch, InlineError, EmptyState, useToast, Banner, TimeAgo } from '@/components/ui';
 import { requireBrowserClient } from '@/lib/supabase/client';
 import { useAction, unwrap, postJson, errorMessage } from '@/hooks/useAction';
@@ -97,6 +96,7 @@ export function SecurityPanel({ passkeys, aal }: { passkeys: Passkey[]; aal: str
   const removeFactor = useAction(async (id: string) => { const { error } = await requireBrowserClient().auth.mfa.unenroll({ factorId: id }); if (error) throw error; setFactors((f) => (f ?? []).filter((x) => x.id !== id)); }, { success: 'Authenticator removed' });
   const addPasskey = useAction(async () => {
     const o = await postJson<{ challengeId: string; options: Parameters<typeof startRegistration>[0]['optionsJSON'] }>('/api/auth/passkey/register/options');
+    const { startRegistration } = await import('@simplewebauthn/browser'); // loaded only when a passkey is used
     const att = await startRegistration({ optionsJSON: o.options });
     await postJson('/api/auth/passkey/register/verify', { challengeId: o.challengeId, response: att, label: navigator.platform ? `Passkey (${navigator.platform})` : 'Passkey' });
   }, { success: 'Passkey added' });

@@ -1,15 +1,17 @@
 import type { Metadata } from 'next';
+import { contactEmail } from '@/lib/env';
 import { Prose } from '@/components/marketing/Prose';
 
 export const metadata: Metadata = { title: 'Privacy Policy' };
 
 export default function Privacy() {
+  const contact = contactEmail();
   return (
     <Prose title="Privacy Policy" updated="8 October 2026">
       <p>This policy explains what OrbitOS collects, why, and the choices you have. It is a template written for this product; have it reviewed by counsel for your jurisdiction (including Kenya&apos;s Data Protection Act, 2019 and the GDPR where applicable) before relying on it.</p>
       <h2>What we collect</h2>
       <ul>
-        <li>Account data: name, work email, time zone, working hours, profile photo.</li>
+        <li>Account data: name, work email, time zone, working hours, profile photo, and your WhatsApp number if you link it.</li>
         <li>Workspace content you add: tasks, finance entries, meetings, messages, polls, kudos, compliance records and uploaded evidence.</li>
         <li>Security data: sign-in events, IP address and browser user agent, recorded in your workspace&apos;s audit log.</li>
         <li>Payment data: plan, amount and status. Card and M-Pesa details are handled by IntaSend; we never see full card numbers or your M-Pesa PIN.</li>
@@ -19,11 +21,11 @@ export default function Privacy() {
       <h2>Who can see it</h2>
       <p>Workspace data is isolated per organization by database row-level security and is visible only to members according to their role. Individual poll votes marked anonymous are never shown to anyone, including admins.</p>
       <h2>Processors</h2>
-      <ul><li>Supabase (database, authentication, storage)</li><li>Vercel (hosting)</li><li>IntaSend (payments)</li><li>Resend (email)</li></ul>
+      <ul><li>Supabase (database, authentication, storage)</li><li>Vercel (hosting)</li><li>IntaSend (payments)</li><li>Resend (email)</li><li>Sentry (error reports, with personal details removed)</li><li>Meta — WhatsApp Cloud API (only for people who link WhatsApp)</li><li>Anthropic — Claude (only if the workspace owner turns on the AI chief of staff)</li><li>Slack and GitHub (only if the workspace connects them)</li></ul>
       <h2>Your rights</h2>
-      <p>You can access, correct, export or delete your data. Workspace owners can download a full archive and schedule deletion from Settings. Contact your workspace owner or us for requests.</p>
+      <p>You can access, correct, export or delete your data. Workspace owners can schedule deletion from Settings, and on Enterprise download a full archive. For requests, contact your workspace owner{contact ? <> or email <a href={`mailto:${contact}`}>{contact}</a></> : ''}.</p>
       <h2>Retention</h2>
-      <p>Workspace data is kept while the workspace is active. Offboarded workspaces are deleted 30 days after offboarding is confirmed. Audit logs follow the retention period the owner sets (default 7 years).</p>
+      <p>Workspace data is kept while the workspace is active. Offboarded workspaces are deleted 30 days after offboarding is confirmed. Audit logs are kept for the period the owner sets in Settings (7 years unless changed).</p>
     </Prose>
   );
 }

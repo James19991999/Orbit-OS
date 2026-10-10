@@ -3,7 +3,7 @@ import { SignupForm } from '@/components/auth/SignupForm';
 import { SetupNotice } from '@/components/auth/SetupNotice';
 import { isSupabaseConfigured } from '@/lib/env';
 
-export const metadata: Metadata = { title: 'Create your workspace' };
+export const metadata: Metadata = { title: 'Create your workspace', description: "Create an OrbitOS workspace for your remote team. 14-day free trial, no card or M-Pesa needed." };
 
 export default async function SignupPage(props: { searchParams: Promise<{ next?: string; email?: string }> }) {
   const searchParams = await props.searchParams;

@@ -8,7 +8,7 @@ export function OverlapBand({ slots, total, best, dayStart, nowMs }: { slots: nu
   return (
     <figure>
       <div className="relative h-10 overflow-hidden rounded border border-outline-variant bg-surface-container-lowest" role="img"
-        aria-label={best ? `Golden window ${new Date(best.start).toISOString().slice(11, 16)} to ${new Date(best.end).toISOString().slice(11, 16)} UTC` : 'No overlapping working hours today'}>
+        aria-label={best ? `Overlap window ${new Date(best.start).toISOString().slice(11, 16)} to ${new Date(best.end).toISOString().slice(11, 16)} UTC` : 'No overlapping working hours today'}>
         <div className="absolute inset-0 flex">
           {slots.map((c, i) => (
             <div key={i} className="h-full flex-1" style={{ background: total ? `rgba(37,99,235,${(c / total) * 0.55})` : 'transparent' }} title={`${String(Math.floor((i * SLOT_MIN) / 60)).padStart(2, '0')}:${String((i * SLOT_MIN) % 60).padStart(2, '0')} UTC · ${c}/${total} working`} />
@@ -23,7 +23,7 @@ export function OverlapBand({ slots, total, best, dayStart, nowMs }: { slots: nu
       <figcaption className="mt-2 flex flex-wrap gap-4 text-body-sm text-on-surface-variant">
         <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-[rgba(37,99,235,0.15)]" />Few working</span>
         <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-[rgba(37,99,235,0.55)]" />Most working</span>
-        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm border border-tertiary bg-tertiary/20" />Golden window</span>
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm border border-tertiary bg-tertiary/20" />Overlap window</span>
         <span className="flex items-center gap-1.5"><span className="h-2.5 w-0.5 bg-on-surface" />Now</span>
       </figcaption>
     </figure>

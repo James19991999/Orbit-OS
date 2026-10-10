@@ -30,7 +30,7 @@ export function SlotFinder({ members, viewerTz, orgId, orgSlug, userId, canWrite
           <summary className="flex h-11 cursor-pointer items-center gap-2 rounded border border-outline-variant bg-surface-container-high px-3 text-label-md md:h-10">
             <Icon name="group" className="text-[18px]" />{chosen.length} participants
           </summary>
-          <div className="absolute z-20 mt-1 max-h-72 w-72 overflow-y-auto rounded-lg border border-outline-variant bg-surface-container-high p-2 shadow-l2">
+          <div className="absolute right-0 z-20 mt-1 max-h-72 w-72 max-w-[calc(100vw-2rem)] overflow-y-auto sm:left-0 sm:right-auto rounded-lg border border-outline-variant bg-surface-container-high p-2 shadow-l2">
             {members.map((m) => (
               <label key={m.userId} className="flex items-center gap-2 rounded px-2 py-1.5 text-body-md hover:bg-on-surface/5">
                 <input type="checkbox" checked={ids.has(m.userId)} onChange={() => toggle(m.userId)} className="h-4 w-4 accent-[#2563eb]" />
@@ -51,7 +51,7 @@ export function SlotFinder({ members, viewerTz, orgId, orgSlug, userId, canWrite
           <p className="mt-1 text-body-sm text-on-surface-variant tnum">{formatInTimeZone(best.start, 'UTC', 'HH:mm')} UTC · {duration} min</p>
           <p className="mt-2 text-body-md">
             {best.zeroOvertime ? <><strong className="text-healthy">Zero overtime impact.</strong> Inside working hours for all {chosen.length} participants.</>
-              : <>Outside working hours for {best.outside.length}: {best.outside.map((id) => members.find((m) => m.userId === id)?.name).join(', ')}.</>}
+              : <>Outside working hours for {best.outside.map((id) => members.find((m) => m.userId === id)?.name).join(', ')}.</>}
           </p>
           {slots.length > 1 && (
             <ul className="mt-3 flex flex-wrap gap-2 text-body-sm">

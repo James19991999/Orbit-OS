@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { requireAppContext } from '@/lib/context';
 import { loadMembers, nameMap, must } from '@/lib/data/members';
 import { can } from '@/lib/roles';
@@ -149,9 +149,9 @@ async function KudosTab({ orgId, userId, canWrite, supabase, people, members }:
   return (
     <div className="grid gap-4 lg:grid-cols-12 lg:items-start">
       <Card className="lg:col-span-4">
-        <CardHeader title="Celebrate impact" icon="military_tech" subtitle="Send a peer recognition token" />
+        <CardHeader title="Celebrate impact" icon="military_tech" subtitle="Thank a teammate for great work" />
         {canWrite && <GiveKudos orgId={orgId} userId={userId} people={members} />}
-        <h3 className="mt-5 text-label-xs uppercase text-on-surface-variant">Orbit badge system</h3>
+        <h3 className="mt-5 text-label-xs uppercase text-on-surface-variant">Badges</h3>
         <ul className="mt-2 grid gap-2">
           {(Object.keys(BADGES) as Badge[]).map((b) => <li key={b} className="text-body-md">{BADGES[b].emoji} <strong>{BADGES[b].label}</strong> <span className="text-on-surface-variant">— {BADGES[b].hint}</span></li>)}
         </ul>

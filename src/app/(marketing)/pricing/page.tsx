@@ -5,9 +5,9 @@ export const metadata: Metadata = { title: 'Pricing', description: 'OrbitOS plan
 
 const FAQ = [
   ['How do I pay?', 'Through IntaSend: M-Pesa (STK push to your phone, charged in KES) or card in your workspace currency (KES, USD, EUR or GBP). Every payment covers one month or one year.'],
-  ['Does it renew automatically?', 'No. M-Pesa payments can’t be charged without you, so we email reminders 7 and 3 days before your plan ends. After a 3-day grace period the workspace becomes read-only until you renew — nothing is deleted.'],
+  ['Does it renew automatically?', 'No. M-Pesa payments can’t be charged without you, so we email reminders 7 days and 3 days before your plan ends, and on the day itself. After a 3-day grace period the workspace becomes read-only until you renew — nothing is deleted.'],
   ['What happens during the trial?', 'You get Pro for 14 days with no payment details needed.'],
-  ['Can I add seats?', 'Enterprise includes 200 seats and adds blocks of 10. Owners can turn on seat alerts at 95% usage.'],
+  ['Can I add seats?', 'Enterprise includes 200 seats and adds blocks of 10. Owners can turn on an alert for when 95% of seats are in use (Settings → Plan & billing).'],
 ];
 
 export default function PricingPage() {

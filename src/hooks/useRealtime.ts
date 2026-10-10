@@ -26,20 +26,30 @@ export function useRealtime(
     // Data saver: stay paused until the person taps Retry (attempt > 0) on this screen.
     if (!supabase || (saver && attempt === 0)) { setStatus('paused'); return; }
     setStatus('connecting');
-    const channel = supabase
-      .channel(`${key}:${attempt}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table, ...(filter ? { filter } : {}) }, (payload) => {
-        try {
-          cb.current(payload as never);
-        } catch (err) {
-          console.error('realtime handler failed', err);
-        }
-      })
-      .subscribe((s) => {
-        if (s === 'SUBSCRIBED') setStatus('live');
-        else if (s === 'CHANNEL_ERROR' || s === 'TIMED_OUT' || s === 'CLOSED') setStatus('paused');
-      });
-    return () => { supabase.removeChannel(channel).catch(() => undefined); };
+    // Connect once the page is idle: live updates can wait a moment; the first paint and taps can't.
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    const connect = () => {
+      channel = supabase
+        .channel(`${key}:${attempt}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table, ...(filter ? { filter } : {}) }, (payload) => {
+          try {
+            cb.current(payload as never);
+          } catch (err) {
+            console.error('realtime handler failed', err);
+          }
+        })
+        .subscribe((s) => {
+          if (s === 'SUBSCRIBED') setStatus('live');
+          else if (s === 'CHANNEL_ERROR' || s === 'TIMED_OUT' || s === 'CLOSED') setStatus('paused');
+        });
+    };
+    const idle = typeof window.requestIdleCallback === 'function'
+      ? window.requestIdleCallback(connect, { timeout: 2000 })
+      : window.setTimeout(connect, 300);
+    return () => {
+      if (typeof window.cancelIdleCallback === 'function') window.cancelIdleCallback(idle); else window.clearTimeout(idle);
+      if (channel) supabase.removeChannel(channel).catch(() => undefined);
+    };
   }, [key, table, filter, attempt, saver]);
 
   return { status, retry: () => setAttempt((a) => a + 1) };

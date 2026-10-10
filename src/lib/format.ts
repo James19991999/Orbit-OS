@@ -70,12 +70,15 @@ export function signed(value: number, digits = 1, suffix = ''): string {
   return `${value > 0 ? '+' : ''}${s}${suffix}`;
 }
 
+let RTF: Intl.RelativeTimeFormat | undefined;
 export function relativeTime(date: Date | string | number, now: Date = new Date(), locale = 'en-KE', timeZone = 'UTC'): string {
   const d = new Date(date);
   const diff = Math.round((d.getTime() - now.getTime()) / 1000);
   const abs = Math.abs(diff);
-  const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
-  if (abs < 45) return diff < 0 ? 'just now' : 'in a moment';
+  const rtf = (RTF ??= new Intl.RelativeTimeFormat('en', { numeric: 'auto' }));
+  // Within 45 s either way reads as "just now": a few seconds' clock difference between
+  // server and phone must not show a past event as "in a moment".
+  if (abs < 45) return 'just now';
   if (abs < 3600) return rtf.format(Math.round(diff / 60), 'minute');
   if (abs < 86400) return rtf.format(Math.round(diff / 3600), 'hour');
   if (abs < 86400 * 30) return rtf.format(Math.round(diff / 86400), 'day');

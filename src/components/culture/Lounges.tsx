@@ -46,7 +46,7 @@ export function Lounges({ orgSlug, lounges: initial, canWrite }: { orgSlug: stri
             <div className="flex items-start justify-between gap-2">
               <div>
                 <p className="flex items-center gap-1.5 text-label-xs uppercase text-on-surface-variant"><Icon name={l.kind === 'hangout' ? 'graphic_eq' : 'timer'} className="text-[16px]" />{l.kind === 'hangout' ? 'Open hangout' : `Deep coworking (${l.focus_minutes}/${l.break_minutes})`}</p>
-                <h3 className="mt-1 text-headline-sm">{l.name}</h3>
+                <h2 className="mt-1 text-headline-sm">{l.name}</h2>
                 {l.description && <p className="text-body-sm text-on-surface-variant">{l.description}</p>}
               </div>
               {status === 'live' ? <Pill tone={inRoom.length ? 'healthy' : 'neutral'} pulse={inRoom.length > 0}>{inRoom.length} here</Pill> : <Pill tone="neutral">Presence {status === 'paused' ? 'offline' : '…'}</Pill>}

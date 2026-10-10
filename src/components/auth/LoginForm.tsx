@@ -1,10 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { useRouter } from 'next/navigation';
-import { startAuthentication } from '@simplewebauthn/browser';
 import { Button, Input, Checkbox, Icon, Banner, InlineError } from '@/components/ui';
-import { getBrowserClient, setRememberDevice } from '@/lib/supabase/client';
+// Supabase's client (~55 KB) loads when it is first needed, not with the page.
+const sb = () => import('@/lib/supabase/client');
 import { safeNext } from '@/lib/auth/redirect';
 import { errorMessage, postJson } from '@/hooks/useAction';
 import { useT } from '@/i18n/client';
@@ -50,7 +50,7 @@ export function LoginForm({ next, reason, error: initialError }: { next?: string
     setTenantError(null);
     if (!slug) { setTenant(null); writeTenant(''); return; }
     if (!/^[a-z0-9-]{3,40}$/.test(slug)) { setTenantError(t('login.ws_invalid')); return; }
-    const supabase = getBrowserClient();
+    const supabase = (await sb()).getBrowserClient();
     if (!supabase) return;
     setTenantBusy(true);
     try {
@@ -81,12 +81,12 @@ export function LoginForm({ next, reason, error: initialError }: { next?: string
   async function onPassword(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const supabase = getBrowserClient();
+    const supabase = (await sb()).getBrowserClient();
     if (!supabase) return;
     setBusy('password');
-    setRememberDevice(remember);
+    (await sb()).setRememberDevice(remember);
     try {
-      const client = getBrowserClient()!; // re-create with remember preference
+      const client = (await sb()).getBrowserClient()!; // re-create with remember preference
       const { error: err } = await client.auth.signInWithPassword({ email: email.trim(), password });
       if (err) {
         await postJson('/api/auth/event', { type: 'login_failed', email: email.trim(), slug: tenant?.slug }).catch(() => undefined);
@@ -102,12 +102,12 @@ export function LoginForm({ next, reason, error: initialError }: { next?: string
 
   async function onOAuth(provider: 'google' | 'azure') {
     setError(null);
-    const supabase = getBrowserClient();
+    const supabase = (await sb()).getBrowserClient();
     if (!supabase) return;
     setBusy(provider);
-    setRememberDevice(remember);
+    (await sb()).setRememberDevice(remember);
     try {
-      const { error: err } = await getBrowserClient()!.auth.signInWithOAuth({
+      const { error: err } = await (await sb()).getBrowserClient()!.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(target)}${tenant ? `&org=${tenant.slug}` : ''}`,
@@ -125,9 +125,9 @@ export function LoginForm({ next, reason, error: initialError }: { next?: string
     if (!tenant?.sso_domain) return;
     setError(null);
     setBusy('sso');
-    setRememberDevice(remember);
+    (await sb()).setRememberDevice(remember);
     try {
-      const { data, error: err } = await getBrowserClient()!.auth.signInWithSSO({
+      const { data, error: err } = await (await sb()).getBrowserClient()!.auth.signInWithSSO({
         domain: tenant.sso_domain,
         options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(target)}&org=${tenant.slug}` },
       });
@@ -144,10 +144,11 @@ export function LoginForm({ next, reason, error: initialError }: { next?: string
     setError(null);
     if (!email.trim()) { setError(t('login.err_passkey_email')); return; }
     setBusy('passkey');
-    setRememberDevice(remember);
+    (await sb()).setRememberDevice(remember);
     try {
       const opts = await postJson<{ challengeId: string; options: Parameters<typeof startAuthentication>[0]['optionsJSON'] }>(
         '/api/auth/passkey/login/options', { email: email.trim() });
+      const { startAuthentication } = await import('@simplewebauthn/browser'); // loaded only when a passkey is used
       const assertion = await startAuthentication({ optionsJSON: opts.options });
       await postJson('/api/auth/passkey/login/verify', { challengeId: opts.challengeId, response: assertion, remember });
       await afterSignIn();
@@ -228,7 +229,7 @@ export function LoginForm({ next, reason, error: initialError }: { next?: string
 
       <Button variant="ghost" icon="fingerprint" onClick={onPasskey} loading={busy === 'passkey'} disabled={!!busy}>{t('login.passkey')}</Button>
 
-      <p className="text-center text-body-md text-on-surface-variant">{t('login.new')} <Link href="/signup" className="text-primary hover:underline">{t('login.create_ws')}</Link></p>
+      <p className="text-center text-body-md text-on-surface-variant">{t('login.new')} <Link href="/signup" className="text-primary underline">{t('login.create_ws')}</Link></p>
 
       <p className="flex items-center justify-center gap-2 text-body-sm text-on-surface-variant" role="status">
         <Icon name="lock" className="text-[16px]" />{t('login.encrypted')}

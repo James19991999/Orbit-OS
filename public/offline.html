@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b1326">
+<title>Offline · OrbitOS</title>
+<!-- Shown by the service worker when a page can't load without a connection.
+     Deliberately self-contained (no app scripts or styles), so it always works, even after a new release. -->
+<style>
+  :root { color-scheme: dark; --bg: #0b1326; --fg: #dae2fd; --muted: #c3c6d7; --line: #434655; --btn: #2563eb; }
+  @media (prefers-color-scheme: light) { :root { color-scheme: light; --bg: #f8fafc; --fg: #0f172a; --muted: #475569; --line: #cbd5e1; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--fg);
+         font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+  main { max-width: 28rem; padding: 24px 16px; }
+  h1 { font-size: 26px; line-height: 1.25; margin: 0 0 8px; letter-spacing: -0.02em; }
+  p, li { color: var(--muted); margin: 0 0 8px; }
+  ul { padding-left: 20px; margin: 0 0 16px; }
+  .other { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 12px; font-size: 14px; }
+  a.btn { display: inline-flex; align-items: center; height: 44px; padding: 0 16px; border-radius: 6px; background: var(--btn); color: #fff; text-decoration: none; font-weight: 600; }
+  a.btn:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<main id="main">
+  <h1>You're offline</h1>
+  <p>This page needs a connection.</p>
+  <ul>
+    <li>Check-ins you write while offline are saved on this device and sent automatically when you reconnect.</li>
+    <li>On WhatsApp you can still reply to a check-in reminder — it arrives when your phone has signal.</li>
+  </ul>
+  <a class="btn" href="/dashboard">Try again</a>
+  <div class="other">
+    <p lang="sw"><strong>Huna mtandao.</strong> Ripoti unazoandika bila mtandao huhifadhiwa kwenye kifaa hiki na kutumwa ukirudi mtandaoni.</p>
+    <p lang="fr"><strong>Vous êtes hors ligne.</strong> Les points du jour rédigés hors ligne sont enregistrés sur cet appareil et envoyés à la reconnexion.</p>
+  </div>
+</main>
+</body>
+</html>

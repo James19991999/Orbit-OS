@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { GeistSans } from 'geist/font/sans';
-import { GeistMono } from 'geist/font/mono';
+import { sans, mono, icons } from './fonts';
 import { ToastProvider } from '@/components/ui/Toast';
 import { ServiceWorker } from '@/components/shell/ServiceWorker';
 import { appUrl } from '@/lib/env';
@@ -33,7 +32,7 @@ const themeScript = `(function(){try{var m=document.cookie.match(/(?:^|; )orbit_
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="dark" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
+    <html lang="en" data-theme="dark" className={`${sans.variable} ${mono.variable} ${icons.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

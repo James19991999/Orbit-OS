@@ -215,7 +215,7 @@ await step('the owner signs back in: password → TOTP challenge → app', async
 });
 await step('offboarding requires typing the workspace domain, then can be cancelled', async () => {
   await page.goto(`${base}/settings#data`, { waitUntil: 'networkidle' });
-  await page.getByRole('button', { name: /Initiate suspension/ }).click();
+  await page.getByRole('button', { name: /Close workspace/ }).click();
   const d = page.locator('dialog[open]');
   const confirmBtn = d.getByRole('button', { name: 'Offboard workspace' });
   const disabledFirst = await confirmBtn.isDisabled();
@@ -277,9 +277,9 @@ await step('timezone-engine settings persist', async () => {
   await page.getByRole('menuitemradio', { name: /Acme Global/ }).click();
   await page.waitForTimeout(1000);
   await page.goto(`${base}/settings#timezone`, { waitUntil: 'networkidle' });
-  await page.getByLabel('Golden overlap target (h)').fill('2.5');
+  await page.getByLabel('Overlap window target (hours)').fill('2.5');
   await page.locator('#timezone').getByRole('button', { name: 'Save' }).click();
-  await page.getByText('Timezone engine saved').first().waitFor();
+  await page.getByText('Time zone settings saved').first().waitFor();
   return sql(`select golden_overlap_min_hours from organizations where slug = 'acme-global'`) === '2.5';
 });
 await step('every settings change is in the audit log', async () => {

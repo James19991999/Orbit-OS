@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { usePathname, useRouter } from 'next/navigation';
 import { Icon, cn, Avatar, Dialog, Banner, useToast } from '@/components/ui';
 import { getBrowserClient } from '@/lib/supabase/client';

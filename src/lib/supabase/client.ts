@@ -1,5 +1,4 @@
 'use client';
-import { createBrowserClient } from '@supabase/ssr';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { REMEMBER_COOKIE, REMEMBER_MAX_AGE } from '@/lib/env';
 import { applyRemember } from './cookies';
@@ -32,6 +31,9 @@ export function getBrowserClient(): SupabaseClient | null {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return null;
   if (cached) return cached;
+  // Required on first use rather than imported at the top: the client library (~55 KB) is then
+  // evaluated after the page has painted and become interactive, not during start-up.
+  const { createBrowserClient } = require('@supabase/ssr') as typeof import('@supabase/ssr');
   cached = createBrowserClient(url, key, {
     cookies: {
       getAll: () => document.cookie.split('; ').filter(Boolean).map((c) => {

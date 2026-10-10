@@ -1,9 +1,9 @@
 'use client';
 import { useEffect } from 'react';
-import * as Sentry from '@sentry/nextjs';
+import { captureClientError } from '@/lib/observability/capture';
 
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
-  useEffect(() => { Sentry.captureException(error); }, [error]);
+  useEffect(() => { captureClientError(error); }, [error]);
   return (
     <html lang="en">
       <body style={{ margin: 0, background: '#0b1326', color: '#dae2fd', fontFamily: 'system-ui, sans-serif' }}>

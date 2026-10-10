@@ -1,14 +1,14 @@
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { Icon } from '@/components/ui';
 import { PricingTable } from '@/components/marketing/PricingTable';
 
 const FEATURES = [
   { icon: 'grid_view', title: 'Executive dashboard', body: 'A Company Health Index built from your own sprints, runway, check-ins and controls — with the formula shown, not hidden.' },
   { icon: 'view_kanban', title: 'Operations & runway', body: 'Sprints and a Kanban board, burn and runway, approvals, recorded payroll, and client invoices paid by M-Pesa or card.' },
-  { icon: 'schedule', title: 'Time-zone scheduling', body: 'Live team matrix, a computed golden overlap window, and a slot finder that never books someone at 3 AM.' },
+  { icon: 'schedule', title: 'Time-zone scheduling', body: 'Live team matrix, a computed golden overlap window, and a slot finder that suggests times inside as many people’s working hours as possible.' },
   { icon: 'auto_awesome', title: 'Culture that travels', body: 'Lounges with a shared focus timer, pulse polls, async roll call, channels and peer kudos.' },
   { icon: 'verified_user', title: 'Compliance tracking', body: 'SOC 2, GDPR, ISO 27001 and HIPAA control sets, evidence, devices, training and an audit-ready ZIP.' },
-  { icon: 'analytics', title: 'Board-ready reports', body: 'PDF dossiers, CSV dumps, Slack dispatch and scheduled digests — every number traceable to your data.' },
+  { icon: 'analytics', title: 'Board-ready reports', body: 'PDF and CSV reports, Slack posts and scheduled email digests — every number traceable to your data.' },
 ];
 
 export default function Landing() {

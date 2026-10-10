@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { requireAppContext } from '@/lib/context';
 import { loadMembers, must } from '@/lib/data/members';
 import { can } from '@/lib/roles';
@@ -51,8 +51,8 @@ export default async function SettingsPage() {
         </div>
         <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
           <Stat label="Seats" value={`${members.length} / ${org.seat_limit}`} sub={`${Math.max(0, org.seat_limit - members.length)} available`} />
-          <Stat label="Time zones" value={zones} sub="deployed" />
-          <Stat label="Plan" value={<span className="capitalize">{PLANS[org.plan].name}</span>} sub={org.plan_period === 'trial' ? 'Free trial' : `Billed ${org.plan_period}`} />
+          <Stat label="Time zones" value={zones} sub="across the team" />
+          <Stat label="Plan" value={<span className="capitalize">{PLANS[org.plan].name}</span>} sub={org.plan_period === 'trial' ? 'Free trial' : org.plan_period === 'annual' ? 'Billed annually' : 'Billed monthly'} />
           <Stat label={expires.getTime() < Date.now() ? 'Expired' : 'Paid through'} value={fmt.date(expires)} sub="IntaSend · M-Pesa or card" />
         </div>
         {role === 'owner' && <div className="mt-4"><LinkButton href="/settings/billing" icon="credit_card" size="sm">Manage plan & billing</LinkButton></div>}
@@ -63,13 +63,13 @@ export default async function SettingsPage() {
           <Section id="organization" title="Organization" icon="apartment" keywords="name legal currency threshold approval cost">
             <OrgForm org={org} canEdit={can.manage(role)} />
           </Section>
-          <Section id="entities" title="Organization & legal hubs" icon="account_balance" keywords="entities legal subsidiaries jurisdiction" badge={<span className="text-body-sm text-on-surface-variant">{(entRes.data ?? []).length} entities</span>}>
+          <Section id="entities" title="Legal entities" icon="account_balance" keywords="entities legal subsidiaries jurisdiction" badge={<span className="text-body-sm text-on-surface-variant">{(entRes.data ?? []).length} entities</span>}>
             <LegalEntities orgId={org.id} items={must(entRes, 'entities') as LegalEntity[]} canEdit={can.manage(role)} />
           </Section>
           <Section id="auth" title="Authentication & identity" icon="fingerprint" keywords="sso saml okta mfa two-factor session timeout security" badge={org.enforce_mfa_admins ? <Pill tone="healthy">Strict</Pill> : undefined}>
             <AuthSettings org={org} isOwner={role === 'owner'} ssoAllowed={org.plan === 'enterprise'} />
           </Section>
-          <Section id="timezone" title="Timezone engine" icon="schedule_send" keywords="core window overlap quiet hours time zone travel">
+          <Section id="timezone" title="Time zone settings" icon="schedule_send" keywords="core window overlap quiet hours time zone travel">
             <TimezoneEngine org={org} canEdit={can.manage(role)} />
           </Section>
           {can.manage(role) && (
@@ -79,7 +79,7 @@ export default async function SettingsPage() {
           )}
           <Section id="data" title="Data governance & export" icon="gavel" keywords="residency retention archive export offboarding suspension delete">
             <dl className="mb-4 grid gap-3 text-body-md sm:grid-cols-2">
-              <div><dt className="text-label-xs uppercase text-on-surface-variant">Data residency</dt><dd>{process.env.NEXT_PUBLIC_DATA_REGION || 'Your Supabase project region'}</dd></div>
+              <div><dt className="text-label-xs uppercase text-on-surface-variant">Data residency</dt><dd>{process.env.NEXT_PUBLIC_DATA_REGION || 'Set by your hosting (Supabase project region)'}</dd></div>
               <div><dt className="text-label-xs uppercase text-on-surface-variant">Audit log retention</dt><dd>{org.audit_retention_years} years (append-only)</dd></div>
             </dl>
             <GovernanceActions slug={org.slug} isOwner={role === 'owner'} archiveAllowed={planAllows(org.plan, 'tenantArchive')} offboarding={org.status === 'offboarding'} deletionAt={org.deletion_scheduled_at} aal2={aal.current === 'aal2'} />

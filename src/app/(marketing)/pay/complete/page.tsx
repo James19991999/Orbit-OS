@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { Icon } from '@/components/ui';
 
 export const metadata: Metadata = { title: 'Payment received', robots: { index: false } };

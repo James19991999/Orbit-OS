@@ -28,6 +28,10 @@ const securityHeaders = [
 
 const nextConfig = {
   reactStrictMode: true,
+  // Put <title>/<meta> in the <head> for every visitor (not streamed later), so link previews,
+  // crawlers and audits always see them. Our metadata is static, so this costs no render time.
+  htmlLimitedBots: /.*/,
+  productionBrowserSourceMaps: process.env.ANALYZE_MAPS === '1',
   poweredByHeader: false,
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];

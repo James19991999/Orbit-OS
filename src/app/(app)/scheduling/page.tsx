@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { formatInTimeZone } from 'date-fns-tz';
 import { requireAppContext } from '@/lib/context';
 import { loadMembers, toWindows, nameMap, isoDaysAgo, must } from '@/lib/data/members';
@@ -18,9 +18,9 @@ export const metadata: Metadata = { title: 'Scheduling' };
 
 const PHASE: Record<DayPhase, { label: string; icon: string; tone: 'healthy' | 'info' | 'warning' | 'neutral' }> = {
   starting: { label: 'Starting day', icon: 'wb_twilight', tone: 'info' },
-  working: { label: 'Focus hours', icon: 'wb_sunny', tone: 'healthy' },
+  working: { label: 'Working', icon: 'wb_sunny', tone: 'healthy' },
   wrapping: { label: 'Wrapping up', icon: 'partly_cloudy_day', tone: 'warning' },
-  off: { label: 'Off hours (DND)', icon: 'bedtime', tone: 'neutral' },
+  off: { label: 'Off hours', icon: 'bedtime', tone: 'neutral' },
 };
 
 export default async function SchedulingPage() {
@@ -55,14 +55,14 @@ export default async function SchedulingPage() {
       </div>
 
       <Card>
-        <CardHeader title="Active team matrix" icon="travel_explore" subtitle={`${hubs.length} hubs · ${members.length} distributed members`} />
+        <CardHeader title="Active team matrix" icon="travel_explore" subtitle={`${members.length} people in ${hubs.length} cities`} />
         <div className="mb-4 flex flex-wrap gap-4 text-body-md">
           {(['Americas', 'EMEA', 'APAC'] as const).map((r) => (
             <span key={r} className="flex items-center gap-2"><span className="text-on-surface-variant">{r}</span><strong className="tnum">{members.length ? Math.round(((regions[r] ?? 0) / members.length) * 100) : 0}%</strong></span>
           ))}
         </div>
         <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {hubs.slice(0, 8).map((h) => {
+          {hubs.map((h) => {
             const ph = PHASE[dayPhase(h.members[0], now)];
             return (
               <li key={h.tz} className="rounded-lg border border-outline-variant bg-surface-container-low p-4">
@@ -84,12 +84,12 @@ export default async function SchedulingPage() {
       <div className="grid gap-4 xl:grid-cols-12 xl:items-start">
         <Card glow className="xl:col-span-7">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="flex items-center gap-2 text-headline-sm"><Icon name="timelapse" className="text-secondary" />Golden overlap band</h2>
+            <h2 className="flex items-center gap-2 text-headline-sm"><Icon name="timelapse" className="text-secondary" />Overlap window</h2>
             {overlap.best && <Pill tone={overlap.meetsTarget ? 'healthy' : 'warning'} pulse={!!inWindow}>{overlap.coveragePct}% overlap{inWindow ? ' · active' : ''}</Pill>}
           </div>
           {overlap.best ? (
             <>
-              <p className="text-label-xs uppercase text-on-surface-variant">Synchronous golden window (today, UTC)</p>
+              <p className="text-label-xs uppercase text-on-surface-variant">Today&apos;s overlap window (UTC)</p>
               <p className="mt-1 text-headline-lg tnum">{fmtUtcTime(overlap.best.start)} – {fmtUtcTime(overlap.best.end)}</p>
               <p className="mt-1 text-body-md text-on-surface-variant">
                 {overlap.best.count} of {overlap.total} members working · {overlap.hours.toFixed(1)} h

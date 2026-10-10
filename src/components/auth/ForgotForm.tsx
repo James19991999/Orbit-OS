@@ -1,8 +1,7 @@
 'use client';
 import { useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/SmartLink';
 import { Button, Input, InlineError, Banner } from '@/components/ui';
-import { getBrowserClient } from '@/lib/supabase/client';
 import { errorMessage } from '@/hooks/useAction';
 import { useT } from '@/i18n/client';
 
@@ -16,6 +15,7 @@ export function ForgotForm() {
     e.preventDefault();
     setError(null);
     if (!/^\S+@\S+\.\S+$/.test(email)) return setError(t('forgot.err_email'));
+    const { getBrowserClient } = await import('@/lib/supabase/client'); // loaded on submit, not with the page
     const supabase = getBrowserClient();
     if (!supabase) return;
     setBusy(true);

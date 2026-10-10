@@ -47,7 +47,7 @@ export function ModuleTabs({ modules }: { modules: { id: string; label: string; 
   const [tab, setTab] = useState(modules[0].id);
   return (
     <div className="flex flex-col gap-4">
-      <div className="overflow-x-auto"><Segmented label="Domain modules" value={tab} onChange={setTab} options={modules.map((m) => ({ value: m.id, label: m.label }))} /></div>
+      <div className="relative overflow-x-auto"><Segmented label="Domain modules" value={tab} onChange={setTab} options={modules.map((m) => ({ value: m.id, label: m.label }))} /></div>
       {modules.find((m) => m.id === tab)?.content}
     </div>
   );

@@ -1,7 +1,9 @@
 // Minimal Supabase-style gateway: /auth/v1 → GoTrue, /rest/v1 → PostgREST. Local testing only.
 import http from 'node:http';
+import { createRequire } from 'node:module';
+const { WebSocketServer } = createRequire(import.meta.url)('ws');
 const routes = [['/auth/v1', 9999], ['/rest/v1', 3001]];
-http.createServer((req, res) => {
+const server = http.createServer((req, res) => {
   const hit = routes.find(([p]) => req.url.startsWith(p));
   res.setHeader('access-control-allow-origin', req.headers.origin || '*');
   res.setHeader('access-control-allow-credentials', 'true');
@@ -19,4 +21,27 @@ http.createServer((req, res) => {
   });
   up.on('error', (e) => { res.writeHead(502); res.end(String(e)); });
   req.pipe(up);
-}).listen(54321, () => console.log('gateway on :54321'));
+});
+
+// Minimal Supabase Realtime stand-in: accepts channel joins (postgres_changes, presence) and heartbeats
+// so the app sees a live connection, like production. It never pushes changes. Local testing only.
+const wss = new WebSocketServer({ noServer: true });
+server.on('upgrade', (req, socket, head) => {
+  if (!req.url.startsWith('/realtime/v1/websocket')) return socket.destroy();
+  wss.handleUpgrade(req, socket, head, (ws) => {
+    let n = 0;
+    ws.on('message', (raw) => {
+      let m; try { m = JSON.parse(String(raw)); } catch { return; }
+      // realtime-js speaks Phoenix serializer v2 (arrays) or v1 (objects); answer in kind.
+      const arr = Array.isArray(m);
+      const [joinRef, ref, topic, event, payload] = arr ? m : [m.join_ref, m.ref, m.topic, m.event, m.payload];
+      const send = (ev, pl, r) => ws.send(JSON.stringify(arr ? [joinRef, r, topic, ev, pl] : { topic, event: ev, payload: pl, ref: r, join_ref: joinRef }));
+      if (event === 'phx_join') {
+        const pc = payload?.config?.postgres_changes ?? [];
+        send('phx_reply', { status: 'ok', response: { postgres_changes: pc.map((c) => ({ ...c, id: ++n })) } }, ref);
+        send('system', { status: 'ok', message: 'Subscribed to PostgreSQL', extension: 'postgres_changes', channel: String(topic).replace(/^realtime:/, '') }, null);
+      } else send('phx_reply', { status: 'ok', response: {} }, ref);
+    });
+  });
+});
+server.listen(54321, () => console.log('gateway on :54321'));

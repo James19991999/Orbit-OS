@@ -5,7 +5,7 @@ export const en = {
   'email.checkin.body': 'Hi {name}, take 30 seconds to share what you shipped today so your teammates in other time zones stay in sync.', 'email.checkin.cta': 'Check in',
   'ai.title': 'Chief of staff', 'ai.sub': "A brief every Monday at 08:00 your time, written from your team's check-ins, tasks and finances.",
   'ai.enable': 'Turn on the AI chief of staff', 'ai.disable': 'Turn off',
-  'ai.privacy': "When this is on, this workspace's check-ins, task titles and finance totals are sent to Anthropic (Claude) to write the briefs. Under Anthropic's commercial terms, API data isn't used to train models. You can turn it off at any time.",
+  'ai.privacy': "When this is on, this workspace's check-ins, teammates' first names, task titles (including blocked ones) and finance totals are sent to Anthropic (Claude) to write the briefs. Under Anthropic's commercial terms, API data isn't used to train models. You can turn it off at any time.",
   'ai.owner_only': 'The workspace owner can turn this on.', 'ai.enabled_toast': 'AI chief of staff is on', 'ai.disabled_toast': 'AI chief of staff is off',
   'ai.generate': "Write this week's brief", 'ai.summarize': "Summarize today's check-ins", 'ai.generated': 'Brief ready',
   'ai.empty': 'No brief yet. The first one arrives on Monday morning — or write one now.',
@@ -68,7 +68,7 @@ export const en = {
   'tz.prompt': 'Your device is set to {device}, but your profile says {profile}. Update it so scheduling uses your current location?',
   'tz.update': 'Update time zone', 'tz.not_now': 'Not now', 'tz.updated': 'Time zone updated',
   // ── check-ins ──
-  'checkin.completed_today': 'completed today', 'checkin.prompt': 'What did you ship today? Keep your distributed node in sync.',
+  'checkin.completed_today': 'completed today', 'checkin.prompt': 'Share what you shipped today so teammates in other time zones stay in sync.',
   'checkin.edit': 'Edit my check-in', 'checkin.cta': 'Check in', 'checkin.title': 'Async check-in', 'checkin.cancel': 'Cancel', 'checkin.save': 'Save check-in',
   'checkin.shipped': 'What did you ship today?', 'checkin.blockers': 'Anything blocking you? (optional)', 'checkin.feeling': 'How are you feeling?',
   'checkin.mood.1': 'Rough', 'checkin.mood.2': 'Meh', 'checkin.mood.3': 'Okay', 'checkin.mood.4': 'Good', 'checkin.mood.5': 'Great',
@@ -77,7 +77,7 @@ export const en = {
   'checkin.progress': 'Check-in completion',
   // ── auth: shared ──
   'auth.work_email': 'Work email', 'auth.password': 'Password', 'auth.back_to_signin': 'Back to sign in', 'auth.sign_in': 'Sign in',
-  'auth.min_password': 'At least 10 characters.', 'auth.privacy': 'Privacy Policy', 'auth.security': 'Security Whitepaper', 'auth.trust': 'Trust Center',
+  'auth.min_password': 'At least 10 characters.', 'auth.privacy': 'Privacy Policy', 'auth.security': 'Security overview', 'auth.trust': 'Trust Center',
   'auth.language': 'Language',
   // ── login ──
   'login.title': 'Sign in to OrbitOS', 'login.subtitle': 'The distributed operating system for remote-first companies',
@@ -91,7 +91,7 @@ export const en = {
   'login.sso_need_domain': 'Set your workspace domain to use SAML single sign-on.', 'login.google': 'Continue with Google Workspace',
   'login.azure': 'Continue with Microsoft Entra ID (Azure AD)', 'login.or_email': 'or work email',
   'login.show_password': 'Show password', 'login.hide_password': 'Hide password', 'login.remember': 'Remember this device for 30 days',
-  'login.forgot': 'Forgot password?', 'login.passkey': 'Use a passkey (YubiKey, Touch ID, Face ID)',
+  'login.forgot': 'Forgot password?', 'login.passkey': 'Use a passkey (YubiKey, Touch ID, Face ID, Windows Hello)',
   'login.new': 'New to OrbitOS?', 'login.create_ws': 'Create a workspace', 'login.encrypted': 'Encrypted session (TLS) ·',
   'login.status_ok': 'All systems operational', 'login.status_degraded': 'Service degraded', 'login.status_checking': 'Checking status…',
   'login.err_credentials': 'Incorrect email or password.', 'login.err_unconfirmed': 'Please confirm your email first — check your inbox.',
