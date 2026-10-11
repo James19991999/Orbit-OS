@@ -6,6 +6,7 @@ import { requireBrowserClient } from '@/lib/supabase/client';
 import { errorMessage, useAction, unwrap } from '@/hooks/useAction';
 
 import type { Poll as PollT, PollOption } from '@/lib/types';
+import { useT } from '@/i18n/client';
 
 export function PollCard({ poll, options, results, myVote: initialVote, orgId, canVote }:
   { poll: PollT; options: PollOption[]; results: Record<string, number>; myVote: string | null; orgId: string; canVote: boolean }) {
@@ -13,6 +14,7 @@ export function PollCard({ poll, options, results, myVote: initialVote, orgId, c
   const [myVote, setMyVote] = useState(initialVote);
   const [busy, setBusy] = useState<string | null>(null);
   const { toast } = useToast();
+  const t = useT();
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   const closed = poll.closes_at ? new Date(poll.closes_at).getTime() < Date.now() : false;
 
@@ -29,7 +31,7 @@ export function PollCard({ poll, options, results, myVote: initialVote, orgId, c
       if (error) throw error;
     } catch (e) {
       setMyVote(prevVote); setCounts(prevCounts);
-      toast(`Vote not saved: ${errorMessage(e)}`, 'error');
+      toast(t('cul.p.vote_failed', { error: errorMessage(e) }), 'error');
     } finally {
       setBusy(null);
     }
@@ -47,7 +49,7 @@ export function PollCard({ poll, options, results, myVote: initialVote, orgId, c
               <button type="button" onClick={() => vote(o.id)} disabled={closed || !canVote || !!busy} aria-pressed={mine}
                 className={`relative flex h-11 w-full items-center justify-between overflow-hidden rounded border px-3 text-left text-body-md transition-colors disabled:cursor-default ${mine ? 'border-primary-container' : 'border-outline-variant hover:bg-on-surface/5'}`}>
                 <span className="absolute inset-y-0 left-0 bg-primary-container/15" style={{ width: `${pct}%` }} aria-hidden />
-                <span className="relative">{o.label}{mine && <span className="sr-only"> (your vote)</span>}</span>
+                <span className="relative">{o.label}{mine && <span className="sr-only">{t('cul.p.your_vote')}</span>}</span>
                 <span className="relative tnum text-on-surface-variant">{pct}%</span>
               </button>
             </li>
@@ -55,7 +57,7 @@ export function PollCard({ poll, options, results, myVote: initialVote, orgId, c
         })}
       </ul>
       <p className="mt-2 text-body-sm text-on-surface-variant">
-        {total} {total === 1 ? 'response' : 'responses'} · {poll.anonymous ? 'anonymous' : 'named'} · {closed ? 'closed' : poll.closes_at ? <>closes <TimeAgo date={poll.closes_at} /></> : 'open'}{myVote && !closed ? ' · tap another option to change your vote' : ''}
+        {t('cul.p.responses', { count: total })} · {poll.anonymous ? t('cul.p.anon') : t('cul.p.named')} · {closed ? t('cul.p.closed') : poll.closes_at ? <>{t('cul.p.closes')} <TimeAgo date={poll.closes_at} /></> : t('cul.p.open')}{myVote && !closed ? t('cul.p.change') : ''}
       </p>
     </div>
   );
@@ -63,6 +65,7 @@ export function PollCard({ poll, options, results, myVote: initialVote, orgId, c
 
 export function NewPollButton({ orgId, kind = 'pulse' }: { orgId: string; kind?: 'pulse' | 'announcement' | 'enps' }) {
   const router = useRouter();
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const [opts, setOpts] = useState(['', '']);
@@ -74,25 +77,25 @@ export function NewPollButton({ orgId, kind = 'pulse' }: { orgId: string; kind?:
     const poll = unwrap(await sb.from('polls').insert({ org_id: orgId, question: q.trim(), anonymous: anon, kind, closes_at: new Date(Date.now() + Number(days) * 86_400_000).toISOString() }).select('id').single()) as { id: string };
     unwrap(await sb.from('poll_options').insert(opts.map((o) => o.trim()).filter(Boolean).map((label, position) => ({ poll_id: poll.id, org_id: orgId, label, position }))).select('id'));
     return poll;
-  }, { success: 'Poll published' });
+  }, { success: t('cul.p.published') });
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!q.trim()) return setErr('Write a question.');
-    if (opts.filter((o) => o.trim()).length < 2) return setErr('Add at least two options.');
+    if (!q.trim()) return setErr(t('cul.p.need_q'));
+    if (opts.filter((o) => o.trim()).length < 2) return setErr(t('cul.p.need_opts'));
     setErr(null);
     if (await save.run()) { setOpen(false); setQ(''); setOpts(['', '']); router.refresh(); }
   }
   return (
     <>
-      <Button size="sm" variant="secondary" icon="add" onClick={() => setOpen(true)}>New poll</Button>
-      <Dialog open={open} onClose={() => setOpen(false)} title="New poll"
-        footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button><Button type="submit" form="poll-form" loading={save.pending}>Publish</Button></>}>
+      <Button size="sm" variant="secondary" icon="add" onClick={() => setOpen(true)}>{t('cul.p.new')}</Button>
+      <Dialog open={open} onClose={() => setOpen(false)} title={t('cul.p.new')}
+        footer={<><Button variant="ghost" onClick={() => setOpen(false)}>{t('cul.cancel')}</Button><Button type="submit" form="poll-form" loading={save.pending}>{t('cul.p.publish')}</Button></>}>
         <form id="poll-form" onSubmit={submit} className="grid gap-3" noValidate>
-          <Input label="Question" value={q} onChange={(e) => setQ(e.target.value)} />
-          {opts.map((o, i) => <Input key={i} label={`Option ${i + 1}`} value={o} onChange={(e) => setOpts((s) => s.map((x, j) => (j === i ? e.target.value : x)))} />)}
-          {opts.length < 6 && <Button variant="ghost" size="sm" icon="add" onClick={() => setOpts((s) => [...s, ''])}>Add option</Button>}
-          <Input label="Open for (days)" type="number" min={1} max={30} value={days} onChange={(e) => setDays(e.target.value)} />
-          <Checkbox label="Anonymous" description="Nobody, including admins, can see who voted for what." checked={anon} onChange={(e) => setAnon(e.target.checked)} />
+          <Input label={t('cul.p.question')} value={q} onChange={(e) => setQ(e.target.value)} />
+          {opts.map((o, i) => <Input key={i} label={t('cul.p.option', { n: i + 1 })} value={o} onChange={(e) => setOpts((s) => s.map((x, j) => (j === i ? e.target.value : x)))} />)}
+          {opts.length < 6 && <Button variant="ghost" size="sm" icon="add" onClick={() => setOpts((s) => [...s, ''])}>{t('cul.p.add_option')}</Button>}
+          <Input label={t('cul.p.days')} type="number" min={1} max={30} value={days} onChange={(e) => setDays(e.target.value)} />
+          <Checkbox label={t('cul.p.anon_label')} description={t('cul.p.anon_desc')} checked={anon} onChange={(e) => setAnon(e.target.checked)} />
           <InlineError message={err ?? save.error} />
         </form>
       </Dialog>

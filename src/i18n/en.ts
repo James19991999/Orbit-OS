@@ -1,4 +1,7 @@
 import { common } from './modules/common';
+import { audit } from './modules/audit';
+import { compliance } from './modules/compliance';
+import { culture } from './modules/culture';
 import { operations } from './modules/operations';
 import { misc } from './modules/misc';
 import { dashboard } from './modules/dashboard';
@@ -180,6 +183,9 @@ export const en = {
   'pay.sent_all': 'Payout sent — everyone was paid', 'pay.sent_processing': 'Payout released — M-Pesa is processing it',
   'pay.cancelled_toast': 'Draft cancelled', 'pay.status_toast': 'Status: {status}',
   ...common.en,
+  ...audit.en,
+  ...compliance.en,
+  ...culture.en,
   ...operations.en,
   ...misc.en,
   ...dashboard.en,

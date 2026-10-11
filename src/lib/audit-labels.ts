@@ -1,4 +1,11 @@
-/** Human-readable labels for audit actions (security log + audit log page). */
+/** Human-readable labels for audit actions (security log + audit log page). Pass t to localize (audit.a.* / audit.t.*). */
+import type { MessageKey, T } from '@/i18n/shared';
+
+function viaT(t: T | undefined, key: string): string | null {
+  if (!t) return null;
+  const s = t(key as MessageKey);
+  return s === key ? null : s;
+}
 const LABELS: Record<string, string> = {
   'auth.login': 'Signed in', 'auth.login_failed': 'Failed sign-in attempt', 'org.created': 'Workspace created', 'org.switched': 'Switched workspace',
   'org.settings_updated': 'Workspace settings changed', 'org.auth_settings_updated': 'Authentication policy changed', 'org.suspension_scheduled': 'Offboarding scheduled',
@@ -25,12 +32,14 @@ const TARGETS: Record<string, string> = {
   meeting: 'Meeting', integration: 'Integration', calendar: 'Calendar',
 };
 /** Friendly name for an audit target type ("finance_entries" → "Expense"). */
-export function auditTargetLabel(type: string | null): string {
+export function auditTargetLabel(type: string | null, t?: T): string {
   if (!type) return '';
-  return TARGETS[type] ?? type.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
+  return viaT(t, `audit.t.${type}`) ?? TARGETS[type] ?? type.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
 }
 
-export function auditLabel(action: string): string {
+export function auditLabel(action: string, t?: T): string {
+  const tr = viaT(t, `audit.a.${action}`);
+  if (tr) return tr;
   if (LABELS[action]) return LABELS[action];
   const m = action.match(/^(\w+)\.(\w+)_changed$/);
   if (m) return `${m[1].replace(/_/g, ' ')} ${m[2].replace(/_/g, ' ')} changed`;

@@ -7,12 +7,15 @@ import { can } from '@/lib/roles';
 import { Card, Icon } from '@/components/ui';
 import { ChannelView } from '@/components/culture/ChannelView';
 import type { Channel, Message } from '@/lib/types';
+import { getT } from '@/i18n/server';
 
-export const metadata: Metadata = { title: 'Channel' };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())('p.cul.channel') };
+}
 
 export default async function ChannelPage(props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
-  const { supabase, org, role, user, profile } = await requireAppContext();
+  const [{ supabase, org, role, user, profile }, t] = await Promise.all([requireAppContext(), getT()]);
   const { data } = await supabase.from('channels').select('*').eq('org_id', org.id).eq('slug', params.slug).maybeSingle();
   if (!data) notFound();
   const ch = data as Channel;
@@ -23,7 +26,7 @@ export default async function ChannelPage(props: { params: Promise<{ slug: strin
   const canPost = can.write(role) && (!ch.is_announcement || can.manage(role));
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
-      <Link href="/culture?tab=channels" className="flex items-center gap-1 text-label-md text-primary hover:underline"><Icon name="arrow_back" className="text-[18px]" />Channels</Link>
+      <Link href="/culture?tab=channels" className="flex items-center gap-1 text-label-md text-primary hover:underline"><Icon name="arrow_back" className="text-[18px]" />{t('p.cul.channels')}</Link>
       <div>
         <h1 className="text-headline-lg-mobile md:text-headline-lg"># {ch.name}</h1>
         {ch.topic && <p className="text-body-md text-on-surface-variant">{ch.topic}</p>}

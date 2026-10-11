@@ -12,14 +12,16 @@ import { EnableFramework, DsarTracker, DeviceActions, TrainingActions } from '@/
 import { Vault } from '@/components/compliance/Vault';
 import type { Framework, Control, Device, Dsar, TrainingCampaign, TrainingAssignment, AuditEntry, VaultDoc } from '@/lib/types';
 import { getFormat } from '@/lib/locale/server';
+import { getT } from '@/i18n/server';
 
-export const metadata: Metadata = { title: 'Compliance' };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())('p.cmp.title') };
+}
 
 const FW_ICON: Record<string, string> = { soc2: 'domain_verification', gdpr: 'shield_with_heart', iso27001: 'enhanced_encryption', hipaa: 'health_and_safety', custom: 'rule' };
 
 export default async function CompliancePage() {
-  const fmt = await getFormat();
-  const { supabase, org, role, user, aal } = await requireAppContext();
+  const [fmt, t, { supabase, org, role, user, aal }] = await Promise.all([getFormat(), getT(), requireAppContext()]);
   const members = await loadMembers(supabase, org.id);
   const people = nameMap(members);
   const [fwRes, ctrlRes, devRes, dsarRes, campRes, logRes, vaultRes] = await Promise.all([
@@ -49,25 +51,25 @@ export default async function CompliancePage() {
       <Card glow>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="flex items-center gap-1.5 text-label-xs uppercase text-on-surface-variant"><Icon name="verified_user" className="text-[16px]" />Audit readiness · tracked controls</p>
-            <h1 className="mt-1 text-headline-lg-mobile md:text-headline-lg">Compliance & Security</h1>
+            <p className="flex items-center gap-1.5 text-label-xs uppercase text-on-surface-variant"><Icon name="verified_user" className="text-[16px]" />{t('p.cmp.kicker')}</p>
+            <h1 className="mt-1 text-headline-lg-mobile md:text-headline-lg">{t('p.cmp.h1')}</h1>
             <p className="mt-2 text-headline-xl leading-none tnum">{overall.total ? `${overall.pct}%` : '—'}</p>
             <p className="mt-2 text-body-md text-on-surface-variant">
-              {overall.total ? `${overall.passing} of ${overall.total} applicable controls passing · ${overall.failing} failing · ${overall.inReview} in review` : 'Enable a framework to start tracking controls.'}
-              {nextAudit !== undefined && <> · next external audit in <strong className="text-on-surface tnum">{nextAudit} days</strong></>}
+              {overall.total ? t('p.cmp.summary', { passing: overall.passing, total: overall.total, failing: overall.failing, review: overall.inReview }) : t('p.cmp.enable_first')}
+              {nextAudit !== undefined && <> · {t('p.cmp.next_audit')} <strong className="text-on-surface tnum">{t('p.cmp.days', { count: nextAudit })}</strong></>}
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
             {auditPack
-              ? <a href="/api/compliance/audit-package" className="inline-flex h-10 items-center gap-2 rounded bg-primary-container px-4 text-label-md text-white shadow-bevel"><Icon name="folder_zip" className="text-[18px]" />Download audit-ready package (ZIP)</a>
-              : <p className="max-w-xs text-right text-body-sm text-on-surface-variant">The audit-ready package is included on {PLANS.enterprise.name}.</p>}
+              ? <a href="/api/compliance/audit-package" className="inline-flex h-10 items-center gap-2 rounded bg-primary-container px-4 text-label-md text-white shadow-bevel"><Icon name="folder_zip" className="text-[18px]" />{t('p.cmp.pack')}</a>
+              : <p className="max-w-xs text-right text-body-sm text-on-surface-variant">{t('p.cmp.pack_plan', { plan: PLANS.enterprise.name })}</p>}
             {can.manage(role) && <EnableFramework orgId={org.id} enabledKeys={frameworks.map((f) => f.key)} limit={PLANS[org.plan].limits.frameworks} />}
           </div>
         </div>
-        <p className="mt-4 text-body-sm text-on-surface-variant">OrbitOS tracks your compliance work — owners, statuses and evidence. It doesn&apos;t certify compliance; your auditor does.</p>
+        <p className="mt-4 text-body-sm text-on-surface-variant">{t('p.cmp.disclaimer')}</p>
       </Card>
 
-      {frameworks.length === 0 ? <EmptyState icon="rule" title="No frameworks enabled" body={can.manage(role) ? 'Enable SOC 2, GDPR, ISO 27001 or HIPAA to get a starter control set.' : 'An owner or director can enable frameworks.'} /> : (
+      {frameworks.length === 0 ? <EmptyState icon="rule" title={t('p.cmp.no_fw')} body={can.manage(role) ? t('p.cmp.no_fw_manage') : t('p.cmp.no_fw_view')} /> : (
         <ul className="grid gap-4 md:grid-cols-2">
           {frameworks.map((f) => {
             const r = readiness(controls.filter((c) => c.framework_id === f.id));
@@ -82,9 +84,9 @@ export default async function CompliancePage() {
                     </div>
                     <Pill tone={tone}>{r.pct}%</Pill>
                   </div>
-                  <div className="mt-4"><ProgressBar value={r.passing} max={r.total} label={`${f.name} controls passing`} tone={tone} /></div>
-                  <p className="mt-2 text-body-sm text-on-surface-variant tnum">{r.passing}/{r.total} passing{r.failing ? ` · ${r.failing} failing` : ''}{r.inReview ? ` · ${r.inReview} in review` : ''}{r.notStarted ? ` · ${r.notStarted} not started` : ''}{f.policy_version ? ` · policy v${f.policy_version}` : ''}</p>
-                  {f.key === 'gdpr' && <p className="mt-1 text-body-sm text-on-surface-variant">{dsars.filter((d) => d.status !== 'closed').length} DSAR requests pending</p>}
+                  <div className="mt-4"><ProgressBar value={r.passing} max={r.total} label={t('p.cmp.fw_passing', { name: f.name })} tone={tone} /></div>
+                  <p className="mt-2 text-body-sm text-on-surface-variant tnum">{t('p.cmp.passing', { passing: r.passing, total: r.total })}{r.failing ? t('p.cmp.failing', { n: r.failing }) : ''}{r.inReview ? t('p.cmp.review', { n: r.inReview }) : ''}{r.notStarted ? t('p.cmp.not_started', { n: r.notStarted }) : ''}{f.policy_version ? t('p.cmp.policy', { v: f.policy_version }) : ''}</p>
+                  {f.key === 'gdpr' && <p className="mt-1 text-body-sm text-on-surface-variant">{t('p.cmp.dsar_pending', { n: dsars.filter((d) => d.status !== 'closed').length })}</p>}
                 </Link>
               </li>
             );
@@ -94,29 +96,29 @@ export default async function CompliancePage() {
 
       <div className="grid gap-4 xl:grid-cols-3 xl:items-start">
         <Card>
-          <CardHeader title="Data subject requests" icon="person_search" subtitle="GDPR Art. 15–20 · 30-day deadline" />
+          <CardHeader title={t('p.cmp.dsar')} icon="person_search" subtitle={t('p.cmp.dsar_sub')} />
           <DsarTracker orgId={org.id} items={dsars} canManage={can.manage(role)} />
         </Card>
         <Card>
-          <CardHeader title="Hardware fleet" icon="laptop_mac" subtitle="Encrypted + endpoint agent installed" action={can.manage(role) ? <DeviceActions orgId={org.id} people={members.map((m) => ({ id: m.user_id, name: m.profile.full_name, email: m.profile.email }))} /> : undefined} />
-          <p className="text-headline-md tnum">{compliantDevices.length} / {devices.length} <span className="text-body-sm text-on-surface-variant">compliant</span></p>
-          <div className="mt-2"><ProgressBar value={compliantDevices.length} max={devices.length} label="Devices compliant" tone={compliantDevices.length === devices.length ? 'healthy' : 'warning'} /></div>
+          <CardHeader title={t('p.cmp.fleet')} icon="laptop_mac" subtitle={t('p.cmp.fleet_sub')} action={can.manage(role) ? <DeviceActions orgId={org.id} people={members.map((m) => ({ id: m.user_id, name: m.profile.full_name, email: m.profile.email }))} /> : undefined} />
+          <p className="text-headline-md tnum">{compliantDevices.length} / {devices.length} <span className="text-body-sm text-on-surface-variant">{t('p.cmp.compliant')}</span></p>
+          <div className="mt-2"><ProgressBar value={compliantDevices.length} max={devices.length} label={t('p.cmp.dev_compliant')} tone={compliantDevices.length === devices.length ? 'healthy' : 'warning'} /></div>
           {devices.length > compliantDevices.length && (
             <ul className="mt-3 text-body-sm">
               {devices.filter((d) => !(d.encrypted && d.agent_installed)).map((d) => (
-                <li key={d.id} className="flex justify-between gap-2 py-1"><span>{d.name}{d.owner_id ? ` · ${people[d.owner_id]?.name ?? ''}` : ''}</span><span className="text-warning">{!d.encrypted ? 'Not encrypted' : 'No agent'}</span></li>
+                <li key={d.id} className="flex justify-between gap-2 py-1"><span>{d.name}{d.owner_id ? ` · ${people[d.owner_id]?.name ?? ''}` : ''}</span><span className="text-warning">{!d.encrypted ? t('p.cmp.not_enc') : t('p.cmp.no_agent')}</span></li>
               ))}
             </ul>
           )}
         </Card>
         <Card>
-          <CardHeader title="Security awareness training" icon="school" subtitle={campaign ? `${campaign.title} · due ${fmt.date(campaign.due_on)}` : 'No campaign running'} />
+          <CardHeader title={t('p.cmp.training')} icon="school" subtitle={campaign ? t('p.cmp.due', { title: campaign.title, date: fmt.date(campaign.due_on) }) : t('p.cmp.no_campaign')} />
           {campaign ? (
             <>
-              <p className="text-headline-md tnum">{assignments.length ? Math.round((passed / assignments.length) * 100) : 0}% <span className="text-body-sm text-on-surface-variant">{passed} of {assignments.length} completed</span></p>
-              <div className="my-2"><ProgressBar value={passed} max={assignments.length} label="Training completion" tone="healthy" /></div>
+              <p className="text-headline-md tnum">{assignments.length ? Math.round((passed / assignments.length) * 100) : 0}% <span className="text-body-sm text-on-surface-variant">{t('p.cmp.completed', { n: passed, total: assignments.length })}</span></p>
+              <div className="my-2"><ProgressBar value={passed} max={assignments.length} label={t('p.cmp.tr_completion')} tone="healthy" /></div>
             </>
-          ) : <p className="mb-2 text-body-sm text-on-surface-variant">Assign a campaign to the whole team.</p>}
+          ) : <p className="mb-2 text-body-sm text-on-surface-variant">{t('p.cmp.assign_hint')}</p>}
           <TrainingActions campaignId={campaign?.id ?? null} remaining={assignments.length - passed} canManage={can.manage(role)}
             myAssignment={assignments.find((a) => a.user_id === user.id) ?? null} orgId={org.id} members={members.map((m) => m.user_id)} />
         </Card>
@@ -125,21 +127,21 @@ export default async function CompliancePage() {
       <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
         {can.manage(role) && (
           <Card>
-            <CardHeader title="Sensitive legal & IP vault" icon="lock" subtitle="Owners and directors · MFA required to open" />
+            <CardHeader title={t('p.cmp.vault')} icon="lock" subtitle={t('p.cmp.vault_sub')} />
             <Vault orgId={org.id} docs={must(vaultRes, 'vault') as VaultDoc[]} aal2={aal.current === 'aal2'} />
           </Card>
         )}
         {can.seeAudit(role) ? (
           <Card>
-            <CardHeader title="Security log" icon="gpp_maybe" subtitle="Sign-ins, access changes, exports and billing events"
-              action={<Link href="/settings/audit-log" className="text-label-sm text-primary hover:underline">Full audit log</Link>} />
-            {log.length === 0 ? <EmptyState icon="shield" title="No security events yet" /> : (
+            <CardHeader title={t('p.cmp.log')} icon="gpp_maybe" subtitle={t('p.cmp.log_sub')}
+              action={<Link href="/settings/audit-log" className="text-label-sm text-primary hover:underline">{t('p.cmp.full_log')}</Link>} />
+            {log.length === 0 ? <EmptyState icon="shield" title={t('p.cmp.no_events')} /> : (
               <ul className="divide-y divide-outline-variant">
                 {log.map((e) => (
                   <li key={e.id} className="flex items-start justify-between gap-3 py-2 text-body-sm">
                     <span className="min-w-0">
-                      <span className={`font-medium ${e.action.includes('failed') ? 'text-alert' : 'text-on-surface'}`}>{auditLabel(e.action)}{e.target_type === 'membership' && e.target_id && people[e.target_id] ? `: ${people[e.target_id].name}` : ''}</span>
-                      <span className="block truncate text-on-surface-variant">{e.actor_id ? `by ${people[e.actor_id]?.name ?? 'member'}` : 'System'}{e.ip ? ` · ${e.ip}` : ''}{e.metadata && 'email' in e.metadata ? ` · ${String(e.metadata.email)}` : ''}</span>
+                      <span className={`font-medium ${e.action.includes('failed') ? 'text-alert' : 'text-on-surface'}`}>{auditLabel(e.action, t)}{e.target_type === 'membership' && e.target_id && people[e.target_id] ? `: ${people[e.target_id].name}` : ''}</span>
+                      <span className="block truncate text-on-surface-variant">{e.actor_id ? t('p.cmp.by', { name: people[e.actor_id]?.name ?? t('p.cmp.member') }) : t('p.cmp.system')}{e.ip ? ` · ${e.ip}` : ''}{e.metadata && 'email' in e.metadata ? ` · ${String(e.metadata.email)}` : ''}</span>
                     </span>
                     <span className="shrink-0 text-on-surface-variant">{fmt.relative(e.created_at)}</span>
                   </li>
@@ -147,7 +149,7 @@ export default async function CompliancePage() {
               </ul>
             )}
           </Card>
-        ) : <Banner tone="info">The security log is visible to owners, directors and auditors.</Banner>}
+        ) : <Banner tone="info">{t('p.cmp.log_hidden')}</Banner>}
       </div>
     </div>
   );
