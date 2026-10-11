@@ -1,18 +1,20 @@
 'use client';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Icon } from '@/components/ui';
+import { useT } from '@/i18n/client';
 
 const Ctx = createContext('');
 
 /** "Filter platform settings…" — hides sections whose title/keywords don't match. */
 export function SettingsFilter({ children }: { children: React.ReactNode }) {
   const [q, setQ] = useState('');
+  const t = useT();
   return (
     <Ctx.Provider value={q.trim().toLowerCase()}>
       <div className="relative">
         <Icon name="search" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
-        <label htmlFor="settings-filter" className="sr-only">Filter settings</label>
-        <input id="settings-filter" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter platform settings…"
+        <label htmlFor="settings-filter" className="sr-only">{t('settings.filter')}</label>
+        <input id="settings-filter" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('settings.filter_ph')}
           className="h-11 w-full rounded border border-outline-variant bg-surface-container-lowest pl-10 pr-3 text-body-md text-on-surface placeholder:text-outline focus:border-primary-container focus:shadow-focus focus:outline-none md:h-10" />
       </div>
       {children}

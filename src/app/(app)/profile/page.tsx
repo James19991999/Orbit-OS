@@ -13,7 +13,9 @@ import { isProviderConfigured } from '@/lib/calendar/providers';
 import { isEncryptionConfigured } from '@/lib/crypto/secrets';
 import { isWhatsAppConfigured, maskPhone } from '@/lib/whatsapp/client';
 
-export const metadata: Metadata = { title: 'Profile & security' };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())('profile.title') };
+}
 
 export default async function ProfilePage() {
   const { supabase, profile, user, role, org, aal } = await requireAppContext();

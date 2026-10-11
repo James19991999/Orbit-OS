@@ -5,15 +5,13 @@ import { Avatar, Input, Select, Pill, EmptyState, Dialog, TimeAgo } from '@/comp
 import { dayPhase, regionOf } from '@/lib/scheduling/time';
 import { ROLE_LABEL } from '@/lib/roles';
 import { useT } from '@/i18n/client';
-import type { T } from '@/i18n/shared';
+import { roleName } from '@/lib/role-name';
 
 import type { Role } from '@/lib/types';
 
 export interface PersonRow { id: string; name: string; email: string | null; avatar: string | null; role: Role; title: string | null; department: string | null; timezone: string; city: string | null; workStart: string; workEnd: string;
   openTasks: number; kudos: { message: string; created_at: string }[]; streak: number }
 
-/** Localized role name; auditors are marked read-only. */
-export const roleName = (t: T, r: Role) => (r === 'auditor' ? t('role.auditor_ro') : t(`role.${r}`));
 
 export function Directory({ people }: { people: PersonRow[] }) {
   const t = useT();
