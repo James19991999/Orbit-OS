@@ -38,6 +38,18 @@ select 'server-only helpers locked down',
          and not has_function_privilege('authenticated', 'public.checkin_as(uuid, uuid, text, text, integer)', 'execute'),
        'decide_expense_as, checkin_as: service role only'
 union all
+select 'KRA eTIMS and calendar sync (October 11 update)',
+       (select count(*) from information_schema.tables where table_schema = 'public' and table_name in ('etims_configs', 'etims_sequences', 'etims_documents', 'etims_item_classes', 'calendar_connections', 'calendar_busy', 'calendar_event_links')) = 7,
+       coalesce((select string_agg(t, ', ') from unnest(array['etims_configs', 'etims_sequences', 'etims_documents', 'etims_item_classes', 'calendar_connections', 'calendar_busy', 'calendar_event_links']) t where to_regclass('public.' || t) is null), 'all present') || ' (missing if listed)'
+union all
+select 'eTIMS invoice numbering is server-only',
+       not has_function_privilege('authenticated', 'public.etims_claim(text, uuid)', 'execute'),
+       'etims_claim / etims_release: service role only'
+union all
+select 'calendar tokens never readable by users',
+       not has_column_privilege('authenticated', 'public.calendar_connections', 'refresh_token_enc', 'select'),
+       'calendar_connections token columns: no client access'
+union all
 select 'no demo data (seed.sql not run)',
        not exists (select 1 from auth.users where email like '%@acme-global.demo'),
        (select count(*) from auth.users where email like '%@acme-global.demo')::text || ' demo users';

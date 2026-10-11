@@ -1,5 +1,5 @@
 # Hourly background jobs for OrbitOS.
-# Vercel's free Hobby plan only allows daily crons, so these three run from GitHub Actions instead
+# Vercel's free Hobby plan only allows daily crons, so these run from GitHub Actions instead
 # (free for this usage). On Vercel Pro you can move them back into vercel.json and delete this file.
 #
 # Setup (once): GitHub repo → Settings → Secrets and variables → Actions → New repository secret

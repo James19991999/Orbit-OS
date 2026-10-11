@@ -1,5 +1,6 @@
-// Regenerates supabase/setup_all.sql (new projects) and supabase/update_differentiators.sql
-// (projects that already ran an older setup_all.sql) from supabase/migrations.
+// Regenerates supabase/setup_all.sql (new projects), supabase/update_differentiators.sql (projects set up
+// before October 9, 2026) and supabase/update_etims_calendar.sql (projects set up before October 11, 2026)
+// from supabase/migrations.
 // Usage: node scripts/build-setup-sql.mjs
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -23,7 +24,8 @@ writeFileSync(join(dir, 'setup_all.sql'), `-- ${rule}
 -- • It is the ${files.length} files in supabase/migrations/ joined in order, inside one transaction:
 --   if anything fails, nothing is applied and you can fix it and run it again.
 -- • It records the migrations as applied, so \`supabase db push\` later won't re-run them.
--- • Already ran an older setup_all.sql? Run supabase/update_differentiators.sql instead.
+-- • Already have OrbitOS? Run the update files instead: update_differentiators.sql (if set up before
+--   October 9, 2026), then update_etims_calendar.sql (if set up before October 11, 2026).
 -- • Do NOT run supabase/seed.sql on a real project (demo users with a public password).
 -- Generated from supabase/migrations by scripts/build-setup-sql.mjs — edit those files, not this one.
 -- ${rule}
@@ -44,7 +46,7 @@ commit;
 -- Done. Check it worked with supabase/verify_setup.sql
 `);
 
-const upd = files.filter((f) => f >= '20261009000007');
+const upd = files.filter((f) => f >= '20261009000007' && f < '20261011000008');
 writeFileSync(join(dir, 'update_differentiators.sql'), `-- ${rule}
 -- OrbitOS — UPDATE for a project that already ran an older setup_all.sql (before October 9, 2026).
 -- Adds WhatsApp, M-Pesa payouts, languages, data saver and the AI chief of staff.
@@ -71,4 +73,34 @@ commit;
 
 -- Done. Check it worked with supabase/verify_setup.sql
 `);
-console.log(`setup_all.sql: ${files.length} migrations; update_differentiators.sql: ${upd.join(', ')}`);
+const upd2 = files.filter((f) => f >= '20261011000008');
+writeFileSync(join(dir, 'update_etims_calendar.sql'), `-- ${rule}
+-- OrbitOS — UPDATE for a project that already has OrbitOS (setup_all.sql + update_differentiators.sql) from
+-- before October 11, 2026. Adds KRA eTIMS fiscal invoicing and Google Calendar / Outlook two-way sync.
+-- Paste this whole file into Supabase → SQL Editor → New query, and click Run once.
+-- One transaction: if anything fails, nothing changes. Safe to run only once (it checks).
+-- Generated from supabase/migrations by scripts/build-setup-sql.mjs.
+-- ${rule}
+
+begin;
+
+do $guard$
+begin
+  if to_regclass('public.organizations') is null then
+    raise exception 'OrbitOS is not set up in this project yet. Run supabase/setup_all.sql instead — nothing was changed.';
+  end if;
+  if to_regclass('public.ai_briefs') is null then
+    raise exception 'Run supabase/update_differentiators.sql first, then this file — nothing was changed.';
+  end if;
+  if to_regclass('public.etims_configs') is not null then
+    raise exception 'This update has already been applied — nothing was changed.';
+  end if;
+end $guard$;
+
+${upd2.map(section).join('\n')}
+${record(upd2)}
+commit;
+
+-- Done. Check it worked with supabase/verify_setup.sql
+`);
+console.log(`setup_all.sql: ${files.length} migrations; update_differentiators.sql: ${upd.join(', ')}; update_etims_calendar.sql: ${upd2.join(', ')}`);
