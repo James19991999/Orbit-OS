@@ -30,6 +30,10 @@ export const viewport: Viewport = {
 // Runs before paint so the saved theme never flashes.
 const themeScript = `(function(){try{var m=document.cookie.match(/(?:^|; )orbit_theme=(dark|light|system)/);var t=m?m[1]:'system';if(t==='system'){t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'}document.documentElement.setAttribute('data-theme',t)}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();`;
 
+// Before paint: <html lang> and the skip link follow the page's language (/sw, /fr) or the saved orbit_lang cookie,
+// so screen readers use the right voice from the first word. Keeps this layout static.
+const langScript = `(function(){try{var p=location.pathname.match(/^\\/(sw|fr)(\\/|$)/);var m=document.cookie.match(/(?:^|; )orbit_lang=(en|sw|fr)/);var l=p?p[1]:m?m[1]:'en';document.documentElement.lang=l;var s={sw:'Ruka hadi maudhui',fr:'Aller au contenu'}[l];var a=document.getElementById('skip-link');if(s&&a)a.textContent=s}catch(e){}})();`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" data-theme="dark" className={`${sans.variable} ${mono.variable} ${icons.variable}`} suppressHydrationWarning>
@@ -37,9 +41,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-screen">
-        <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded focus:bg-primary-container focus:px-4 focus:py-2 focus:text-white">
+        <a id="skip-link" href="#main" suppressHydrationWarning className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded focus:bg-primary-container focus:px-4 focus:py-2 focus:text-white">
           Skip to content
         </a>
+        <script dangerouslySetInnerHTML={{ __html: langScript }} />
         <ToastProvider>{children}</ToastProvider>
         <ServiceWorker />
       </body>

@@ -17,6 +17,7 @@
     "test:e2e:security": "node scripts/e2e-security.mjs",
     "test:e2e:features": "node scripts/e2e-features.mjs",
     "test:e2e:integrations": "node scripts/e2e-integrations.mjs",
+    "test:e2e:i18n": "node scripts/e2e-i18n.mjs",
     "db:bundle": "node scripts/build-setup-sql.mjs",
     "fonts": "python3 scripts/build-icon-font.py"
   },
