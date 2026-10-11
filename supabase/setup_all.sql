@@ -1920,6 +1920,21 @@ create table public.job_runs (
 alter table public.job_runs enable row level security;
 revoke all on public.job_runs from authenticated, anon;
 
+-- Called by the server after each job (src/lib/api.ts handler). Keeps run and failure counts.
+create or replace function public.record_job_run(p_job text, p_status int, p_ms int, p_summary text, p_error text)
+returns void language sql security definer set search_path = public as $$
+  insert into public.job_runs as j (job, last_started_at, last_finished_at, last_ok_at, last_status, last_error, last_summary, last_duration_ms, runs, failures)
+  values (p_job, now() - make_interval(secs => p_ms / 1000.0), now(), case when p_status < 400 then now() end, p_status,
+          case when p_status >= 400 then p_error end, left(p_summary, 300), p_ms, 1, case when p_status >= 400 then 1 else 0 end)
+  on conflict (job) do update set
+    last_started_at = excluded.last_started_at, last_finished_at = excluded.last_finished_at,
+    last_ok_at = coalesce(excluded.last_ok_at, j.last_ok_at), last_status = excluded.last_status,
+    last_error = excluded.last_error, last_summary = excluded.last_summary, last_duration_ms = excluded.last_duration_ms,
+    runs = j.runs + 1, failures = j.failures + excluded.failures;
+$$;
+revoke all on function public.record_job_run(text, int, int, text, text) from public, anon, authenticated;
+grant execute on function public.record_job_run(text, int, int, text, text) to service_role;
+
 -- ───────── Emails and WhatsApp messages that could not be delivered (kept 90 days) ─────────
 create table public.delivery_failures (
   id bigint generated always as identity primary key,
