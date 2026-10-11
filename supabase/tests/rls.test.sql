@@ -340,6 +340,36 @@ set role authenticated;
 select tests.eq((select count(*)::text from public.etims_documents), '0', 'other workspaces cannot see fiscal documents');
 reset role;
 
+-- ── 9e. Calendar sync ──
+insert into public.calendar_connections (user_id, provider, account_email, refresh_token_enc) values
+  ('00000000-0000-0000-0000-00000000000b', 'google', 'bob@a.test', 'v1.secret'),
+  ('00000000-0000-0000-0000-00000000000d', 'microsoft', 'dave@b.test', 'v1.secret');
+insert into public.calendar_busy (user_id, starts_at, ends_at) values
+  ('00000000-0000-0000-0000-00000000000b', now() + interval '1 day', now() + interval '1 day 1 hour'),
+  ('00000000-0000-0000-0000-00000000000d', now() + interval '1 day', now() + interval '1 day 1 hour');
+insert into public.meetings (id, org_id, title, starts_at, organizer_id) values
+  ('99999999-0000-0000-0000-000000000001', current_setting('tests.org_a')::uuid, 'Synced', now() + interval '2 days', '00000000-0000-0000-0000-00000000000a');
+insert into public.calendar_event_links (meeting_id, user_id, provider, external_id) values ('99999999-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000b', 'google', 'evt1');
+
+select tests.login('00000000-0000-0000-0000-00000000000b');
+set role authenticated;
+select tests.eq((select account_email from public.calendar_connections), 'bob@a.test', 'people see their own calendar connection');
+select tests.expect_error($$select refresh_token_enc from public.calendar_connections$$, 'calendar tokens are never readable by clients');
+select tests.expect_error($$update public.calendar_connections set account_email = 'x'$$, 'calendar connections are server-managed');
+select tests.expect_error($$insert into public.calendar_busy (user_id, starts_at, ends_at) values (auth.uid(), now(), now() + interval '1 hour')$$, 'busy times are written only by the server');
+select tests.expect_error($$select count(*) from public.calendar_event_links$$, 'calendar event links are server-only');
+reset role;
+select tests.login('00000000-0000-0000-0000-00000000000a');
+set role authenticated;
+select tests.eq((select count(*)::text from public.calendar_connections), '0', 'teammates cannot see each other’s calendar connections');
+select tests.eq((select count(*)::text from public.calendar_busy), '1', 'teammates see a colleague’s busy times (times only)');
+select tests.expect_error($$delete from public.meetings where id = '99999999-0000-0000-0000-000000000001'$$, 'a meeting in people’s calendars must be cancelled through the server');
+reset role;
+select tests.login('00000000-0000-0000-0000-00000000000e');
+set role authenticated;
+select tests.eq((select count(*)::text from public.calendar_busy), '0', 'people outside the workspace see no busy times');
+reset role;
+
 -- ── 10. Anonymous ──
 set role anon;
 select set_config('request.jwt.claims', '', false);

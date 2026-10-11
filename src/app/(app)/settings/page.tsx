@@ -17,6 +17,7 @@ import { getFormat } from '@/lib/locale/server';
 import { getAdminClient, hasServiceRole } from '@/lib/supabase/admin';
 import { loadConfig, publicConfig } from '@/lib/etims/service';
 import { isEncryptionConfigured } from '@/lib/crypto/secrets';
+import { isProviderConfigured } from '@/lib/calendar/providers';
 import { EtimsSettings } from '@/components/settings/EtimsSettings';
 import { getT } from '@/i18n/server';
 
@@ -89,7 +90,8 @@ export default async function SettingsPage() {
           </Section>
           {can.manage(role) && (
             <Section id="integrations" title="Cloud & integrations" icon="hub" keywords="slack github calendar email cloudtrail webhook" badge={<span className="text-body-sm text-on-surface-variant">{integ.filter((i) => i.enabled).length} connected</span>}>
-              <Integrations slack={integ.some((i) => i.kind === 'slack_webhook' && i.enabled)} github={integ.some((i) => i.kind === 'github' && i.enabled)} emailConfigured={isEmailConfigured()} canEdit={can.manage(role)} />
+              <Integrations slack={integ.some((i) => i.kind === 'slack_webhook' && i.enabled)} github={integ.some((i) => i.kind === 'github' && i.enabled)} emailConfigured={isEmailConfigured()} canEdit={can.manage(role)}
+                calendarSync={isEncryptionConfigured() && (isProviderConfigured('google') || isProviderConfigured('microsoft'))} />
             </Section>
           )}
           {etims && (

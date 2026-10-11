@@ -4,10 +4,15 @@ import { sendEmail, emailLayout, escapeHtml, isEmailConfigured } from '@/lib/ema
 import { formatInTimeZone } from 'date-fns-tz';
 import type { Meeting } from '@/lib/types';
 import { loadProfiles } from '@/lib/data/profiles';
+import { getAdminClient, hasServiceRole } from '@/lib/supabase/admin';
+import { syncMeeting } from '@/lib/calendar/service';
 
 export const dynamic = 'force-dynamic';
 
-/** Emails each participant an .ics calendar invite (works with Google Calendar and Outlook). */
+/**
+ * Puts the meeting straight into the calendar of everyone who connected Google Calendar or Outlook, and emails
+ * everyone else an .ics invite (which also works with Google Calendar and Outlook).
+ */
 export const POST = handler<{ params: Promise<{ id: string }> }>(async (req, route) => {
   const params = await route.params;
   const ctx = await requireApiContext({ writable: true, roles: ['owner', 'director', 'contributor'] });
@@ -22,14 +27,18 @@ export const POST = handler<{ params: Promise<{ id: string }> }>(async (req, rou
   const ids = (parts ?? []).map((p: { user_id: string }) => p.user_id);
   const byId = await loadProfiles(ctx.supabase, ids);
   const people = ids.map((id) => ({ user_id: id, profile: byId.get(id) ?? null }));
-  if (!isEmailConfigured()) return json({ emailed: 0, notConfigured: true });
+  let synced = new Set<string>();
+  if (hasServiceRole()) {
+    try { synced = (await syncMeeting(getAdminClient(), meeting.id)).synced; } catch (e) { console.error('[calendar] sync', meeting.id, (e as Error).message); }
+  }
+  if (!isEmailConfigured()) return json({ emailed: 0, calendarSynced: synced.size, notConfigured: true });
   const organizer = people.find((p) => p.user_id === meeting.organizer_id)?.profile;
   const attendees = people.filter((p) => p.profile?.email).map((p) => ({ name: p.profile!.full_name, email: p.profile!.email! }));
   const ics = buildIcs({ uid: meeting.id, title: meeting.title, description: meeting.description, start: new Date(meeting.starts_at), durationMin: meeting.duration_min,
     url: meeting.video_url, organizer: organizer?.email ? { name: organizer.full_name, email: organizer.email } : null, attendees });
   let emailed = 0;
   for (const p of people) {
-    if (!p.profile?.email || p.user_id === ctx.user.id) continue;
+    if (!p.profile?.email || p.user_id === ctx.user.id || synced.has(p.user_id)) continue;
     const local = formatInTimeZone(meeting.starts_at, p.profile.timezone || 'UTC', "EEEE d MMMM 'at' HH:mm zzz");
     const r = await sendEmail({
       to: p.profile.email, subject: `Invitation: ${meeting.title} — ${local}`,
@@ -39,6 +48,6 @@ export const POST = handler<{ params: Promise<{ id: string }> }>(async (req, rou
     });
     if (r.sent) emailed++;
   }
-  await audit(req, ctx.org.id, ctx.user.id, 'meeting.invites_sent', { type: 'meeting', id: meeting.id }, { emailed });
-  return json({ emailed, notConfigured: false });
+  await audit(req, ctx.org.id, ctx.user.id, 'meeting.invites_sent', { type: 'meeting', id: meeting.id }, { emailed, calendarSynced: synced.size });
+  return json({ emailed, calendarSynced: synced.size, notConfigured: false });
 });

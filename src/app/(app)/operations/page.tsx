@@ -32,7 +32,7 @@ export default async function OperationsPage(props: { searchParams: Promise<{ ta
   const people = nameMap(members);
   const sprints = must(await supabase.from('sprints').select('*').eq('org_id', org.id).order('starts_on', { ascending: false }).limit(20), 'sprints') as Sprint[];
   const active = sprints.find((s) => s.starts_on <= today && s.ends_on >= today) ?? null;
-  const invoices = can.seeFinance(role) ? must(await supabase.from('invoices').select('*').eq('org_id', org.id).order('issued_on', { ascending: false }).limit(100), 'invoices') as Invoice[] : [];
+  const invoices = can.seeFinance(role) ? must(await supabase.from('invoices').select('*').eq('org_id', org.id).order('issued_on', { ascending: false }).order('created_at', { ascending: false }).limit(100), 'invoices') as Invoice[] : [];
 
   const actions = (
     <OpsActions orgId={org.id} userId={user.id} people={members.map((m) => ({ id: m.user_id, name: m.profile.full_name }))}

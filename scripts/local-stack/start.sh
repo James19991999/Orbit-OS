@@ -61,4 +61,10 @@ if [ "${WITH_ETIMS_MOCK:-1}" = "1" ]; then
   # OrbitOS's own (platform) eTIMS device, so plan payments get fiscal receipts in the tests too.
   printf 'ETIMS_BASE_URL=http://localhost:54430/etims-api\nETIMS_ENV=sandbox\nETIMS_TIN=P051234567X\nETIMS_BHF_ID=00\nETIMS_DEVICE_SERIAL=ORBITOS-PLATFORM-1\nETIMS_ITEM_CLS_CD=8111150000\n' >> "$ROOT/.env.local"
 fi
+if [ "${WITH_CALENDAR_MOCK:-1}" = "1" ]; then
+  pkill -f "local-stack/calendar-mock.mjs" 2>/dev/null || true
+  setsid nohup node "$DIR/calendar-mock.mjs" < /dev/null > /tmp/calendar-mock.log 2>&1 &
+  printf 'GOOGLE_CALENDAR_CLIENT_ID=local-google-client\nGOOGLE_CALENDAR_CLIENT_SECRET=local-google-secret\nGOOGLE_OAUTH_BASE=http://localhost:54440\nGOOGLE_TOKEN_BASE=http://localhost:54440\nGOOGLE_API_BASE=http://localhost:54440\n' >> "$ROOT/.env.local"
+  printf 'MICROSOFT_CALENDAR_CLIENT_ID=local-ms-client\nMICROSOFT_CALENDAR_CLIENT_SECRET=local-ms-secret\nMICROSOFT_LOGIN_BASE=http://localhost:54440/ms\nMICROSOFT_GRAPH_BASE=http://localhost:54440/graph\n' >> "$ROOT/.env.local"
+fi
 echo "stack up: gateway http://localhost:54321 (auth + rest), db=$DB; wrote .env.local"

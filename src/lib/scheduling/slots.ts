@@ -8,8 +8,12 @@ export interface SlotSuggestion {
   fitPct: number;             // % of participants fully inside their working hours
   insideCount: number;
   outside: string[];          // userIds outside their window
-  zeroOvertime: boolean;
+  busy: string[];             // userIds whose connected calendar shows them busy
+  zeroOvertime: boolean;      // inside working hours for everyone
+  allFree: boolean;           // …and nobody's calendar is busy
 }
+
+export type BusyMap = Record<string, { start: number; end: number }[]>;
 
 /**
  * Deterministic meeting-slot finder: scores every 15-minute start over the next `days` days and
@@ -19,9 +23,9 @@ export function suggestSlots(
   participants: MemberWindow[],
   durationMin: number,
   from: number,
-  opts: { days?: number; stepMin?: number; limit?: number } = {},
+  opts: { days?: number; stepMin?: number; limit?: number; busy?: BusyMap } = {},
 ): SlotSuggestion[] {
-  const { days = 5, stepMin = 15, limit = 3 } = opts;
+  const { days = 5, stepMin = 15, limit = 3, busy = {} } = opts;
   if (participants.length === 0 || durationMin <= 0) return [];
   const step = stepMin * MIN;
   const firstStart = Math.ceil(from / step) * step;
@@ -31,19 +35,22 @@ export function suggestSlots(
   const out: SlotSuggestion[] = [];
   for (let s = firstStart; s < horizon; s += step) {
     const e = s + durationMin * MIN;
-    const outside: string[] = [];
+    const outside: string[] = []; const busyIds: string[] = [];
     participants.forEach((p, i) => {
       if (!wins[i].some((w) => w.start <= s && w.end >= e)) outside.push(p.userId);
+      else if ((busy[p.userId] ?? []).some((b) => b.start < e && b.end > s)) busyIds.push(p.userId);
     });
-    const insideCount = participants.length - outside.length;
+    const insideCount = participants.length - outside.length - busyIds.length;   // available: in hours and free
     if (insideCount === 0) continue;
     out.push({
       start: s,
       end: e,
       insideCount,
       outside,
+      busy: busyIds,
       fitPct: Math.round((insideCount / participants.length) * 100),
       zeroOvertime: outside.length === 0,
+      allFree: outside.length === 0 && busyIds.length === 0,
     });
   }
   out.sort((a, b) => b.insideCount - a.insideCount || a.start - b.start);

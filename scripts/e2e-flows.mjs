@@ -108,7 +108,7 @@ await step('schedule a meeting from the slot finder', async () => {
   await d.getByRole('button', { name: 'Schedule' }).click();
   const inv = await invite;
   if (inv.status() !== 200) throw new Error(`calendar invite endpoint returned ${inv.status()}: ${await inv.text()}`);
-  await d.getByText(/Meeting saved|Calendar invites/).waitFor({ timeout: 15000 });
+  await d.getByText(/Meeting saved|Calendar invite|Added to|Email isn’t set up/).first().waitFor({ timeout: 15000 });
   await d.getByRole('button', { name: 'Done' }).click();
   await page.reload({ waitUntil: 'networkidle' });
   await page.getByRole('link', { name: `E2E sync ${stamp}` }).waitFor();

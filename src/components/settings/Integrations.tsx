@@ -5,7 +5,7 @@ import { Button, Input, Pill, InlineError, Banner, Icon } from '@/components/ui'
 import { useAction, postJson } from '@/hooks/useAction';
 import { useClipboard } from '@/hooks/useClipboard';
 
-export function Integrations({ slack, github, emailConfigured, canEdit }: { slack: boolean; github: boolean; emailConfigured: boolean; canEdit: boolean }) {
+export function Integrations({ slack, github, emailConfigured, canEdit, calendarSync }: { slack: boolean; github: boolean; emailConfigured: boolean; canEdit: boolean; calendarSync: boolean }) {
   const router = useRouter();
   const clip = useClipboard();
   const [url, setUrl] = useState('');
@@ -57,7 +57,8 @@ export function Integrations({ slack, github, emailConfigured, canEdit }: { slac
           </div>
         )}
       </Row>
-      <Row icon="calendar_month" name="Google Calendar & Outlook" desc="Meeting invites are emailed as standard .ics files, and every meeting has an Add-to-Google-Calendar link. No calendar OAuth is required." status={<Pill tone={emailConfigured ? 'healthy' : 'warning'}>{emailConfigured ? 'Via email invites' : 'Needs email set up'}</Pill>} />
+      <Row icon="calendar_month" name="Google Calendar & Outlook" desc={calendarSync ? 'Each person connects their own calendar in Profile: meetings appear in it, and the slot finder avoids busy times. Everyone else gets .ics email invites.' : 'Meeting invites are emailed as standard .ics files. Two-way calendar sync needs the Google/Microsoft app keys (docs/CALENDAR.md).'}
+        status={<Pill tone={calendarSync || emailConfigured ? 'healthy' : 'warning'}>{calendarSync ? 'Two-way sync' : emailConfigured ? 'Via email invites' : 'Needs email set up'}</Pill>} />
       <Row icon="mail" name="Email (Resend)" desc="Invites, reminders, receipts and digests." status={<Pill tone={emailConfigured ? 'healthy' : 'warning'}>{emailConfigured ? 'Configured' : 'Not set up'}</Pill>} />
       <Row icon="cloud_sync" name="AWS CloudTrail" desc="Streaming infrastructure audit events into the security log." status={<Pill tone="neutral">Coming soon</Pill>} />
       <li className="sr-only" aria-live="polite">{clip.status === 'copied' ? 'Copied' : ''}</li>

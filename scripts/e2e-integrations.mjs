@@ -39,6 +39,7 @@ const planBefore = sql(`select plan || '|' || plan_period || '|' || seat_limit |
 // Clean slate for repeated runs.
 await fetch(`${KRA}/__reset`, { method: 'POST' });
 sql(`delete from etims_documents; delete from etims_sequences; delete from etims_configs; delete from etims_item_classes;
+     delete from invoices where number like 'INV-E2E-%' or client_name like 'Savannah Logistics%' or client_name = 'Bad PIN Ltd';
      update organizations set kra_pin = null, status = 'active' where id = '${orgId}'`);
 
 const { ctx: ownerCtx, page } = await session('elena@acme-global.demo');
@@ -261,6 +262,122 @@ await step('eTIMS: the owner can disconnect; nothing new goes to KRA afterwards'
   const n = sql(`select count(*) from etims_documents where invoice_id = '${inv.id}'`);
   const key = sql(`select coalesce(cmc_key_enc, 'null') from etims_configs where scope = '${orgId}'`);
   if (n !== '0' || key !== 'null') throw new Error(`docs=${n} key=${key}`);
+});
+
+// ─────────────── Calendar sync ───────────────
+const CAL = process.env.CAL_MOCK || 'http://localhost:54440';
+const calEvents = async (email) => (await fetch(`${CAL}/__events?email=${encodeURIComponent(email)}`)).json();
+const calPost = (path, body) => fetch(`${CAL}${path}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+await calPost('/__reset', {});
+sql(`delete from calendar_event_links; delete from calendar_busy; delete from calendar_connections; delete from meetings where title like 'Calendar sync %'`);
+const ELENA_ID = sql(`select id from auth.users where email = 'elena@acme-global.demo'`);
+const DEVON_ID = sql(`select id from auth.users where email = 'devon@acme-global.demo'`);
+const mtgTitle = `Calendar sync ${stamp}`;
+
+async function connectCalendar(p, providerLabel, expect) {
+  await p.goto(`${base}/profile#calendar`, { waitUntil: 'networkidle' });
+  await p.locator('#calendar').getByRole('link', { name: providerLabel }).click();
+  await p.waitForURL(/\/profile\?calendar=connected/, { timeout: 20000 });
+  await p.locator('#calendar').getByTestId('calendar-connected').getByText(expect).waitFor({ timeout: 10000 });
+}
+
+await step('Calendar: the owner connects Google Calendar; tokens are encrypted and unreadable from the browser', async () => {
+  await connectCalendar(page, 'Connect Google Calendar', 'Connected to Google Calendar as elena@acme-global.demo');
+  const enc = sql(`select left(refresh_token_enc, 3) || '|' || provider || '|' || status from calendar_connections where user_id = '${ELENA_ID}'`);
+  const leak = (() => { try { sql(`begin; set local role authenticated; select set_config('request.jwt.claims', json_build_object('sub','${ELENA_ID}','role','authenticated')::text, true); select refresh_token_enc from calendar_connections; commit;`); return 'readable'; } catch { return 'denied'; } })();
+  const own = sql(`begin; set local role authenticated; select set_config('request.jwt.claims', json_build_object('sub','${ELENA_ID}','role','authenticated')::text, true); select account_email from calendar_connections; commit;`).split('\n').find((l) => l.includes('@'));
+  if (enc !== 'v1.|google|active' || leak !== 'denied' || own !== 'elena@acme-global.demo') throw new Error(`${enc} tokens=${leak} own=${own}`);
+  return 'refresh token stored as v1.… (AES-GCM); token columns not granted';
+});
+
+await step('Calendar: a director connects Outlook', async () => {
+  await connectCalendar(dpage, 'Connect Outlook', 'Connected to Outlook as devon@acme-global.demo');
+});
+
+await step('Calendar: busy times come back as times only, and the meeting dialog warns about a clash', async () => {
+  const start = new Date(Date.now() + 2 * 86_400_000); start.setUTCHours(10, 0, 0, 0);
+  await calPost('/__busy', { email: 'devon@acme-global.demo', blocks: [{ start: start.toISOString(), end: new Date(start.getTime() + 2 * 3_600_000).toISOString() }] });
+  sql(`update calendar_connections set busy_synced_at = null`);
+  const j = await (await page.request.get(`${base}/api/calendar/busy?users=${DEVON_ID},${ELENA_ID}`)).json();
+  const blocks = j.busy[DEVON_ID] ?? [];
+  if (!j.connected.includes(DEVON_ID) || !blocks.some((b) => b.start === start.getTime()) || JSON.stringify(j).match(/subject|summary|title/i)) throw new Error(JSON.stringify(j).slice(0, 200));
+  await page.goto(`${base}/scheduling?new=1`, { waitUntil: 'networkidle' });
+  const d = page.getByRole('dialog');
+  await d.getByLabel(/Devon Vance/).check();
+  const tz = sql(`select timezone from profiles where id = '${ELENA_ID}'`);
+  const local = new Intl.DateTimeFormat('sv-SE', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(start.getTime() + 30 * 60_000)).replace(' ', 'T');
+  await d.getByLabel(/^Starts/).fill(local);
+  await d.getByText('Busy in their calendar at that time: Devon Vance.').waitFor({ timeout: 10000 });
+  await page.keyboard.press('Escape');
+  return `${blocks.length} busy block(s) for Devon; dialog warned`;
+});
+
+let mtgId = '';
+await step('Calendar: a new meeting lands in both connected calendars; the unconnected guest gets the usual invite path', async () => {
+  await calPost('/__busy', { email: 'devon@acme-global.demo', blocks: [] });
+  await page.goto(`${base}/scheduling?new=1`, { waitUntil: 'networkidle' });
+  const d = page.getByRole('dialog');
+  await d.getByLabel('Title').fill(mtgTitle);
+  await d.getByLabel(/Devon Vance/).check();
+  await d.getByLabel(/Wanjiru/).check();
+  await d.getByRole('button', { name: 'Schedule' }).click();
+  await d.getByText(/Added to 2 connected calendars\./).waitFor({ timeout: 20000 });
+  mtgId = sql(`select id from meetings where title = '${mtgTitle}'`);
+  const g = (await calEvents('elena@acme-global.demo')).filter((e) => e.summary === mtgTitle);
+  const o = (await calEvents('devon@acme-global.demo')).filter((e) => e.subject === mtgTitle);
+  const links = sql(`select count(*) from calendar_event_links where meeting_id = '${mtgId}'`);
+  if (g.length !== 1 || o.length !== 1 || links !== '2' || !String(g[0].description).includes('Scheduled in OrbitOS')) throw new Error(`google=${g.length} outlook=${o.length} links=${links}`);
+  return `Google event ${g[0].id.slice(0, 8)}…, Outlook event ${o[0].id.slice(0, 8)}…`;
+});
+
+await step('Calendar: moving the meeting moves it in both calendars', async () => {
+  const cur = sql(`select starts_at from meetings where id = '${mtgId}'`);
+  const newStart = new Date(Date.parse(cur.replace(' ', 'T').replace(/\+00$/, 'Z')) + 60 * 60_000).toISOString();
+  const r = await page.request.post(`${base}/api/reports/insights/adopt`, { data: { meetingId: mtgId, newStart } });
+  const g = (await calEvents('elena@acme-global.demo')).find((e) => e.summary === mtgTitle);
+  const o = (await calEvents('devon@acme-global.demo')).find((e) => e.subject === mtgTitle);
+  if (r.status() !== 200 || Date.parse(g.start.dateTime) !== Date.parse(newStart) || Date.parse(`${o.start.dateTime.replace(/Z$/, '')}Z`) !== Date.parse(newStart)) throw new Error(`${r.status()} ${g?.start?.dateTime} ${o?.start?.dateTime} want ${newStart}`);
+});
+
+await step('Calendar: declining takes it out of that person’s calendar', async () => {
+  await dpage.goto(`${base}/scheduling/meetings/${mtgId}`, { waitUntil: 'networkidle' });
+  await dpage.getByRole('button', { name: 'Not going' }).click();
+  await dpage.getByText('RSVP saved').first().waitFor();
+  await dpage.waitForTimeout(800);
+  const o = (await calEvents('devon@acme-global.demo')).filter((e) => e.subject === mtgTitle);
+  const links = sql(`select count(*) from calendar_event_links where meeting_id = '${mtgId}'`);
+  if (o.length !== 0 || links !== '1') throw new Error(`outlook=${o.length} links=${links}`);
+});
+
+await step('Calendar: deleting a synced meeting directly is refused; cancelling removes it from calendars', async () => {
+  const direct = (() => { try { sql(`begin; set local role authenticated; select set_config('request.jwt.claims', json_build_object('sub','${ELENA_ID}','role','authenticated')::text, true); delete from meetings where id = '${mtgId}'; commit;`); return 'allowed'; } catch (e) { return /Cancel meeting/.test(String(e.stderr ?? e.message)) ? 'refused' : 'other'; } })();
+  await page.goto(`${base}/scheduling/meetings/${mtgId}`, { waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: 'Cancel meeting' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancel meeting' }).click();
+  await page.waitForURL(/\/scheduling$/, { timeout: 15000 });
+  const g = (await calEvents('elena@acme-global.demo')).filter((e) => e.summary === mtgTitle);
+  const left = sql(`select count(*) from meetings where id = '${mtgId}'`);
+  if (direct !== 'refused' || g.length !== 0 || left !== '0') throw new Error(`direct=${direct} google=${g.length} meeting=${left}`);
+});
+
+await step('Calendar: if someone revokes access, OrbitOS notices and asks them to connect again', async () => {
+  await calPost('/__revoke', { email: 'elena@acme-global.demo' });
+  sql(`update calendar_connections set access_expires_at = now() - interval '1 minute', busy_synced_at = null where user_id = '${ELENA_ID}'`);
+  const r = await cron('calendar');
+  const st = sql(`select status from calendar_connections where user_id = '${ELENA_ID}'`);
+  await page.goto(`${base}/profile#calendar`, { waitUntil: 'networkidle' });
+  await page.locator('#calendar').getByRole('link', { name: 'Connect again' }).waitFor({ timeout: 10000 });
+  if (st !== 'error' || r.failed < 1) throw new Error(`${st} ${JSON.stringify(r)}`);
+  return `cron ${JSON.stringify(r)}`;
+});
+
+await step('Calendar: disconnecting forgets the tokens and busy times', async () => {
+  await dpage.goto(`${base}/profile#calendar`, { waitUntil: 'networkidle' });
+  await dpage.locator('#calendar').getByRole('button', { name: 'Disconnect' }).click();
+  await dpage.getByRole('dialog').getByRole('button', { name: 'Disconnect' }).click();
+  await dpage.locator('#calendar').getByRole('link', { name: 'Connect Outlook' }).waitFor({ timeout: 15000 });
+  const n = sql(`select (select count(*) from calendar_connections where user_id = '${DEVON_ID}') + (select count(*) from calendar_busy where user_id = '${DEVON_ID}')`);
+  if (n !== '0') throw new Error(n);
 });
 
 await ownerCtx.close(); await dirCtx.close();

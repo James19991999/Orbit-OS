@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { handler, json, parseBody, requireApiContext, audit, ApiError } from '@/lib/api';
+import { getAdminClient, hasServiceRole } from '@/lib/supabase/admin';
+import { syncMeeting } from '@/lib/calendar/service';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +16,8 @@ export const POST = handler(async (req) => {
   if (shift > 2 * 3_600_000) throw new ApiError(400, 'Suggestions only move meetings by up to 2 hours');
   const { error } = await ctx.supabase.from('meetings').update({ starts_at: newStart }).eq('id', meetingId);
   if (error) throw new ApiError(500, error.message);
+  // Move it in people's connected calendars too.
+  if (hasServiceRole()) await syncMeeting(getAdminClient(), meetingId).catch((e) => console.error('[calendar] reschedule', meetingId, (e as Error).message));
   await audit(req, ctx.org.id, ctx.user.id, 'meeting.rescheduled', { type: 'meeting', id: meetingId }, { from: m.starts_at, to: newStart, source: 'chrono_optimizer' });
   return json({ ok: true });
 });

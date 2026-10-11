@@ -93,3 +93,26 @@ describe('dayPhase / regionOf', () => {
     expect(regionOf('Asia/Singapore')).toBe('APAC');
   });
 });
+
+describe('suggestSlots with calendar busy times', () => {
+  const H = 3_600_000;
+  const MON = Date.UTC(2026, 9, 12, 0, 0);   // Monday 12 Oct 2026
+  const nbo = { userId: 'nbo', name: 'Amina', timezone: 'Africa/Nairobi', workStart: '09:00', workEnd: '17:00', city: 'Nairobi' };
+  const lag = { userId: 'lag', name: 'Tunde', timezone: 'Africa/Lagos', workStart: '09:00', workEnd: '17:00', city: 'Lagos' };
+  it('avoids times someone is busy in their own calendar', () => {
+    const free = suggestSlots([nbo, lag], 60, MON + 6 * H, { days: 1, limit: 1 })[0];
+    const busy = { lag: [{ start: free.start, end: free.end }] };
+    const next = suggestSlots([nbo, lag], 60, MON + 6 * H, { days: 1, limit: 1, busy })[0];
+    expect(free.allFree).toBe(true);
+    expect(next.start).not.toBe(free.start);
+    expect(next.allFree).toBe(true);
+  });
+  it('reports who is busy when nobody can avoid a clash', () => {
+    const allDay = { nbo: [{ start: MON, end: MON + 48 * H }] };
+    const s = suggestSlots([nbo, lag], 30, MON + 6 * H, { days: 1, limit: 1, busy: allDay })[0];
+    expect(s.busy).toEqual(['nbo']);
+    expect(s.fitPct).toBe(50);
+    expect(s.zeroOvertime).toBe(true);
+    expect(s.allFree).toBe(false);
+  });
+});
