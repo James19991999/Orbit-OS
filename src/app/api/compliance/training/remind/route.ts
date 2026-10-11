@@ -4,6 +4,8 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { sendEmail, emailLayout, escapeHtml, isEmailConfigured } from '@/lib/email';
 import { appUrl } from '@/lib/env';
 import { loadProfiles } from '@/lib/data/profiles';
+import { makeT, isLanguage } from '@/i18n';
+import { formatDate } from '@/lib/locale';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,8 +28,11 @@ export const POST = handler(async (req) => {
   for (const r of rows) {
     if (r.last_reminded_at && new Date(r.last_reminded_at).getTime() > dayAgo) { skipped++; continue; }
     if (!r.profile?.email) continue;
-    const res = await sendEmail({ to: r.profile.email, subject: `Reminder: ${camp.title} is due ${camp.due_on}`,
-      html: emailLayout(camp.title, `<p>Hi ${escapeHtml(r.profile.full_name.split(' ')[0] ?? '')},</p><p>Please complete <strong>${escapeHtml(camp.title)}</strong> by <strong>${camp.due_on}</strong>, then mark it complete in OrbitOS.</p>`, { label: 'Open OrbitOS', url: `${appUrl()}/compliance` }) });
+    const lang = isLanguage(r.profile.language) ? r.profile.language : 'en';
+    const t = makeT(lang);
+    const due = formatDate(`${camp.due_on}T12:00:00Z`, 'long', undefined, 'UTC', lang);
+    const res = await sendEmail({ to: r.profile.email, subject: t('email.training.subject', { title: camp.title, date: due }),
+      html: emailLayout(camp.title, `<p>${escapeHtml(t('email.training.hi', { name: r.profile.full_name.split(' ')[0] ?? '' }))}</p><p>${t('email.training.body', { title: `<strong>${escapeHtml(camp.title)}</strong>`, date: `<strong>${escapeHtml(due)}</strong>` })}</p>`, { label: t('email.brief.cta'), url: `${appUrl()}/compliance` }, t('email.footer')) });
     if (res.sent) {
       emailed++;
       const st = await admin.from('training_assignments').update({ last_reminded_at: new Date().toISOString() }).eq('campaign_id', campaignId).eq('user_id', r.user_id);

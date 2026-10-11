@@ -42,4 +42,4 @@ export function makeClientT(messages: Messages): T {
 }
 
 /** Keys only server code uses (emails, WhatsApp, AI brief text, and 'p.' = server-rendered page text): never sent to browsers. */
-export const SERVER_ONLY_PREFIXES = ['email.', 'wa.', 'ai.r.', 'p.', 'audit.'];
+export const SERVER_ONLY_PREFIXES = ['email.', 'wa.', 'ai.r.', 'p.', 'audit.', 'mk.'];

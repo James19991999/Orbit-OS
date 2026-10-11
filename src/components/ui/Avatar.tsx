@@ -32,10 +32,11 @@ export function Avatar({ name, src, size = 32, online, className }: { name: stri
 }
 
 export function AvatarStack({ people, max = 4, size = 28 }: { people: { name: string; src?: string | null }[]; max?: number; size?: number }) {
+  const tr = useTOr();
   const shown = people.slice(0, max);
   const rest = people.length - shown.length;
   return (
-    <span className="flex -space-x-2" aria-label={`${people.length} people`} role="img">
+    <span className="flex -space-x-2" aria-label={tr('ui.n_people', '{n} people').replace('{n}', String(people.length))} role="img">
       {shown.map((p, i) => <Avatar key={i} name={p.name} src={p.src} size={size} className="ring-2 ring-surface-container rounded-full" />)}
       {rest > 0 && (
         <span className="flex items-center justify-center rounded-full bg-surface-container-highest text-label-xs text-on-surface ring-2 ring-surface-container" style={{ width: size, height: size }} aria-hidden>

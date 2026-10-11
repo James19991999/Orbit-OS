@@ -1,0 +1,43 @@
+// Transactional emails (server-only 'email.' keys). Kiswahili/French are machine-assisted drafts.
+// Values may be wrapped in <strong> by the caller; these templates must never contain HTML.
+export const emails = {
+  en: {
+    'email.footer': 'Sent by OrbitOS · You can change email preferences in your profile.',
+    'email.training.subject': 'Reminder: {title} is due {date}', 'email.training.hi': 'Hi {name},',
+    'email.training.body': 'Please complete {title} by {date}, then mark it complete in OrbitOS.',
+    'email.renew.body': 'Renew with M-Pesa or card. After a 3-day grace period the workspace becomes read-only until payment.', 'email.renew.cta': 'Renew now',
+    'email.meet.subject': 'Invitation: {title} — {when}', 'email.meet.invited': '{name} invited you to {title}.', 'email.meet.teammate': 'A teammate',
+    'email.meet.when': '{when} (your time) · {n} minutes', 'email.meet.async': ' · async-first', 'email.meet.ics': 'The attached .ics adds it to your calendar.', 'email.meet.join': 'Join video call',
+    'email.invite.subject': 'You’re invited to {org} on OrbitOS', 'email.invite.title': 'Join {org}',
+    'email.invite.body': 'You’ve been invited to join {org} as {role}. The link expires in 7 days.', 'email.invite.cta': 'Accept invite',
+    'email.inv.subject': 'Invoice {number} from {org}', 'email.inv.title': 'Invoice {number}', 'email.inv.hello': 'Hello {name},',
+    'email.inv.body': '{org} has sent you an invoice for {amount}, due {date}.', 'email.inv.mpesa': 'You can pay securely by M-Pesa or card.',
+    'email.inv.card': 'You can pay securely by card.', 'email.inv.bank': 'Please pay using the bank details agreed with us.', 'email.inv.cta': 'Pay invoice',
+  },
+  sw: {
+    'email.footer': 'Imetumwa na OrbitOS · Unaweza kubadilisha mapendeleo ya barua pepe kwenye wasifu wako.',
+    'email.training.subject': 'Kikumbusho: {title} inatakiwa {date}', 'email.training.hi': 'Habari {name},',
+    'email.training.body': 'Tafadhali kamilisha {title} kufikia {date}, kisha uiweke kuwa imekamilika kwenye OrbitOS.',
+    'email.renew.body': 'Lipia upya kwa M-Pesa au kadi. Baada ya siku 3 za ziada eneo la kazi linakuwa la kusoma tu hadi ulipe.', 'email.renew.cta': 'Lipia upya sasa',
+    'email.meet.subject': 'Mwaliko: {title} — {when}', 'email.meet.invited': '{name} amekualika kwenye {title}.', 'email.meet.teammate': 'Mwenzako',
+    'email.meet.when': '{when} (saa zako) · dakika {n}', 'email.meet.async': ' · maandishi kwanza', 'email.meet.ics': 'Faili la .ics lililoambatishwa linauongeza kwenye kalenda yako.', 'email.meet.join': 'Jiunge na simu ya video',
+    'email.invite.subject': 'Umealikwa kujiunga na {org} kwenye OrbitOS', 'email.invite.title': 'Jiunge na {org}',
+    'email.invite.body': 'Umealikwa kujiunga na {org} kama {role}. Kiungo kinaisha baada ya siku 7.', 'email.invite.cta': 'Kubali mwaliko',
+    'email.inv.subject': 'Ankara {number} kutoka {org}', 'email.inv.title': 'Ankara {number}', 'email.inv.hello': 'Habari {name},',
+    'email.inv.body': '{org} amekutumia ankara ya {amount}, inayotakiwa kulipwa {date}.', 'email.inv.mpesa': 'Unaweza kulipa kwa usalama kwa M-Pesa au kadi.',
+    'email.inv.card': 'Unaweza kulipa kwa usalama kwa kadi.', 'email.inv.bank': 'Tafadhali lipa kwa kutumia maelezo ya benki tuliyokubaliana.', 'email.inv.cta': 'Lipa ankara',
+  },
+  fr: {
+    'email.footer': 'Envoyé par OrbitOS · Vous pouvez modifier vos préférences e-mail dans votre profil.',
+    'email.training.subject': 'Rappel : {title} à terminer avant le {date}', 'email.training.hi': 'Bonjour {name},',
+    'email.training.body': 'Merci de terminer {title} avant le {date}, puis de la marquer comme terminée dans OrbitOS.',
+    'email.renew.body': 'Renouvelez par M-Pesa ou carte. Après un délai de grâce de 3 jours, l’espace passe en lecture seule jusqu’au paiement.', 'email.renew.cta': 'Renouveler',
+    'email.meet.subject': 'Invitation : {title} — {when}', 'email.meet.invited': '{name} vous invite à {title}.', 'email.meet.teammate': 'Un coéquipier',
+    'email.meet.when': '{when} (votre heure) · {n} minutes', 'email.meet.async': ' · asynchrone d’abord', 'email.meet.ics': 'Le fichier .ics joint l’ajoute à votre calendrier.', 'email.meet.join': 'Rejoindre l’appel vidéo',
+    'email.invite.subject': 'Vous êtes invité à rejoindre {org} sur OrbitOS', 'email.invite.title': 'Rejoindre {org}',
+    'email.invite.body': 'Vous êtes invité à rejoindre {org} en tant que {role}. Le lien expire dans 7 jours.', 'email.invite.cta': 'Accepter l’invitation',
+    'email.inv.subject': 'Facture {number} de {org}', 'email.inv.title': 'Facture {number}', 'email.inv.hello': 'Bonjour {name},',
+    'email.inv.body': '{org} vous a envoyé une facture de {amount}, à régler avant le {date}.', 'email.inv.mpesa': 'Vous pouvez payer en toute sécurité par M-Pesa ou carte.',
+    'email.inv.card': 'Vous pouvez payer en toute sécurité par carte.', 'email.inv.bank': 'Merci de régler selon les coordonnées bancaires convenues.', 'email.inv.cta': 'Payer la facture',
+  },
+} as const;

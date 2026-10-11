@@ -1,9 +1,12 @@
 import type { Metadata } from 'next';
+import { getT } from '@/i18n/server';
 import { redirect } from 'next/navigation';
 import { getAuthContext } from '@/lib/context';
 import { OnboardingForm } from '@/components/auth/OnboardingForm';
 
-export const metadata: Metadata = { title: 'Set up your workspace' };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())('onb.title') };
+}
 
 export default async function OnboardingPage(props: { searchParams: Promise<{ new?: string }> }) {
   const searchParams = await props.searchParams;

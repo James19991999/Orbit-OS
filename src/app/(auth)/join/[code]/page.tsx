@@ -9,7 +9,9 @@ import { Banner, LinkButton } from '@/components/ui';
 import { getT } from '@/i18n/server';
 import type { Role } from '@/lib/types';
 
-export const metadata: Metadata = { title: 'Join workspace' };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())('meta.join') };
+}
 export const dynamic = 'force-dynamic';
 
 function maskEmail(e: string) {

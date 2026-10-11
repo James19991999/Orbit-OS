@@ -4,7 +4,8 @@ import { handler, json, parseBody, requireApiContext, audit, rateLimit, ApiError
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendEmail, emailLayout, escapeHtml } from '@/lib/email';
 import { appUrl } from '@/lib/env';
-import { ROLE_LABEL } from '@/lib/roles';
+import { getT } from '@/i18n/server';
+import { roleName } from '@/lib/role-name';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,8 +31,10 @@ export const POST = handler(async (req) => {
   const { data: inv, error } = await admin.from('invites').insert({ org_id: ctx.org.id, email: email.toLowerCase(), role, code, invited_by: ctx.user.id }).select('id, expires_at').single();
   if (error) throw new ApiError(500, error.message);
   const link = `${appUrl()}/join/${code}`;
-  const mail = await sendEmail({ to: email, subject: `You're invited to ${ctx.org.name} on OrbitOS`,
-    html: emailLayout(`Join ${ctx.org.name}`, `<p>You've been invited to join <strong>${escapeHtml(ctx.org.name)}</strong> as <strong>${ROLE_LABEL[role]}</strong>. The link expires in 7 days.</p>`, { label: 'Accept invite', url: link }) });
+  // The invitee has no account yet, so the email uses the inviter's language.
+  const t = await getT();
+  const mail = await sendEmail({ to: email, subject: t('email.invite.subject', { org: ctx.org.name }),
+    html: emailLayout(t('email.invite.title', { org: ctx.org.name }), `<p>${t('email.invite.body', { org: `<strong>${escapeHtml(ctx.org.name)}</strong>`, role: `<strong>${escapeHtml(roleName(t, role))}</strong>` })}</p>`, { label: t('email.invite.cta'), url: link }, t('email.footer')) });
   await audit(req, ctx.org.id, ctx.user.id, 'member.invited', { type: 'invite', id: inv.id }, { email, role, emailed: mail.sent });
   return json({ ok: true, link, emailed: mail.sent, emailReason: mail.reason ?? null });
 });

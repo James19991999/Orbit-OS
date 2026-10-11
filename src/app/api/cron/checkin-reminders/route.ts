@@ -42,7 +42,7 @@ export const GET = handler(async (req) => {
     if (!isEmailConfigured() || !m.profile.email) continue;
     const t = makeT(isLanguage(m.profile.language) ? m.profile.language : 'en');
     const r = await sendEmail({ to: m.profile.email, subject: t('email.checkin.subject', { org: m.org.name }),
-      html: emailLayout(t('email.checkin.title'), `<p>${escapeHtml(t('email.checkin.body', { name: m.profile.full_name.split(' ')[0] }))}</p>`, { label: t('email.checkin.cta'), url: `${appUrl()}/culture?tab=roll-call` }) });
+      html: emailLayout(t('email.checkin.title'), `<p>${escapeHtml(t('email.checkin.body', { name: m.profile.full_name.split(' ')[0] }))}</p>`, { label: t('email.checkin.cta'), url: `${appUrl()}/culture?tab=roll-call` }, t('email.footer')) });
     if (r.sent) email++;
   }
   return json({ due: due.length, whatsapp, email });

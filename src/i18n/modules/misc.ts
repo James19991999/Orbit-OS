@@ -1,6 +1,9 @@
 // Shell bits, errors, notifications and small shared components. Kiswahili/French are machine-assisted drafts.
 export const misc = {
   en: {
+    'ui.n_people': '{n} people',
+    'meta.invoice': 'Invoice', 'meta.join': 'Join workspace',
+    'chart.burn': 'Burn', 'chart.revenue': 'Revenue', 'chart.row': '{month}: burn {burn}, revenue {revenue}',
     'live.paused': 'Live updates paused', 'live.synced': 'Live · synced',
     'err.title': 'Something went wrong', 'err.try_again': 'Try again', 'err.page': 'This page couldn’t load', 'err.unexpected': 'An unexpected error occurred.', 'err.ref': 'Reference: {ref}',
     'p.nf.code': 'Error 404', 'p.nf.title': 'This page drifted out of orbit', 'p.nf.body': 'It may have been moved or deleted, or you may not have access in this workspace.',
@@ -18,6 +21,9 @@ export const misc = {
     'ops.move_failed': 'Couldn’t move task: {error}', 'ops.chart_label': 'Monthly burn versus revenue',
   },
   sw: {
+    'ui.n_people': 'watu {n}',
+    'meta.invoice': 'Ankara', 'meta.join': 'Jiunge na eneo la kazi',
+    'chart.burn': 'Matumizi', 'chart.revenue': 'Mapato', 'chart.row': '{month}: matumizi {burn}, mapato {revenue}',
     'live.paused': 'Masasisho ya moja kwa moja yamesitishwa', 'live.synced': 'Moja kwa moja · imesawazishwa',
     'err.title': 'Hitilafu imetokea', 'err.try_again': 'Jaribu tena', 'err.page': 'Ukurasa huu haukuweza kupakia', 'err.unexpected': 'Hitilafu isiyotarajiwa imetokea.', 'err.ref': 'Kumbukumbu: {ref}',
     'p.nf.code': 'Hitilafu 404', 'p.nf.title': 'Ukurasa huu umepotea njia', 'p.nf.body': 'Huenda umehamishwa au kufutwa, au huna ruhusa kwenye eneo hili la kazi.',
@@ -35,6 +41,9 @@ export const misc = {
     'ops.move_failed': 'Imeshindwa kuhamisha kazi: {error}', 'ops.chart_label': 'Matumizi ya kila mwezi dhidi ya mapato',
   },
   fr: {
+    'ui.n_people': '{n} personnes',
+    'meta.invoice': 'Facture', 'meta.join': 'Rejoindre l’espace',
+    'chart.burn': 'Dépenses', 'chart.revenue': 'Revenus', 'chart.row': '{month} : dépenses {burn}, revenus {revenue}',
     'live.paused': 'Mises à jour en direct en pause', 'live.synced': 'En direct · synchronisé',
     'err.title': 'Un problème est survenu', 'err.try_again': 'Réessayer', 'err.page': 'Cette page n’a pas pu se charger', 'err.unexpected': 'Une erreur inattendue s’est produite.', 'err.ref': 'Référence : {ref}',
     'p.nf.code': 'Erreur 404', 'p.nf.title': 'Cette page s’est perdue en orbite', 'p.nf.body': 'Elle a peut-être été déplacée ou supprimée, ou vous n’y avez pas accès dans cet espace.',

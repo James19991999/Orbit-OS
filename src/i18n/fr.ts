@@ -1,5 +1,7 @@
 import type { MessageKey } from './en';
 import { common } from './modules/common';
+import { emails } from './modules/emails';
+import { marketing } from './modules/marketing';
 import { account } from './modules/account';
 import { settings } from './modules/settings';
 import { reports } from './modules/reports';
@@ -132,7 +134,7 @@ export const fr: Partial<Record<MessageKey, string>> = {
   'profile.title': 'Profil et sécurité', 'profile.at': '{role} chez {org}', 'profile.personal': 'Informations personnelles',
   'profile.personal_sub': 'Votre fuseau horaire et vos horaires déterminent le planning, les heures communes et les heures calmes.',
   'profile.language': 'Langue', 'profile.language_sub': 'La langue qu’OrbitOS utilise avec vous — à l’écran, dans les e-mails et sur WhatsApp.',
-  'profile.language_label': 'Langue', 'profile.language_note': 'Le kiswahili et le français couvrent la connexion, la navigation, les points du jour, les notifications, votre profil, WhatsApp et les paiements. Les autres écrans sont encore en anglais.',
+  'profile.language_label': 'Langue', 'profile.language_note': 'Les écrans, e-mails et messages WhatsApp suivent ce choix. Les exports PDF et documents juridiques restent en anglais. Le kiswahili et le français sont traduits avec l’aide d’une machine — signalez-nous toute formulation maladroite.',
   'profile.region': 'Format régional', 'profile.region_sub': 'Comment les dates, nombres et montants vous sont affichés.',
   'profile.data': 'Données et connexion', 'profile.data_sub': 'Allégez OrbitOS sur les connexions lentes ou coûteuses.',
   'profile.whatsapp': 'WhatsApp', 'profile.whatsapp_sub': 'Points du jour et approbations là où votre équipe se trouve déjà.',
@@ -170,6 +172,8 @@ export const fr: Partial<Record<MessageKey, string>> = {
   'pay.sent_all': 'Paiement envoyé — tout le monde a été payé', 'pay.sent_processing': 'Paiement libéré — M-Pesa le traite',
   'pay.cancelled_toast': 'Brouillon annulé', 'pay.status_toast': 'Statut : {status}',
   ...common.fr,
+  ...emails.fr,
+  ...marketing.fr,
   ...account.fr,
   ...settings.fr,
   ...reports.fr,

@@ -8,6 +8,8 @@ import { appUrl } from '@/lib/env';
 import { cardCurrencies } from '@/lib/intasend/currencies';
 import type { Invoice } from '@/lib/types';
 import { queueInvoiceSale } from '@/lib/etims/service';
+import { getLanguage } from '@/i18n/server';
+import { makeT } from '@/i18n';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,13 +45,17 @@ export const POST = handler<{ params: Promise<{ id: string }> }>(async (req, rou
   if (upErr) throw new ApiError(500, upErr.message);
 
   // The client isn't a user, so format for the invoice's currency region (USD → US style, GBP → UK style…).
+  // Written in the sender's language (the client has no OrbitOS profile).
   const clientLocale = localeForCurrency(invoice.currency);
+  const lang = await getLanguage();
+  const t = makeT(lang);
+  const orgName = ctx.org.legal_name || ctx.org.name;
   const email = await sendEmail({
     to: invoice.client_email,
-    subject: `Invoice ${invoice.number} from ${ctx.org.legal_name || ctx.org.name}`,
-    html: emailLayout(`Invoice ${invoice.number}`,
-      `<p>Hello ${escapeHtml(invoice.client_name)},</p><p>${escapeHtml(ctx.org.legal_name || ctx.org.name)} has sent you an invoice for <strong>${formatMoney(invoice.amount_minor, invoice.currency, { locale: clientLocale })}</strong>, due <strong>${formatDate(`${invoice.due_on}T12:00:00Z`, 'long', clientLocale)}</strong>.</p>${invoice.description ? `<p>${escapeHtml(invoice.description)}</p>` : ''}${paymentUrl ? (invoice.currency === 'KES' ? '<p>You can pay securely by M-Pesa or card.</p>' : '<p>You can pay securely by card.</p>') : '<p>Please pay using the bank details agreed with us.</p>'}`,
-      paymentUrl ? { label: 'Pay invoice', url: paymentUrl } : undefined),
+    subject: t('email.inv.subject', { number: invoice.number, org: orgName }),
+    html: emailLayout(t('email.inv.title', { number: invoice.number }),
+      `<p>${escapeHtml(t('email.inv.hello', { name: invoice.client_name }))}</p><p>${t('email.inv.body', { org: escapeHtml(orgName), amount: `<strong>${escapeHtml(formatMoney(invoice.amount_minor, invoice.currency, { locale: clientLocale }))}</strong>`, date: `<strong>${escapeHtml(formatDate(`${invoice.due_on}T12:00:00Z`, 'long', clientLocale, 'UTC', lang))}</strong>` })}</p>${invoice.description ? `<p>${escapeHtml(invoice.description)}</p>` : ''}<p>${escapeHtml(t(paymentUrl ? (invoice.currency === 'KES' ? 'email.inv.mpesa' : 'email.inv.card') : 'email.inv.bank'))}</p>`,
+      paymentUrl ? { label: t('email.inv.cta'), url: paymentUrl } : undefined, t('email.footer')),
   });
   // Fiscalise with KRA eTIMS when the workspace has it connected. KRA being slow or down never blocks sending:
   // the document waits in the queue and the hourly job retries it.

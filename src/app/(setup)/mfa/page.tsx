@@ -1,9 +1,12 @@
 import type { Metadata } from 'next';
+import { getT } from '@/i18n/server';
 import { redirect } from 'next/navigation';
 import { getAuthContext } from '@/lib/context';
 import { MfaForm } from '@/components/auth/MfaForm';
 
-export const metadata: Metadata = { title: 'Two-factor authentication' };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())('mfa.enroll_title') };
+}
 
 export default async function MfaPage(props: { searchParams: Promise<{ next?: string; required?: string }> }) {
   const searchParams = await props.searchParams;

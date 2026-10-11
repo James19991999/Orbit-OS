@@ -14,7 +14,9 @@ import { getAdminClient, hasServiceRole } from '@/lib/supabase/admin';
 import { fiscalView, loadConfig, type EtimsDocument } from '@/lib/etims/service';
 import { qrSvg } from '@/lib/etims/qr';
 
-export const metadata: Metadata = { title: 'Invoice' };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())('meta.invoice') };
+}
 
 export default async function InvoicePage(props: { params: Promise<{ id: string }> }) {
   const [fmt, t] = await Promise.all([getFormat(), getT()]);

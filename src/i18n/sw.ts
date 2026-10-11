@@ -1,5 +1,7 @@
 import type { MessageKey } from './en';
 import { common } from './modules/common';
+import { emails } from './modules/emails';
+import { marketing } from './modules/marketing';
 import { account } from './modules/account';
 import { settings } from './modules/settings';
 import { reports } from './modules/reports';
@@ -132,7 +134,7 @@ export const sw: Partial<Record<MessageKey, string>> = {
   'profile.title': 'Wasifu na usalama', 'profile.at': '{role} katika {org}', 'profile.personal': 'Maelezo binafsi',
   'profile.personal_sub': 'Saa za eneo lako na saa za kazi huongoza ratiba, muda wa pamoja na saa za utulivu.',
   'profile.language': 'Lugha', 'profile.language_sub': 'Lugha ambayo OrbitOS inakutumia — kwenye skrini, barua pepe na WhatsApp.',
-  'profile.language_label': 'Lugha', 'profile.language_note': 'Kiswahili na Kifaransa vinahusu kuingia, urambazaji, ripoti za kila siku, arifa, wasifu wako, WhatsApp na malipo. Skrini nyingine bado ziko kwa Kiingereza.',
+  'profile.language_label': 'Lugha', 'profile.language_note': 'Skrini, barua pepe na jumbe za WhatsApp hufuata chaguo hili. Hati za PDF na za kisheria zinabaki kwa Kiingereza. Kiswahili na Kifaransa vimetafsiriwa kwa msaada wa mashine — tujulishe kama kifungu fulani kinasomeka vibaya.',
   'profile.region': 'Muundo wa eneo', 'profile.region_sub': 'Jinsi tarehe, nambari na pesa zinavyoonyeshwa kwako.',
   'profile.data': 'Data na mtandao', 'profile.data_sub': 'Fanya OrbitOS iwe nyepesi kwenye mtandao wa polepole au wa gharama.',
   'profile.whatsapp': 'WhatsApp', 'profile.whatsapp_sub': 'Ripoti na idhini mahali timu yako ilipo tayari.',
@@ -170,6 +172,8 @@ export const sw: Partial<Record<MessageKey, string>> = {
   'pay.sent_all': 'Malipo yametumwa — kila mtu amelipwa', 'pay.sent_processing': 'Malipo yameachiliwa — M-Pesa inayashughulikia',
   'pay.cancelled_toast': 'Rasimu imeghairiwa', 'pay.status_toast': 'Hali: {status}',
   ...common.sw,
+  ...emails.sw,
+  ...marketing.sw,
   ...account.sw,
   ...settings.sw,
   ...reports.sw,

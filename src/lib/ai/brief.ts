@@ -104,7 +104,7 @@ export async function deliverBrief(admin: Admin, orgId: string, orgName: string,
   await admin.from('notifications').insert({ org_id: orgId, user_id: person.id, kind: 'ai_brief', title: t('ai.kind.weekly'), body: head, link: '/dashboard#chief-of-staff' });
   if (isEmailConfigured() && person.email) {
     const html = escapeHtml(content).split('\n').map((l) => (l.trim() ? `<p style="margin:0 0 6px">${l}</p>` : '')).join('');
-    const r = await sendEmail({ to: person.email, subject: t('email.brief.subject', { org: orgName }), html: emailLayout(t('ai.kind.weekly'), html, { label: t('email.brief.cta'), url: link }) }).catch(() => ({ sent: false }));
+    const r = await sendEmail({ to: person.email, subject: t('email.brief.subject', { org: orgName }), html: emailLayout(t('ai.kind.weekly'), html, { label: t('email.brief.cta'), url: link }, t('email.footer')) }).catch(() => ({ sent: false }));
     out.email = !!r.sent;
   }
   const wa = (await linkedUsers(admin, [person.id])).get(person.id);

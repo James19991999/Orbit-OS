@@ -1,10 +1,11 @@
 import { handler, json, requireCronSecret } from '@/lib/api';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { sendEmail, emailLayout } from '@/lib/email';
+import { sendEmail, emailLayout, escapeHtml } from '@/lib/email';
 import { appUrl } from '@/lib/env';
 import { PLANS } from '@/lib/billing/plans';
 import type { Organization } from '@/lib/types';
 import { isWithinWorkingHours } from '@/lib/scheduling/time';
+import { makeT, isLanguage } from '@/i18n';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +21,7 @@ export const GET = handler(async (req) => {
   const today = new Date(); today.setUTCHours(0, 0, 0, 0);
   let reminders = 0; let seatAlerts = 0;
   for (const org of (orgs ?? []) as Organization[]) {
-    const owners = ((await admin.from('memberships').select('user_id, profile:profiles(email, full_name, timezone, work_start, work_end)').eq('org_id', org.id).eq('role', 'owner').eq('status', 'active')).data ?? []) as unknown as { user_id: string; profile: { email: string | null; full_name: string; timezone: string; work_start: string; work_end: string } }[];
+    const owners = ((await admin.from('memberships').select('user_id, profile:profiles(email, full_name, timezone, work_start, work_end, language)').eq('org_id', org.id).eq('role', 'owner').eq('status', 'active')).data ?? []) as unknown as { user_id: string; profile: { email: string | null; full_name: string; timezone: string; work_start: string; work_end: string; language: string | null } }[];
     const exp = new Date(org.plan_expires_at); exp.setUTCHours(0, 0, 0, 0);
     const days = Math.round((exp.getTime() - today.getTime()) / 86_400_000);
     if ([7, 3, 0].includes(days)) {
@@ -36,7 +37,11 @@ export const GET = handler(async (req) => {
         // (otherwise the owner would be emailed every hour).
         const marked = await admin.from('notifications').insert({ org_id: org.id, user_id: o.user_id, kind: 'renewal', title, body: 'Renew with M-Pesa or card to keep the workspace writable.', link: '/settings/billing' });
         if (marked.error) { console.error('[renewals] notification insert failed', marked.error.message); continue; }
-        if (o.profile?.email) await sendEmail({ to: o.profile.email, subject: `${org.name}: ${title}`, html: emailLayout(title, '<p>Renew with M-Pesa or card. After a 3-day grace period the workspace becomes read-only until payment.</p>', { label: 'Renew now', url: `${appUrl()}/settings/billing` }) });
+        if (o.profile?.email) {
+          const t = makeT(isLanguage(o.profile.language) ? o.profile.language : 'en');
+          const heading = days === 0 ? t('notif.k.renewal_today', { plan: PLANS[org.plan].name }) : t('notif.k.renewal_days', { plan: PLANS[org.plan].name, n: days });
+          await sendEmail({ to: o.profile.email, subject: `${org.name}: ${heading}`, html: emailLayout(heading, `<p>${escapeHtml(t('email.renew.body'))}</p>`, { label: t('email.renew.cta'), url: `${appUrl()}/settings/billing` }, t('email.footer')) });
+        }
         reminders++;
       }
     }

@@ -1,7 +1,9 @@
 import { handler, json, requireApiContext, audit, rateLimit, ApiError } from '@/lib/api';
 import { buildIcs } from '@/lib/ics';
 import { sendEmail, emailLayout, escapeHtml, isEmailConfigured } from '@/lib/email';
-import { formatInTimeZone } from 'date-fns-tz';
+import { makeT, isLanguage } from '@/i18n';
+import { formatSlot } from '@/lib/locale/conventions';
+import { zoneAbbrev } from '@/lib/scheduling/time';
 import type { Meeting } from '@/lib/types';
 import { loadProfiles } from '@/lib/data/profiles';
 import { getAdminClient, hasServiceRole } from '@/lib/supabase/admin';
@@ -39,11 +41,14 @@ export const POST = handler<{ params: Promise<{ id: string }> }>(async (req, rou
   let emailed = 0;
   for (const p of people) {
     if (!p.profile?.email || p.user_id === ctx.user.id || synced.has(p.user_id)) continue;
-    const local = formatInTimeZone(meeting.starts_at, p.profile.timezone || 'UTC', "EEEE d MMMM 'at' HH:mm zzz");
+    const lang = isLanguage(p.profile.language) ? p.profile.language : 'en';
+    const t = makeT(lang);
+    const tz = p.profile.timezone || 'UTC';
+    const local = `${formatSlot(meeting.starts_at, tz, lang)} ${zoneAbbrev(new Date(meeting.starts_at).getTime(), tz)}`;
     const r = await sendEmail({
-      to: p.profile.email, subject: `Invitation: ${meeting.title} — ${local}`,
-      html: emailLayout(meeting.title, `<p>${escapeHtml(organizer?.full_name ?? 'A teammate')} invited you to <strong>${escapeHtml(meeting.title)}</strong>.</p><p><strong>${escapeHtml(local)}</strong> (your time) · ${meeting.duration_min} minutes${meeting.mode === 'async_first' ? ' · async-first' : ''}</p>${meeting.description ? `<p>${escapeHtml(meeting.description)}</p>` : ''}<p>The attached .ics adds it to your calendar.</p>`,
-        meeting.video_url ? { label: 'Join video call', url: meeting.video_url } : undefined),
+      to: p.profile.email, subject: t('email.meet.subject', { title: meeting.title, when: local }),
+      html: emailLayout(meeting.title, `<p>${t('email.meet.invited', { name: escapeHtml(organizer?.full_name ?? t('email.meet.teammate')), title: `<strong>${escapeHtml(meeting.title)}</strong>` })}</p><p>${t('email.meet.when', { when: `<strong>${escapeHtml(local)}</strong>`, n: meeting.duration_min })}${meeting.mode === 'async_first' ? t('email.meet.async') : ''}</p>${meeting.description ? `<p>${escapeHtml(meeting.description)}</p>` : ''}<p>${t('email.meet.ics')}</p>`,
+        meeting.video_url ? { label: t('email.meet.join'), url: meeting.video_url } : undefined, t('email.footer')),
       attachments: [{ filename: 'invite.ics', content: Buffer.from(ics) }],
     });
     if (r.sent) emailed++;

@@ -1,4 +1,6 @@
 import { common } from './modules/common';
+import { emails } from './modules/emails';
+import { marketing } from './modules/marketing';
 import { account } from './modules/account';
 import { settings } from './modules/settings';
 import { reports } from './modules/reports';
@@ -145,7 +147,7 @@ export const en = {
   'profile.title': 'Profile & security', 'profile.at': '{role} at {org}', 'profile.personal': 'Personal details',
   'profile.personal_sub': 'Your time zone and working hours drive scheduling, overlap and quiet hours.',
   'profile.language': 'Language', 'profile.language_sub': 'The language OrbitOS uses for you — on screen, in emails and on WhatsApp.',
-  'profile.language_label': 'Language', 'profile.language_note': 'Kiswahili and French cover sign-in, navigation, check-ins, notifications, your profile, WhatsApp and payouts. Other screens are still in English.',
+  'profile.language_label': 'Language', 'profile.language_note': 'Screens, emails and WhatsApp messages follow this choice. PDF exports and legal documents stay in English. Kiswahili and French are machine-assisted — tell us if a phrase reads oddly.',
   'profile.region': 'Region format', 'profile.region_sub': 'How dates, numbers and money are shown to you.',
   'profile.data': 'Data & connection', 'profile.data_sub': 'Make OrbitOS lighter on slow or costly connections.',
   'profile.whatsapp': 'WhatsApp', 'profile.whatsapp_sub': 'Check-ins and approvals where your team already is.',
@@ -186,6 +188,8 @@ export const en = {
   'pay.sent_all': 'Payout sent — everyone was paid', 'pay.sent_processing': 'Payout released — M-Pesa is processing it',
   'pay.cancelled_toast': 'Draft cancelled', 'pay.status_toast': 'Status: {status}',
   ...common.en,
+  ...emails.en,
+  ...marketing.en,
   ...account.en,
   ...settings.en,
   ...reports.en,

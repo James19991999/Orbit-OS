@@ -5,7 +5,7 @@ import { chain } from './chain';
 const from = jest.fn();
 jest.mock('@/lib/supabase/admin', () => ({ getAdminClient: () => ({ from }), hasServiceRole: () => true }));
 const sendEmail = jest.fn(() => Promise.resolve({ sent: true }));
-jest.mock('@/lib/email', () => ({ sendEmail: (...a: unknown[]) => sendEmail(...(a as [])), emailLayout: () => '<p/>' }));
+jest.mock('@/lib/email', () => ({ sendEmail: (...a: unknown[]) => sendEmail(...(a as [])), emailLayout: () => '<p/>', escapeHtml: (s: string) => s }));
 
 import { NextRequest } from 'next/server';
 import { GET } from '@/app/api/cron/renewals/route';

@@ -1,1 +1,7 @@
-{ "extends": ["next/core-web-vitals"], "ignorePatterns": ["design-reference/**", "scripts/**"] }
+{
+  "extends": ["next/core-web-vitals"],
+  "ignorePatterns": ["design-reference/**", "scripts/**"],
+  "rules": {
+    "@next/next/no-html-link-for-pages": "off"
+  }
+}

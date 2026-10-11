@@ -2,12 +2,14 @@
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { formatAmount, type Currency } from '@/lib/format';
 import { useFormat } from '@/lib/locale/client';
+import { useT } from '@/i18n/client';
 
 export function FinanceChart({ months, currency }: { months: { month: string; burn: number; revenue: number }[]; currency: Currency }) {
   const fmt = useFormat();
+  const t = useT();
   const data = months.map((m) => ({ ...m, label: fmt.date(m.month + '-01T00:00:00Z', 'month') }));
   return (
-    <figure aria-label="Monthly burn versus revenue">
+    <figure aria-label={t('ops.chart_label')}>
       <div className="h-56 w-full">
         <ResponsiveContainer>
           <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
@@ -19,13 +21,13 @@ export function FinanceChart({ months, currency }: { months: { month: string; bu
               itemStyle={{ color: 'rgb(var(--c-on-surface))' }} labelStyle={{ color: 'rgb(var(--c-on-surface-variant))' }} />
             <Legend wrapperStyle={{ fontSize: 12 }} formatter={(value) => <span style={{ color: 'rgb(var(--c-on-surface))' }}>{value}</span>} />
             {/* theme tokens keep bars ≥ 3:1 against the card in both themes (WCAG 1.4.11) */}
-            <Bar dataKey="burn" name="Burn" fill="rgb(var(--c-warning))" radius={[3, 3, 0, 0]} />
-            <Bar dataKey="revenue" name="Revenue" fill="rgb(var(--c-primary))" radius={[3, 3, 0, 0]} />
+            <Bar dataKey="burn" name={t('chart.burn')} fill="rgb(var(--c-warning))" radius={[3, 3, 0, 0]} />
+            <Bar dataKey="revenue" name={t('chart.revenue')} fill="rgb(var(--c-primary))" radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
       <figcaption className="sr-only">
-        {data.map((d) => `${d.label}: burn ${fmt.money(d.burn, currency)}, revenue ${fmt.money(d.revenue, currency)}`).join('; ')}
+        {data.map((d) => t('chart.row', { month: d.label, burn: fmt.money(d.burn, currency), revenue: fmt.money(d.revenue, currency) })).join('; ')}
       </figcaption>
     </figure>
   );
