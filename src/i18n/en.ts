@@ -1,4 +1,7 @@
 import { common } from './modules/common';
+import { operations } from './modules/operations';
+import { misc } from './modules/misc';
+import { dashboard } from './modules/dashboard';
 import { scheduling } from './modules/scheduling';
 import { invoices } from './modules/invoices';
 import { etims } from './modules/etims';
@@ -177,6 +180,9 @@ export const en = {
   'pay.sent_all': 'Payout sent — everyone was paid', 'pay.sent_processing': 'Payout released — M-Pesa is processing it',
   'pay.cancelled_toast': 'Draft cancelled', 'pay.status_toast': 'Status: {status}',
   ...common.en,
+  ...operations.en,
+  ...misc.en,
+  ...dashboard.en,
   ...scheduling.en,
   ...invoices.en,
   ...etims.en,

@@ -73,8 +73,19 @@ export function formatNumberWith(value: number, locale: string, opts: { min?: nu
   return `${neg && !isZero ? '-' : ''}${body}${suffix}`;
 }
 
-const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+export type UiLang = 'en' | 'sw' | 'fr';
+/** Month and weekday names per UI language (explicit, so server and browser always agree). */
+const NAMES: Record<UiLang, { short: string[]; long: string[]; days: string[] }> = {
+  en: { short: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    long: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+    days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] },
+  sw: { short: ['Jan', 'Feb', 'Mac', 'Apr', 'Mei', 'Jun', 'Jul', 'Ago', 'Sep', 'Okt', 'Nov', 'Des'],
+    long: ['Januari', 'Februari', 'Machi', 'Aprili', 'Mei', 'Juni', 'Julai', 'Agosti', 'Septemba', 'Oktoba', 'Novemba', 'Desemba'],
+    days: ['Jpi', 'Jtt', 'Jnn', 'Jtn', 'Alh', 'Ijm', 'Jms'] },
+  fr: { short: ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'],
+    long: ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'],
+    days: ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'] },
+};
 
 export type DateStyle = 'short' | 'long' | 'datetime' | 'month';
 
@@ -104,17 +115,30 @@ function partsIn(d: Date, timeZone: string) {
  * Formats a date for a region. Bare calendar dates ("2026-10-08") are never shifted by time zone;
  * timestamps are shown in `timeZone` (the user's own, default UTC).
  */
-export function formatDateWith(input: Date | string | number, locale: string, style: DateStyle = 'short', timeZone = 'UTC'): string {
+export function formatDateWith(input: Date | string | number, locale: string, style: DateStyle = 'short', timeZone = 'UTC', lang: UiLang = 'en'): string {
   const c = conventionsFor(locale);
+  const N = NAMES[lang];
   const bare = typeof input === 'string' && /^\d{4}-\d{2}(-\d{2})?$/.test(input);
   const d = bare ? new Date(`${(input as string).length === 7 ? `${input}-01` : input}T12:00:00Z`) : new Date(input);
   if (Number.isNaN(d.getTime())) return '';
   const { y, m, d: day, h, min } = partsIn(d, bare || style === 'month' ? 'UTC' : timeZone);
-  if (style === 'month') return MONTHS_SHORT[m - 1]!;
-  const names = style === 'long' ? MONTHS_LONG : MONTHS_SHORT;
-  const date = c.order === 'MDY' ? `${names[m - 1]} ${day}, ${y}` : `${day} ${names[m - 1]} ${y}`;
+  if (style === 'month') return N.short[m - 1]!;
+  const names = style === 'long' ? N.long : N.short;
+  // Month-first dates are an English (US/Canada) habit; Kiswahili and French always put the day first.
+  const date = c.order === 'MDY' && lang === 'en' ? `${names[m - 1]} ${day}, ${y}` : `${day} ${names[m - 1]} ${y}`;
   if (style !== 'datetime') return date;
   const mm = String(min).padStart(2, '0');
-  const time = c.clock === 12 ? `${h % 12 || 12}:${mm} ${h < 12 ? 'AM' : 'PM'}` : `${String(h).padStart(2, '0')}:${mm}`;
+  const time = c.clock === 12 && lang === 'en' ? `${h % 12 || 12}:${mm} ${h < 12 ? 'AM' : 'PM'}` : `${String(h).padStart(2, '0')}:${mm}`;
   return `${date}, ${time}`;
+}
+
+/** "Mon 12 Oct · 14:30" (or "Mon 14:30") in a time zone, for meeting slots. Always 24-hour, like the rest of scheduling. */
+export function formatSlot(input: Date | number | string, timeZone: string, lang: UiLang = 'en', withDate = true): string {
+  const d = new Date(input);
+  if (Number.isNaN(d.getTime())) return '';
+  const { y, m, d: day, h, min } = partsIn(d, timeZone);
+  const N = NAMES[lang];
+  const wd = N.days[new Date(Date.UTC(y, m - 1, day)).getUTCDay()]!;
+  const time = `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+  return withDate ? `${wd} ${day} ${N.short[m - 1]} · ${time}` : `${wd} ${time}`;
 }

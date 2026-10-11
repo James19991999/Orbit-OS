@@ -1,10 +1,10 @@
 import { formatMoney, parseMoneyToMinor, relativeTime, type Currency } from '@/lib/format';
-import { REGION_CONVENTIONS, formatDateWith, regionOf, type DateStyle } from './conventions';
+import { REGION_CONVENTIONS, formatDateWith, formatSlot, regionOf, type DateStyle, type UiLang } from './conventions';
 
-export type { DateStyle };
+export type { DateStyle, UiLang };
 
 /**
- * The UI is English-only, but numbers, money and dates follow each user's region:
+ * Numbers, money and date order follow each user's region (month and weekday names follow their language):
  * a browser set to de-DE gets English text with German conventions (locale "en-DE" → 1.234,56),
  * en-US gets "Oct 8, 2026" and "$1,234.56". Resolved from the orbit_locale cookie (Profile →
  * Region format) or the Accept-Language header, falling back to en-KE.
@@ -86,20 +86,25 @@ export interface Formatter {
   parseMoney: (input: string) => number | null;
   date: (d: Date | string | number, style?: DateStyle) => string;
   relative: (d: Date | string | number, now?: Date) => string;
+  /** "Mon 12 Oct · 14:30" in a time zone (default: the viewer's). */
+  slot: (d: Date | string | number, timeZone?: string, withDate?: boolean) => string;
+  lang: UiLang;
 }
 
 /** Region-formatted date. Bare dates ("2026-10-08") never shift; timestamps show in `timeZone`. */
-export function formatDate(d: Date | string | number, style: DateStyle = 'short', locale = DEFAULT_LOCALE, timeZone = 'UTC'): string {
-  return formatDateWith(d, locale, style, timeZone);
+export function formatDate(d: Date | string | number, style: DateStyle = 'short', locale = DEFAULT_LOCALE, timeZone = 'UTC', lang: UiLang = 'en'): string {
+  return formatDateWith(d, locale, style, timeZone, lang);
 }
 
-export function makeFormatter(locale: string = DEFAULT_LOCALE, timeZone = 'UTC'): Formatter {
+export function makeFormatter(locale: string = DEFAULT_LOCALE, timeZone = 'UTC', lang: UiLang = 'en'): Formatter {
   return {
     locale,
     timeZone,
+    lang,
     money: (minor, currency, opts = {}) => formatMoney(minor, currency, { ...opts, locale }),
     parseMoney: (input) => parseMoneyToMinor(input, locale),
-    date: (d, style) => formatDate(d, style, locale, timeZone),
-    relative: (d, now) => relativeTime(d, now, locale, timeZone),
+    date: (d, style) => formatDate(d, style, locale, timeZone, lang),
+    relative: (d, now) => relativeTime(d, now, locale, timeZone, lang),
+    slot: (d, tz, withDate = true) => formatSlot(d, tz ?? timeZone, lang, withDate),
   };
 }

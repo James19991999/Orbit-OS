@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef } from 'react';
 import { cn } from './cn';
+import { useTOr } from '@/i18n/client';
 import { Icon } from './Icon';
 
 /**
@@ -9,6 +10,7 @@ import { Icon } from './Icon';
  */
 export function Dialog({ open, onClose, title, description, children, footer, wide }:
   { open: boolean; onClose: () => void; title: string; description?: string; children: React.ReactNode; footer?: React.ReactNode; wide?: boolean }) {
+  const tr = useTOr();
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const d = ref.current;
@@ -38,7 +40,7 @@ export function Dialog({ open, onClose, title, description, children, footer, wi
               <h2 id="dlg-title" className="text-headline-sm">{title}</h2>
               {description && <p className="mt-1 text-body-sm text-on-surface-variant">{description}</p>}
             </div>
-            <button type="button" onClick={onClose} className="rounded p-1 text-on-surface-variant hover:bg-on-surface/5" aria-label="Close dialog">
+            <button type="button" onClick={onClose} className="rounded p-1 text-on-surface-variant hover:bg-on-surface/5" aria-label={tr('ui.close_dialog', 'Close dialog')}>
               <Icon name="close" />
             </button>
           </div>

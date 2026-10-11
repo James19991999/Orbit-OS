@@ -35,3 +35,26 @@ describe('i18n dictionaries', () => {
     expect(translate('sw', 'pay.summary', { total: 'KSh 10', count: 1, creator: 'Amina' })).toBe('KSh 10 · mtu 1 · yameandaliwa na Amina');
   });
 });
+
+import { makeFormatter } from '@/lib/locale';
+describe('dates in Kiswahili and French', () => {
+  const now = new Date('2026-10-11T09:00:00Z');
+  it('uses the language’s month and weekday names, day first', () => {
+    expect(makeFormatter('en-US', 'UTC', 'en').date('2026-10-08', 'long')).toBe('October 8, 2026');
+    expect(makeFormatter('en-US', 'UTC', 'sw').date('2026-10-08', 'long')).toBe('8 Oktoba 2026');
+    expect(makeFormatter('en-KE', 'UTC', 'fr').date('2026-02-08')).toBe('8 févr. 2026');
+    expect(makeFormatter('en-US', 'Africa/Nairobi', 'fr').date('2026-10-08T15:30:00Z', 'datetime')).toBe('8 oct. 2026, 18:30');
+    expect(makeFormatter('en-KE', 'Africa/Nairobi', 'sw').slot('2026-10-12T06:00:00Z')).toBe('Jtt 12 Okt · 09:00');
+    expect(makeFormatter('en-KE', 'Europe/Paris', 'fr').slot('2026-10-12T06:00:00Z', undefined, false)).toBe('lun. 08:00');
+  });
+  it('says relative times in the language', () => {
+    const at = (s: number) => new Date(now.getTime() + s * 1000);
+    expect(makeFormatter('en-KE', 'UTC', 'en').relative(at(-300), now)).toBe('5 minutes ago');
+    expect(makeFormatter('en-KE', 'UTC', 'en').relative(at(-86400), now)).toBe('yesterday');
+    expect(makeFormatter('en-KE', 'UTC', 'sw').relative(at(-7200), now)).toBe('saa 2 zilizopita');
+    expect(makeFormatter('en-KE', 'UTC', 'sw').relative(at(86400), now)).toBe('kesho');
+    expect(makeFormatter('en-KE', 'UTC', 'fr').relative(at(-300), now)).toBe('il y a 5 min');
+    expect(makeFormatter('en-KE', 'UTC', 'fr').relative(at(3 * 86400), now)).toBe('dans 3 jours');
+    expect(makeFormatter('en-KE', 'UTC', 'fr').relative(at(10), now)).toBe('à l’instant');
+  });
+});

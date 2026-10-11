@@ -13,18 +13,23 @@ import { OverlapBand } from '@/components/scheduling/OverlapBand';
 import { LiveClock, Countdown } from '@/components/scheduling/LiveClock';
 import { SlotFinder } from '@/components/scheduling/SlotFinder';
 import type { Meeting } from '@/lib/types';
+import { getT } from '@/i18n/server';
+import { getFormat } from '@/lib/locale/server';
+import type { MessageKey } from '@/i18n/shared';
 
-export const metadata: Metadata = { title: 'Scheduling' };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())('p.sch.title') };
+}
 
-const PHASE: Record<DayPhase, { label: string; icon: string; tone: 'healthy' | 'info' | 'warning' | 'neutral' }> = {
-  starting: { label: 'Starting day', icon: 'wb_twilight', tone: 'info' },
-  working: { label: 'Working', icon: 'wb_sunny', tone: 'healthy' },
-  wrapping: { label: 'Wrapping up', icon: 'partly_cloudy_day', tone: 'warning' },
-  off: { label: 'Off hours', icon: 'bedtime', tone: 'neutral' },
+const PHASE: Record<DayPhase, { icon: string; tone: 'healthy' | 'info' | 'warning' | 'neutral' }> = {
+  starting: { icon: 'wb_twilight', tone: 'info' },
+  working: { icon: 'wb_sunny', tone: 'healthy' },
+  wrapping: { icon: 'partly_cloudy_day', tone: 'warning' },
+  off: { icon: 'bedtime', tone: 'neutral' },
 };
 
 export default async function SchedulingPage() {
-  const { supabase, org, profile, user, role } = await requireAppContext();
+  const [{ supabase, org, profile, user, role }, t, fmt] = await Promise.all([requireAppContext(), getT(), getFormat()]);
   const now = Date.now();
   const members = await loadMembers(supabase, org.id);
   const windows = toWindows(members);
@@ -50,20 +55,20 @@ export default async function SchedulingPage() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <p className="flex items-center gap-1.5 text-label-xs uppercase text-on-surface-variant"><Icon name="public" className="text-[16px]" />Global presence · {utcOffsetLabel(now, profile.timezone)} (you)</p>
-        <h1 className="mt-1 text-headline-lg-mobile md:text-headline-lg">Scheduling</h1>
+        <p className="flex items-center gap-1.5 text-label-xs uppercase text-on-surface-variant"><Icon name="public" className="text-[16px]" />{t('p.sch.presence', { offset: utcOffsetLabel(now, profile.timezone) })}</p>
+        <h1 className="mt-1 text-headline-lg-mobile md:text-headline-lg">{t('p.sch.title')}</h1>
       </div>
 
       <Card>
-        <CardHeader title="Active team matrix" icon="travel_explore" subtitle={`${members.length} people in ${hubs.length} cities`} />
+        <CardHeader title={t('p.sch.matrix')} icon="travel_explore" subtitle={t('p.sch.people_cities', { people: t('p.sch.n_people', { count: members.length }), cities: t('p.sch.n_cities', { count: hubs.length }) })} />
         <div className="mb-4 flex flex-wrap gap-4 text-body-md">
           {(['Americas', 'EMEA', 'APAC'] as const).map((r) => (
-            <span key={r} className="flex items-center gap-2"><span className="text-on-surface-variant">{r}</span><strong className="tnum">{members.length ? Math.round(((regions[r] ?? 0) / members.length) * 100) : 0}%</strong></span>
+            <span key={r} className="flex items-center gap-2"><span className="text-on-surface-variant">{t(`p.sch.region.${r}` as MessageKey)}</span><strong className="tnum">{members.length ? Math.round(((regions[r] ?? 0) / members.length) * 100) : 0}%</strong></span>
           ))}
         </div>
         <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {hubs.map((h) => {
-            const ph = PHASE[dayPhase(h.members[0], now)];
+            const phase = dayPhase(h.members[0], now); const ph = { ...PHASE[phase], label: t(`p.sch.ph.${phase}` as MessageKey) };
             return (
               <li key={h.tz} className="rounded-lg border border-outline-variant bg-surface-container-low p-4">
                 <div className="flex items-center justify-between">
@@ -84,41 +89,41 @@ export default async function SchedulingPage() {
       <div className="grid gap-4 xl:grid-cols-12 xl:items-start">
         <Card glow className="xl:col-span-7">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="flex items-center gap-2 text-headline-sm"><Icon name="timelapse" className="text-secondary" />Overlap window</h2>
-            {overlap.best && <Pill tone={overlap.meetsTarget ? 'healthy' : 'warning'} pulse={!!inWindow}>{overlap.coveragePct}% overlap{inWindow ? ' · active' : ''}</Pill>}
+            <h2 className="flex items-center gap-2 text-headline-sm"><Icon name="timelapse" className="text-secondary" />{t('p.sch.overlap')}</h2>
+            {overlap.best && <Pill tone={overlap.meetsTarget ? 'healthy' : 'warning'} pulse={!!inWindow}>{t('p.sch.overlap_pct', { pct: overlap.coveragePct })}{inWindow ? ` · ${t('p.sch.active')}` : ''}</Pill>}
           </div>
           {overlap.best ? (
             <>
-              <p className="text-label-xs uppercase text-on-surface-variant">Today&apos;s overlap window (UTC)</p>
+              <p className="text-label-xs uppercase text-on-surface-variant">{t('p.sch.today_utc')}</p>
               <p className="mt-1 text-headline-lg tnum">{fmtUtcTime(overlap.best.start)} – {fmtUtcTime(overlap.best.end)}</p>
               <p className="mt-1 text-body-md text-on-surface-variant">
-                {overlap.best.count} of {overlap.total} members working · {overlap.hours.toFixed(1)} h
-                {inWindow && <> · Remaining <Countdown until={overlap.best.end} initialMin={Math.round((overlap.best.end - now) / 60_000)} /></>}
-                {!overlap.meetsTarget && <> · <span className="text-warning">below your {Number(org.golden_overlap_min_hours)} h target</span></>}
+                {t('p.sch.working_now', { n: overlap.best.count, total: overlap.total, hours: overlap.hours.toFixed(1) })}
+                {inWindow && <> · {t('p.sch.remaining')} <Countdown until={overlap.best.end} initialMin={Math.round((overlap.best.end - now) / 60_000)} /></>}
+                {!overlap.meetsTarget && <> · <span className="text-warning">{t('p.sch.below_target', { n: Number(org.golden_overlap_min_hours) })}</span></>}
               </p>
-              <div className="mt-4"><OverlapBand slots={overlap.slots} total={overlap.total} best={overlap.best} dayStart={overlap.dayStart} nowMs={now} /></div>
+              <div className="mt-4"><OverlapBand t={t} slots={overlap.slots} total={overlap.total} best={overlap.best} dayStart={overlap.dayStart} nowMs={now} /></div>
             </>
-          ) : <EmptyState icon="event_busy" title="No shared working hours today" body="It may be a weekend for most of the team, or working hours don't overlap." />}
+          ) : <EmptyState icon="event_busy" title={t('p.sch.no_overlap')} body={t('p.sch.no_overlap_body')} />}
         </Card>
 
         <Card className="xl:col-span-5">
-          <CardHeader title="Orchestration suggestion" icon="psychology" subtitle="Best upcoming slot for a group — computed from everyone's working hours" />
+          <CardHeader title={t('p.sch.suggest')} icon="psychology" subtitle={t('p.sch.suggest_sub')} />
           <SlotFinder members={windows} viewerTz={profile.timezone} orgId={org.id} orgSlug={org.slug} userId={user.id} canWrite={can.write(role)} />
         </Card>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-12 xl:items-start">
         <Card className="xl:col-span-5">
-          <CardHeader title="Cognitive load & async shift" icon="monitoring" subtitle="Last 14 days" />
+          <CardHeader title={t('p.sch.load')} icon="monitoring" subtitle={t('p.sch.last14')} />
           <div className="grid grid-cols-3 gap-3">
-            <Stat label="Meeting load" value={`${load.meetingHoursPerWeek.toFixed(1)} h`} sub="per person / week" />
-            <Stat label="Async-first" value={`${Math.round(load.asyncShare * 100)}%`} sub="of meetings" />
-            <Stat label="Deep work" value={`${load.deepWorkHoursPerWeek.toFixed(1)} h`} sub="protected / week" />
+            <Stat label={t('p.sch.meeting_load')} value={`${load.meetingHoursPerWeek.toFixed(1)} h`} sub={t('p.sch.per_week')} />
+            <Stat label={t('p.sch.async')} value={`${Math.round(load.asyncShare * 100)}%`} sub={t('p.sch.of_meetings')} />
+            <Stat label={t('p.sch.deep')} value={`${load.deepWorkHoursPerWeek.toFixed(1)} h`} sub={t('p.sch.protected')} />
           </div>
         </Card>
         <Card className="xl:col-span-7">
-          <CardHeader title="Upcoming syncs" icon="event_upcoming" subtitle={`${upcoming.length} scheduled`} />
-          {upcoming.length === 0 ? <EmptyState icon="event_available" title="No upcoming meetings" /> : (
+          <CardHeader title={t('p.sch.upcoming')} icon="event_upcoming" subtitle={t('p.sch.scheduled', { n: upcoming.length })} />
+          {upcoming.length === 0 ? <EmptyState icon="event_available" title={t('p.sch.none')} /> : (
             <ul className="divide-y divide-outline-variant">
               {upcoming.map((m) => {
                 const parts = m.meeting_participants.map((p) => windows.find((w) => w.userId === p.user_id)).filter(Boolean) as typeof windows;
@@ -129,12 +134,12 @@ export default async function SchedulingPage() {
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="min-w-0">
                         <h3 className="text-label-md"><Link href={`/scheduling/meetings/${m.id}`} className="hover:underline">{m.title}</Link></h3>
-                        <p className="text-body-sm text-on-surface-variant tnum">{formatInTimeZone(m.starts_at, profile.timezone, 'EEE d MMM · HH:mm')} your time · {m.duration_min} min · {formatInTimeZone(m.starts_at, 'UTC', 'HH:mm')} UTC</p>
+                        <p className="text-body-sm text-on-surface-variant tnum">{t('p.sch.your_time', { when: fmt.slot(m.starts_at, profile.timezone), n: m.duration_min, utc: formatInTimeZone(m.starts_at, 'UTC', 'HH:mm') })}</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        {m.mode === 'async_first' && <Pill tone="info">Async-first</Pill>}
-                        {live && <Pill tone="healthy" pulse>Live</Pill>}
-                        {m.video_url && <a href={m.video_url} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 items-center gap-1 rounded border border-outline-variant px-3 text-label-sm hover:bg-on-surface/5"><Icon name="videocam" className="text-[16px]" />Join</a>}
+                        {m.mode === 'async_first' && <Pill tone="info">{t('p.sch.async_first')}</Pill>}
+                        {live && <Pill tone="healthy" pulse>{t('p.sch.live')}</Pill>}
+                        {m.video_url && <a href={m.video_url} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 items-center gap-1 rounded border border-outline-variant px-3 text-label-sm hover:bg-on-surface/5"><Icon name="videocam" className="text-[16px]" />{t('p.sch.join')}</a>}
                       </div>
                     </div>
                     <p className="mt-1 flex flex-wrap gap-x-3 text-body-sm text-on-surface-variant tnum">
@@ -145,7 +150,7 @@ export default async function SchedulingPage() {
               })}
             </ul>
           )}
-          <p className="mt-3 flex items-center gap-1.5 text-body-sm text-on-surface-variant"><Icon name="mail" className="text-[16px]" />Invites are emailed as calendar files (.ics) that work with Google Calendar and Outlook.</p>
+          <p className="mt-3 flex items-center gap-1.5 text-body-sm text-on-surface-variant"><Icon name="mail" className="text-[16px]" />{t('p.sch.invites_note')}</p>
         </Card>
       </div>
     </div>

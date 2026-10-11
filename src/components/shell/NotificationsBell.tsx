@@ -7,6 +7,7 @@ import { useRealtime } from '@/hooks/useRealtime';
 import { useT } from '@/i18n/client';
 
 import type { Notification } from '@/lib/types';
+import { localizeNotification } from '@/lib/notification-text';
 
 export function NotificationsBell({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false);
@@ -70,7 +71,7 @@ export function NotificationsBell({ userId }: { userId: string }) {
           {error && <p role="alert" className="px-4 py-2 text-body-sm text-alert">{t('notif.load_failed', { error })}</p>}
           <ul className="max-h-96 overflow-y-auto">
             {items.length === 0 && !error && <li className="px-4 py-6 text-center text-body-sm text-on-surface-variant">{t('notif.empty')}</li>}
-            {items.map((n) => (
+            {items.map((raw) => { const n = { ...raw, ...localizeNotification(raw, t) }; return (
               <li key={n.id} className="border-b border-outline-variant last:border-0">
                 <Link href={n.link ?? '/notifications'} onClick={() => setOpen(false)} className="flex gap-3 px-4 py-3 hover:bg-on-surface/5">
                   <span className={cn('mt-1.5 h-2 w-2 shrink-0 rounded-full', n.read_at ? 'bg-transparent' : 'bg-primary-container')} aria-hidden />
@@ -81,7 +82,7 @@ export function NotificationsBell({ userId }: { userId: string }) {
                   </span>
                 </Link>
               </li>
-            ))}
+            ); })}
           </ul>
           <Link href="/notifications" onClick={() => setOpen(false)} className="block border-t border-outline-variant px-4 py-2.5 text-center text-label-sm text-primary hover:underline">{t('notif.view_all')}</Link>
         </div>

@@ -1,8 +1,8 @@
 import { formatInTimeZone } from 'date-fns-tz';
 
-export function greeting(timezone: string, now = new Date()): string {
+export function greetingKey(timezone: string, now = new Date()): 'p.dash.morning' | 'p.dash.afternoon' | 'p.dash.evening' {
   const h = Number(formatInTimeZone(now, timezone || 'UTC', 'H'));
-  return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  return h < 12 ? 'p.dash.morning' : h < 17 ? 'p.dash.afternoon' : 'p.dash.evening';
 }
 
 export function quarterDay(now = new Date()) {

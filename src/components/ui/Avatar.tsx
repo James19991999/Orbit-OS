@@ -1,5 +1,6 @@
 'use client';
 import { cn } from './cn';
+import { useTOr } from '@/i18n/client';
 import { initials } from '@/lib/format';
 import { useDataSaver } from '@/components/shell/DataSaver';
 
@@ -7,6 +8,7 @@ const palette = ['bg-[#2563eb]', 'bg-[#0369a1]', 'bg-[#047857]', 'bg-[#7c3aed]',
 function hash(s: string) { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h); }
 
 export function Avatar({ name, src, size = 32, online, className }: { name: string; src?: string | null; size?: number; online?: boolean; className?: string }) {
+  const tr = useTOr();
   // Data saver: initials instead of downloading photos.
   const saver = useDataSaver();
   if (saver) src = null;
@@ -23,7 +25,7 @@ export function Avatar({ name, src, size = 32, online, className }: { name: stri
       )}
       {online !== undefined && (
         <span className={cn('absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full ring-2 ring-surface-container', online ? 'bg-healthy' : 'bg-outline')}
-          aria-label={online ? 'Online' : 'Offline'} role="img" />
+          aria-label={online ? tr('ui.online', 'Online') : tr('ui.offline', 'Offline')} role="img" />
       )}
     </span>
   );

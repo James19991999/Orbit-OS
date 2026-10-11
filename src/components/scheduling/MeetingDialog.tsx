@@ -9,11 +9,13 @@ import { isWithinWorkingHours, type MemberWindow } from '@/lib/scheduling/time';
 import { jitsiUrl } from '@/lib/ics';
 import { useBusy } from '@/hooks/useBusy';
 import { useT } from '@/i18n/client';
+import { useFormat } from '@/lib/locale/client';
 
 export function MeetingDialog({ open, onClose, orgId, orgSlug, userId, viewerTz, members, preset }:
   { open: boolean; onClose: () => void; orgId: string; orgSlug: string; userId: string; viewerTz: string; members: MemberWindow[];
     preset?: { start?: number; participantIds?: string[]; title?: string; durationMin?: number } }) {
   const t = useT();
+  const fmt = useFormat();
   const router = useRouter();
   const nextHour = Math.ceil(Date.now() / 3_600_000) * 3_600_000;
   const init = () => ({
@@ -82,7 +84,7 @@ export function MeetingDialog({ open, onClose, orgId, orgSlug, userId, viewerTz,
             <div className="grid max-h-56 gap-2 overflow-y-auto rounded border border-outline-variant p-3 sm:grid-cols-2">
               {members.map((m) => (
                 <Checkbox key={m.userId} checked={f.ids.has(m.userId) || m.userId === userId} disabled={m.userId === userId} onChange={() => toggle(m.userId)}
-                  label={m.name ?? 'Member'} description={Number.isFinite(startMs) ? t('mtg.local', { time: formatInTimeZone(startMs, m.timezone, 'EEE HH:mm'), place: m.city ?? m.timezone }) : m.timezone} />
+                  label={m.name ?? 'Member'} description={Number.isFinite(startMs) ? t('mtg.local', { time: fmt.slot(startMs, m.timezone, false), place: m.city ?? m.timezone }) : m.timezone} />
               ))}
             </div>
           </fieldset>

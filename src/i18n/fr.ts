@@ -1,5 +1,8 @@
 import type { MessageKey } from './en';
 import { common } from './modules/common';
+import { operations } from './modules/operations';
+import { misc } from './modules/misc';
+import { dashboard } from './modules/dashboard';
 import { scheduling } from './modules/scheduling';
 import { invoices } from './modules/invoices';
 import { etims } from './modules/etims';
@@ -161,6 +164,9 @@ export const fr: Partial<Record<MessageKey, string>> = {
   'pay.sent_all': 'Paiement envoyé — tout le monde a été payé', 'pay.sent_processing': 'Paiement libéré — M-Pesa le traite',
   'pay.cancelled_toast': 'Brouillon annulé', 'pay.status_toast': 'Statut : {status}',
   ...common.fr,
+  ...operations.fr,
+  ...misc.fr,
+  ...dashboard.fr,
   ...scheduling.fr,
   ...invoices.fr,
   ...etims.fr,

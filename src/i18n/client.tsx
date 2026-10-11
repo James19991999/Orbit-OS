@@ -1,6 +1,6 @@
 'use client';
 import { createContext, useContext, useEffect, useMemo } from 'react';
-import { makeClientT, LANGUAGE_COOKIE, type Language, type Messages, type T } from './shared';
+import { makeClientT, LANGUAGE_COOKIE, type Language, type MessageKey, type Messages, type T } from './shared';
 
 const Ctx = createContext<{ lang: Language; messages: Messages }>({ lang: 'en', messages: {} });
 
@@ -14,6 +14,12 @@ export const useLang = () => useContext(Ctx).lang;
 export function useT(): T {
   const { messages } = useContext(Ctx);
   return useMemo(() => makeClientT(messages), [messages]);
+}
+
+/** For shared UI primitives that can also render outside a provider: the translation, else the English given. */
+export function useTOr(): (key: MessageKey, english: string) => string {
+  const { messages } = useContext(Ctx);
+  return (key, english) => messages[key] ?? english;
 }
 
 /** Remembers the language on this device (used before sign-in, e.g. on the login page). */

@@ -1,6 +1,7 @@
 'use client';
 import { createContext, useContext, useMemo } from 'react';
-import { DEFAULT_LOCALE, LOCALE_COOKIE, makeFormatter, type Formatter } from './index';
+import { DEFAULT_LOCALE, LOCALE_COOKIE, makeFormatter, type Formatter, type UiLang } from './index';
+import { useLang } from '@/i18n/client';
 
 const LocaleContext = createContext<{ locale: string; timeZone: string }>({ locale: DEFAULT_LOCALE, timeZone: 'UTC' });
 
@@ -12,7 +13,8 @@ export function LocaleProvider({ locale, timeZone, children }: { locale: string;
 
 export function useFormat(): Formatter {
   const { locale, timeZone } = useContext(LocaleContext);
-  return useMemo(() => makeFormatter(locale, timeZone), [locale, timeZone]);
+  const lang = useLang() as UiLang;
+  return useMemo(() => makeFormatter(locale, timeZone, lang), [locale, timeZone, lang]);
 }
 
 /** Saves the Region format choice for this browser ('' = follow the browser). */

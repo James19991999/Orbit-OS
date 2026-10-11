@@ -3,9 +3,9 @@ import Link from '@/components/ui/SmartLink';
 import { requireAppContext } from '@/lib/context';
 import { loadDashboard } from '@/lib/data/dashboard';
 import { HEALTH_FORMULA } from '@/lib/metrics/health';
-import { formatRunway } from '@/lib/metrics/finance';
 import { firstName, signed } from '@/lib/format';
-import { greeting, quarterDay, fmtUtcTime } from '@/lib/time-of-day';
+import type { MessageKey } from '@/i18n/shared';
+import { greetingKey, quarterDay, fmtUtcTime } from '@/lib/time-of-day';
 import { can } from '@/lib/roles';
 import { planAllows } from '@/lib/billing/plans';
 import { Card, CardHeader, Icon, Pill, KpiTile, LinkButton, EmptyState, Banner, ProgressBar } from '@/components/ui';
@@ -14,17 +14,17 @@ import { getFormat } from '@/lib/locale/server';
 import { getT } from '@/i18n/server';
 import { ChiefOfStaff, type BriefView } from '@/components/dashboard/ChiefOfStaff';
 
-export const metadata: Metadata = { title: 'Dashboard' };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())('p.dash.title') };
+}
 
 const statusTone = { optimal: 'healthy', watch: 'warning', at_risk: 'alert' } as const;
-const statusText = { optimal: 'Optimal', watch: 'Watch', at_risk: 'At risk' } as const;
 
 export default async function DashboardPage(props: { searchParams: Promise<{ welcome?: string }> }) {
-  const fmt = await getFormat();
+  const [fmt, t] = await Promise.all([getFormat(), getT()]);
   const searchParams = await props.searchParams;
   const ctx = await requireAppContext();
-  const d = await loadDashboard(ctx.supabase, ctx.org, ctx.role, ctx.user.id);
-  const t = await getT();
+  const d = await loadDashboard(ctx.supabase, ctx.org, ctx.role, ctx.user.id, { t, fmt });
   // RLS limits briefs to owners/directors; the latest of either kind for this person.
   const brief = ctx.org.ai_enabled && (ctx.role === 'owner' || ctx.role === 'director')
     ? ((await ctx.supabase.from('ai_briefs').select('id, kind, content, source, created_at').eq('org_id', ctx.org.id).eq('user_id', ctx.user.id).order('created_at', { ascending: false }).limit(1)).data?.[0] as BriefView | undefined) ?? null
@@ -36,27 +36,28 @@ export default async function DashboardPage(props: { searchParams: Promise<{ wel
   const remainingMs = d.overlap.best ? d.overlap.best.end - now.getTime() : 0;
   const inWindow = d.overlap.best && now.getTime() >= d.overlap.best.start && now.getTime() < d.overlap.best.end;
   const moodDelta = d.mood7 !== null && d.mood30 !== null ? d.mood7 - d.mood30 : null;
+  const runway = (m: number | null) => (m === null ? '—' : !Number.isFinite(m) ? t('p.dash.runway_positive') : m >= 24 ? t('p.dash.runway_24') : t('p.dash.runway_mo', { n: m.toFixed(1) }));
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2 text-body-sm text-on-surface-variant">
           <LiveSync orgId={ctx.org.id} />
-          <span className="tnum">Q{qd.quarter} · Day {qd.day}</span>
+          <span className="tnum">{t('p.dash.qday', { q: qd.quarter, day: qd.day })}</span>
         </div>
         <div>
-          <h1 className="text-headline-lg-mobile md:text-headline-lg">{greeting(ctx.profile.timezone, now)}, {firstName(ctx.profile.full_name)}</h1>
+          <h1 className="text-headline-lg-mobile md:text-headline-lg">{t(greetingKey(ctx.profile.timezone, now))}, {firstName(ctx.profile.full_name)}</h1>
           <p className="mt-1 flex items-center gap-1.5 text-body-md text-on-surface-variant">
             <Icon name="public" className="text-[18px]" />
-            {ctx.org.name} · {d.members.length} {d.members.length === 1 ? 'member' : 'members'} across {d.timezones} time {d.timezones === 1 ? 'zone' : 'zones'}
+            {t('p.dash.members_zones', { org: ctx.org.name, members: t('p.dash.n_members', { count: d.members.length }), zones: t('p.dash.n_zones', { count: d.timezones }) })}
           </p>
         </div>
       </div>
 
       {(searchParams.welcome || d.members.length === 1) && can.manage(ctx.role) && (
         <Banner tone="info" icon="waving_hand">
-          <strong>Welcome to OrbitOS.</strong> Invite your team so scheduling, culture and health metrics have data to work with.{' '}
-          <Link href="/settings?section=members" className="text-primary underline">Invite teammates</Link>
+          <strong>{t('p.dash.welcome')}</strong> {t('p.dash.welcome_body')}{' '}
+          <Link href="/settings?section=members" className="text-primary underline">{t('p.dash.invite')}</Link>
         </Banner>
       )}
 
@@ -65,50 +66,50 @@ export default async function DashboardPage(props: { searchParams: Promise<{ wel
         <Card glow className="xl:col-span-7" aria-labelledby="health-h">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-label-xs uppercase text-on-surface-variant">Executive overview</p>
-              <h2 id="health-h" className="mt-1 text-headline-sm">Company Health Index</h2>
+              <p className="text-label-xs uppercase text-on-surface-variant">{t('p.dash.overview')}</p>
+              <h2 id="health-h" className="mt-1 text-headline-sm">{t('p.dash.health')}</h2>
             </div>
-            <Pill tone={statusTone[d.health.status]} pulse>{statusText[d.health.status]}</Pill>
+            <Pill tone={statusTone[d.health.status]} pulse>{t(`p.dash.status.${d.health.status}` as MessageKey)}</Pill>
           </div>
           <div className="mt-4 flex flex-wrap items-end gap-x-4 gap-y-1">
             <p className="text-headline-xl tnum leading-none">{d.health.score}<span className="text-headline-md text-on-surface-variant">/100</span></p>
             {delta !== null && (
               <p className={`flex items-center gap-1 pb-1 text-label-md tnum ${delta >= 0 ? 'text-healthy' : 'text-alert'}`}>
-                <Icon name={delta >= 0 ? 'trending_up' : 'trending_down'} />{signed(delta, 0)} pts vs 2 weeks ago
+                <Icon name={delta >= 0 ? 'trending_up' : 'trending_down'} />{t('p.dash.vs_2w', { delta: signed(delta, 0) })}
               </p>
             )}
           </div>
           <details className="mt-3 text-body-sm text-on-surface-variant">
-            <summary className="cursor-pointer text-primary">How is this calculated?</summary>
+            <summary className="cursor-pointer text-primary">{t('p.dash.how')}</summary>
             <ul className="mt-2 flex flex-col gap-1">
-              {HEALTH_FORMULA.map((f) => <li key={f.key}><strong className="text-on-surface">{f.label} ({f.weight}%)</strong> — {f.detail}</li>)}
-              <li>Pillars with no data yet are left out rather than counted as zero.</li>
+              {HEALTH_FORMULA.map((f) => <li key={f.key}><strong className="text-on-surface">{t(`p.dash.f.${f.key}` as MessageKey)} ({f.weight}%)</strong> — {t(`p.dash.f.${f.key}_d` as MessageKey)}</li>)}
+              <li>{t('p.dash.f.missing')}</li>
             </ul>
           </details>
           <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <KpiTile label="Velocity" icon="speed" href="/operations"
+            <KpiTile label={t('p.dash.kpi.velocity')} icon="speed" href="/operations"
               value={d.sprintInfo ? `${d.sprintInfo.pct}%` : '—'}
-              sub={d.sprintInfo ? `${d.sprintInfo.done}/${d.sprintInfo.committed} pts · day ${d.sprintInfo.day}/${d.sprintInfo.totalDays}` : 'No active sprint'} />
-            <KpiTile label="Runway" icon="account_balance" href={can.seeFinance(ctx.role) ? '/operations?tab=finance' : undefined}
-              value={formatRunway(d.finance.runwayMonths)}
-              sub={d.finance.cashBalance !== null ? `Burn ${fmt.money(d.finance.monthlyBurn, cur, { compact: true })}/mo` : 'Add a cash balance'} />
-            <KpiTile label="Culture pulse" icon="favorite" href="/culture"
+              sub={d.sprintInfo ? t('p.dash.kpi.velocity_sub', { done: d.sprintInfo.done, committed: d.sprintInfo.committed, day: d.sprintInfo.day, total: d.sprintInfo.totalDays }) : t('p.dash.kpi.no_sprint')} />
+            <KpiTile label={t('p.dash.kpi.runway')} icon="account_balance" href={can.seeFinance(ctx.role) ? '/operations?tab=finance' : undefined}
+              value={runway(d.finance.runwayMonths)}
+              sub={d.finance.cashBalance !== null ? t('p.dash.kpi.burn', { amount: fmt.money(d.finance.monthlyBurn, cur, { compact: true }) }) : t('p.dash.kpi.add_cash')} />
+            <KpiTile label={t('p.dash.kpi.culture')} icon="favorite" href="/culture"
               value={d.health.components.culture !== null ? `${d.health.components.culture}%` : '—'}
-              sub={d.rate14 !== null ? `${Math.round(d.rate14 * 100)}% check-in rate` : 'No check-ins yet'} />
-            <KpiTile label="Compliance" icon="verified_user" href="/compliance"
+              sub={d.rate14 !== null ? t('p.dash.kpi.checkin_rate', { pct: Math.round(d.rate14 * 100) }) : t('p.dash.kpi.no_checkins')} />
+            <KpiTile label={t('p.dash.kpi.compliance')} icon="verified_user" href="/compliance"
               value={d.ready.total ? `${d.ready.pct}%` : '—'}
-              sub={d.ready.total ? `${d.ready.passing}/${d.ready.total} controls passing` : 'No frameworks enabled'} />
+              sub={d.ready.total ? t('p.dash.kpi.controls', { passing: d.ready.passing, total: d.ready.total }) : t('p.dash.kpi.no_frameworks')} />
           </div>
         </Card>
 
         {/* Urgent actions */}
         <Card className="xl:col-span-5" aria-labelledby="urgent-h">
           <div className="mb-4 flex items-center justify-between gap-2">
-            <h2 id="urgent-h" className="flex items-center gap-2 text-headline-sm"><Icon name="notification_important" className="text-warning" />Urgent actions</h2>
-            <Pill tone={d.urgent.length ? 'warning' : 'healthy'}>{d.urgent.length ? `${d.urgent.length} pending` : 'All clear'}</Pill>
+            <h2 id="urgent-h" className="flex items-center gap-2 text-headline-sm"><Icon name="notification_important" className="text-warning" />{t('p.dash.urgent')}</h2>
+            <Pill tone={d.urgent.length ? 'warning' : 'healthy'}>{d.urgent.length ? t('p.dash.pending', { count: d.urgent.length }) : t('p.dash.all_clear')}</Pill>
           </div>
           {d.urgent.length === 0 ? (
-            <EmptyState icon="task_alt" title="Nothing needs your attention" body="Blocked work, overdue items, failing controls and cost spikes will show up here." />
+            <EmptyState icon="task_alt" title={t('p.dash.nothing')} body={t('p.dash.nothing_body')} />
           ) : (
             <ul className="flex flex-col divide-y divide-outline-variant">
               {d.urgent.slice(0, 6).map((u) => (
@@ -124,7 +125,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ wel
               ))}
             </ul>
           )}
-          {d.urgent.length > 6 && <p className="mt-3 text-body-sm text-on-surface-variant">+{d.urgent.length - 6} more</p>}
+          {d.urgent.length > 6 && <p className="mt-3 text-body-sm text-on-surface-variant">{t('p.dash.more', { count: d.urgent.length - 6 })}</p>}
         </Card>
       </div>
 
@@ -137,57 +138,57 @@ export default async function DashboardPage(props: { searchParams: Promise<{ wel
 
       <div className="grid gap-4 xl:grid-cols-12">
         <Card className="xl:col-span-8" aria-labelledby="pulse-h">
-          <CardHeader title={<span id="pulse-h">Distributed pulse</span>} icon="monitor_heart" subtitle="Real-time core" />
+          <CardHeader title={<span id="pulse-h">{t('p.dash.pulse')}</span>} icon="monitor_heart" subtitle={t('p.dash.pulse_sub')} />
           <ul className="grid gap-4 md:grid-cols-3">
             <li className="rounded-lg border border-outline-variant bg-surface-container-low p-4">
-              <p className="flex items-center gap-2 text-label-sm text-on-surface-variant"><Icon name="alt_route" className="text-[18px]" />Engineering delivery</p>
+              <p className="flex items-center gap-2 text-label-sm text-on-surface-variant"><Icon name="alt_route" className="text-[18px]" />{t('p.dash.delivery')}</p>
               {d.sprintInfo ? (
                 <>
                   <p className="mt-2 text-headline-md tnum">{d.sprintInfo.pct}%</p>
-                  <ProgressBar value={d.sprintInfo.done} max={d.sprintInfo.committed} label="Sprint completion" tone={d.sprintInfo.status === 'on_track' ? 'healthy' : d.sprintInfo.status === 'at_risk' ? 'warning' : 'alert'} />
-                  <p className="mt-2 text-body-sm text-on-surface-variant">{d.sprintInfo.status === 'on_track' ? 'On track' : d.sprintInfo.status === 'at_risk' ? 'At risk' : 'Behind plan'} · {d.blockedCount} blocked</p>
+                  <ProgressBar value={d.sprintInfo.done} max={d.sprintInfo.committed} label={t('p.dash.sprint_completion')} tone={d.sprintInfo.status === 'on_track' ? 'healthy' : d.sprintInfo.status === 'at_risk' ? 'warning' : 'alert'} />
+                  <p className="mt-2 text-body-sm text-on-surface-variant">{t(d.sprintInfo.status === 'on_track' ? 'p.dash.on_track' : d.sprintInfo.status === 'at_risk' ? 'p.dash.at_risk' : 'p.dash.behind')} · {t('p.dash.n_blocked', { n: d.blockedCount })}</p>
                 </>
-              ) : <p className="mt-2 text-body-sm text-on-surface-variant">No active sprint. <Link href="/operations" className="text-primary underline">Plan one</Link></p>}
+              ) : <p className="mt-2 text-body-sm text-on-surface-variant">{t('p.dash.no_sprint')} <Link href="/operations" className="text-primary underline">{t('p.dash.plan_one')}</Link></p>}
             </li>
             <li className="rounded-lg border border-outline-variant bg-surface-container-low p-4">
-              <p className="flex items-center gap-2 text-label-sm text-on-surface-variant"><Icon name="hourglass_top" className="text-[18px]" />Overlap window</p>
+              <p className="flex items-center gap-2 text-label-sm text-on-surface-variant"><Icon name="hourglass_top" className="text-[18px]" />{t('p.dash.overlap')}</p>
               {d.overlap.best ? (
                 <>
                   <p className="mt-2 text-headline-md tnum">{fmtUtcTime(d.overlap.best.start)}–{fmtUtcTime(d.overlap.best.end)} <span className="text-body-sm text-on-surface-variant">UTC</span></p>
                   <p className="mt-1 text-body-sm text-on-surface-variant tnum">
-                    {d.overlap.best.count} of {d.members.length} people · {inWindow ? `${Math.max(0, Math.round(remainingMs / 60_000))} min left` : d.overlap.hours >= 1 ? `${Number(d.overlap.hours.toFixed(1))} h today` : `${Math.round(d.overlap.hours * 60)} min today`}
+                    {t('p.dash.overlap_people', { n: d.overlap.best.count, total: d.members.length })} · {inWindow ? t('p.dash.min_left', { n: Math.max(0, Math.round(remainingMs / 60_000)) }) : d.overlap.hours >= 1 ? t('p.dash.h_today', { n: Number(d.overlap.hours.toFixed(1)) }) : t('p.dash.min_today', { n: Math.round(d.overlap.hours * 60) })}
                   </p>
                 </>
-              ) : <p className="mt-2 text-body-sm text-on-surface-variant">No shared working hours today.</p>}
+              ) : <p className="mt-2 text-body-sm text-on-surface-variant">{t('p.dash.no_overlap')}</p>}
             </li>
             <li className="rounded-lg border border-outline-variant bg-surface-container-low p-4">
-              <p className="flex items-center gap-2 text-label-sm text-on-surface-variant"><Icon name="sentiment_satisfied" className="text-[18px]" />Weekly morale</p>
+              <p className="flex items-center gap-2 text-label-sm text-on-surface-variant"><Icon name="sentiment_satisfied" className="text-[18px]" />{t('p.dash.morale')}</p>
               <p className="mt-2 text-headline-md tnum">{d.mood7 !== null ? d.mood7.toFixed(1) : '—'} <span className="text-body-sm text-on-surface-variant">/ 5.0</span></p>
               {moodDelta !== null && (Math.abs(moodDelta) < 0.05
-                ? <p className="mt-1 text-body-sm text-on-surface-variant">Same as 30-day average</p>
+                ? <p className="mt-1 text-body-sm text-on-surface-variant">{t('p.dash.same_avg')}</p>
                 : <p className={`mt-1 flex items-center gap-1 text-body-sm tnum ${moodDelta > 0 ? 'text-healthy' : 'text-alert'}`}>
-                    <Icon name={moodDelta > 0 ? 'arrow_upward' : 'arrow_downward'} className="text-[16px]" />{signed(moodDelta, 1)} vs 30-day average
+                    <Icon name={moodDelta > 0 ? 'arrow_upward' : 'arrow_downward'} className="text-[16px]" />{t('p.dash.vs_avg', { delta: signed(moodDelta, 1) })}
                   </p>)}
             </li>
           </ul>
         </Card>
 
         <Card className="xl:col-span-4" aria-labelledby="sc-h">
-          <CardHeader title={<span id="sc-h">Executive console</span>} icon="bolt" />
+          <CardHeader title={<span id="sc-h">{t('p.dash.console')}</span>} icon="bolt" />
           <div className="grid grid-cols-2 gap-2">
-            <LinkButton href="/scheduling?new=1" variant="secondary" icon="group_add">Instant 1:1</LinkButton>
+            <LinkButton href="/scheduling?new=1" variant="secondary" icon="group_add">{t('p.dash.one_on_one')}</LinkButton>
             {can.manage(ctx.role)
-              ? <LinkButton href="/operations?tab=finance&new=expense" variant="secondary" icon="receipt_long">Log spend</LinkButton>
-              : <LinkButton href="/culture?tab=roll-call" variant="secondary" icon="edit_note">Check in</LinkButton>}
-            <LinkButton href="/culture?tab=kudos&give=1" variant="secondary" icon="workspace_premium">Shoutout</LinkButton>
+              ? <LinkButton href="/operations?tab=finance&new=expense" variant="secondary" icon="receipt_long">{t('p.dash.log_spend')}</LinkButton>
+              : <LinkButton href="/culture?tab=roll-call" variant="secondary" icon="edit_note">{t('p.dash.check_in')}</LinkButton>}
+            <LinkButton href="/culture?tab=kudos&give=1" variant="secondary" icon="workspace_premium">{t('p.dash.shoutout')}</LinkButton>
             {planAllows(ctx.org.plan, 'auditPackage') && (can.manage(ctx.role) || ctx.role === 'auditor')
-              ? <a href="/api/compliance/audit-package" className="inline-flex h-11 items-center justify-center gap-2 rounded border border-outline-variant bg-surface-container-high px-4 text-label-md text-on-surface hover:bg-surface-container-highest md:h-10"><Icon name="ios_share" className="text-[18px]" />Audit pack</a>
-              : <LinkButton href="/compliance" variant="secondary" icon="verified_user">Compliance</LinkButton>}
+              ? <a href="/api/compliance/audit-package" className="inline-flex h-11 items-center justify-center gap-2 rounded border border-outline-variant bg-surface-container-high px-4 text-label-md text-on-surface hover:bg-surface-container-highest md:h-10"><Icon name="ios_share" className="text-[18px]" />{t('p.dash.audit_pack')}</a>
+              : <LinkButton href="/compliance" variant="secondary" icon="verified_user">{t('p.dash.compliance')}</LinkButton>}
           </div>
           {can.seeFinance(ctx.role) && d.unpaid.count > 0 && (
             <p className="mt-4 text-body-sm text-on-surface-variant">
               <Icon name="receipt_long" className="mr-1 align-middle text-[16px]" />
-              {d.unpaid.count} unpaid invoices · {fmt.money(d.unpaid.total, cur, { compact: true })}{d.unpaid.dueToday ? ` · ${d.unpaid.dueToday} due today` : ''}
+              {t('p.dash.unpaid', { count: d.unpaid.count, total: fmt.money(d.unpaid.total, cur, { compact: true }) })}{d.unpaid.dueToday ? ` · ${t('p.dash.due_today_n', { n: d.unpaid.dueToday })}` : ''}
             </p>
           )}
         </Card>

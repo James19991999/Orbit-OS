@@ -7,12 +7,14 @@ import { suggestSlots } from '@/lib/scheduling/slots';
 import type { MemberWindow } from '@/lib/scheduling/time';
 import { useBusy } from '@/hooks/useBusy';
 import { useT } from '@/i18n/client';
+import { useFormat } from '@/lib/locale/client';
 import { MeetingDialog } from './MeetingDialog';
 
 /** Deterministic "orchestration suggestion": best upcoming slots for a chosen group (no AI involved). */
 export function SlotFinder({ members, viewerTz, orgId, orgSlug, userId, canWrite }:
   { members: MemberWindow[]; viewerTz: string; orgId: string; orgSlug: string; userId: string; canWrite: boolean }) {
   const t = useT();
+  const fmt = useFormat();
   const sp = useSearchParams();
   const [ids, setIds] = useState<Set<string>>(() => new Set(members.slice(0, 9).map((m) => m.userId)));
   const [duration, setDuration] = useState(45);
@@ -51,7 +53,7 @@ export function SlotFinder({ members, viewerTz, orgId, orgSlug, userId, canWrite
       ) : (
         <div className="rounded-lg border border-outline-variant bg-surface-container-low p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="flex items-center gap-2 text-label-md"><Icon name="event" className="text-secondary" />{formatInTimeZone(best.start, viewerTz, 'EEE d MMM · HH:mm')} <span className="text-on-surface-variant">{t('slot.your_time')}</span></p>
+            <p className="flex items-center gap-2 text-label-md"><Icon name="event" className="text-secondary" />{fmt.slot(best.start, viewerTz)} <span className="text-on-surface-variant">{t('slot.your_time')}</span></p>
             <Pill tone={best.allFree ? 'healthy' : 'warning'}>{t('slot.fit', { pct: best.fitPct })}</Pill>
           </div>
           <p className="mt-1 text-body-sm text-on-surface-variant tnum">{formatInTimeZone(best.start, 'UTC', 'HH:mm')} UTC · {t('slot.min', { n: duration })}</p>
@@ -65,7 +67,7 @@ export function SlotFinder({ members, viewerTz, orgId, orgSlug, userId, canWrite
             <ul className="mt-3 flex flex-wrap gap-2 text-body-sm">
               {slots.slice(1).map((s) => (
                 <li key={s.start}><button type="button" disabled={!canWrite} onClick={() => setDialog({ start: s.start, ids: [...ids] })}
-                  className="rounded-full border border-outline-variant px-3 py-1 hover:bg-on-surface/5">{formatInTimeZone(s.start, viewerTz, 'EEE HH:mm')} · {s.fitPct}%</button></li>
+                  className="rounded-full border border-outline-variant px-3 py-1 hover:bg-on-surface/5">{fmt.slot(s.start, viewerTz, false)} · {s.fitPct}%</button></li>
               ))}
             </ul>
           )}

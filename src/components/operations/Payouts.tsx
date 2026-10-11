@@ -33,7 +33,7 @@ export function Payouts({ batches, canManage, userId, aal, memberNames }:
   const router = useRouter();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState(`Salaries ${new Date().toISOString().slice(0, 7)}`);
+  const [title, setTitle] = useState(() => t('pay.default_title', { month: new Date().toISOString().slice(0, 7) }));
   const [rows, setRows] = useState<Row[]>([emptyRow()]);
   const [csv, setCsv] = useState('');
   const [mode, setMode] = useState<'rows' | 'csv'>('rows');

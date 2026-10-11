@@ -8,11 +8,14 @@ import { unpaidSummary, invoiceDisplayStatus } from '@/lib/metrics/invoices';
 import { goldenOverlap, utcMidnight } from '@/lib/scheduling/overlap';
 import { loadMembers, toWindows, isoDaysAgo, must } from './members';
 import { can } from '@/lib/roles';
+import type { T } from '@/i18n/shared';
+import type { Formatter } from '@/lib/locale';
 import type { Organization, Role, Sprint, Task, CheckIn, Control, Invoice, FinanceEntry, Meeting, Dsar } from '@/lib/types';
 
 export interface UrgentItem { id: string; area: string; tone: 'alert' | 'warning' | 'info'; title: string; body: string; when: string; cta: string; href: string }
 
-export async function loadDashboard(supabase: SupabaseClient, org: Organization, role: Role, userId: string, now = new Date()) {
+export async function loadDashboard(supabase: SupabaseClient, org: Organization, role: Role, userId: string, l: { t: T; fmt: Formatter }, now = new Date()) {
+  const { t, fmt } = l;
   const today = now.toISOString().slice(0, 10);
   const members = await loadMembers(supabase, org.id);
   const [sprintRes, financeRes, checkinsRes, controlsRes, tasksRes, snapshotsRes, invoicesRes, expensesRes, meetingsRes, dsarRes, pendingRes] = await Promise.all([
@@ -59,35 +62,35 @@ export async function loadDashboard(supabase: SupabaseClient, org: Organization,
   const urgent: UrgentItem[] = [];
   for (const m of must(meetingsRes, 'meetings') as Meeting[]) {
     const mins = Math.round((new Date(m.starts_at).getTime() - now.getTime()) / 60_000);
-    urgent.push({ id: `m-${m.id}`, area: 'Scheduling', tone: 'info', title: m.title, body: m.description ?? `${m.duration_min}-minute ${m.mode === 'async_first' ? 'async-first ' : ''}sync`,
-      when: mins <= 0 ? 'Happening now' : `Starts in ${mins}m`, cta: 'Join', href: m.video_url ?? `/scheduling/meetings/${m.id}` });
+    urgent.push({ id: `m-${m.id}`, area: t('p.dash.u.scheduling'), tone: 'info', title: m.title, body: m.description ?? t(m.mode === 'async_first' ? 'p.dash.u.minute_async' : 'p.dash.u.minute_sync', { n: m.duration_min }),
+      when: mins <= 0 ? t('p.dash.u.now') : t('p.dash.u.starts_in', { n: mins }), cta: t('p.dash.cta.join'), href: m.video_url ?? `/scheduling/meetings/${m.id}` });
   }
-  for (const t of must(tasksRes, 'tasks') as Task[]) {
-    const blocked = t.status === 'blocked';
-    urgent.push({ id: `t-${t.id}`, area: 'Operations', tone: blocked ? 'alert' : 'warning', title: t.title,
-      body: blocked ? `Blocked: ${t.blocked_reason ?? 'no reason given'}` : `Overdue since ${t.due_on}`,
-      when: blocked ? 'Blocked' : 'Overdue', cta: 'Review', href: `/operations/tasks/${t.id}` });
+  for (const task of must(tasksRes, 'tasks') as Task[]) {
+    const blocked = task.status === 'blocked';
+    urgent.push({ id: `t-${task.id}`, area: t('p.dash.u.operations'), tone: blocked ? 'alert' : 'warning', title: task.title,
+      body: blocked ? t('p.dash.u.blocked_body', { reason: task.blocked_reason ?? t('p.dash.u.no_reason') }) : t('p.dash.u.overdue_since', { date: task.due_on ? fmt.date(task.due_on) : '' }),
+      when: blocked ? t('p.dash.u.blocked') : t('p.dash.u.overdue'), cta: t('p.dash.cta.review'), href: `/operations/tasks/${task.id}` });
   }
   for (const c of controls.filter((x) => x.status === 'failing')) {
-    urgent.push({ id: `c-${c.id}`, area: 'Compliance', tone: 'alert', title: `${c.ref} failing`, body: c.title, when: 'Failing', cta: 'Fix', href: `/compliance/frameworks/${c.framework_id}` });
+    urgent.push({ id: `c-${c.id}`, area: t('p.dash.u.compliance'), tone: 'alert', title: t('p.dash.u.control_failing', { ref: c.ref }), body: c.title, when: t('p.dash.u.failing'), cta: t('p.dash.cta.fix'), href: `/compliance/frameworks/${c.framework_id}` });
   }
   for (const d of must(dsarRes, 'DSARs') as Dsar[]) {
-    urgent.push({ id: `d-${d.id}`, area: 'Legal / Trust', tone: 'warning', title: `GDPR ${d.type} request`, body: d.requester_email, when: `Due ${d.due_on}`, cta: 'Handle', href: '/compliance#dsar' });
+    urgent.push({ id: `d-${d.id}`, area: t('p.dash.u.legal'), tone: 'warning', title: t('p.dash.u.dsar', { type: d.type }), body: d.requester_email, when: t('p.dash.u.due', { date: fmt.date(d.due_on) }), cta: t('p.dash.cta.handle'), href: '/compliance#dsar' });
   }
   for (const i of must(invoicesRes, 'invoices') as Invoice[]) {
     const st = invoiceDisplayStatus(i, now);
     if (st === 'due_today' || st === 'overdue') {
-      urgent.push({ id: `i-${i.id}`, area: 'Finance Ops', tone: st === 'overdue' ? 'alert' : 'warning', title: `Invoice ${i.number}`, body: i.client_name,
-        when: st === 'overdue' ? 'Overdue' : 'Due today', cta: 'Review', href: `/operations/invoices/${i.id}` });
+      urgent.push({ id: `i-${i.id}`, area: t('p.dash.u.finance'), tone: st === 'overdue' ? 'alert' : 'warning', title: t('p.dash.u.invoice', { number: i.number }), body: i.client_name,
+        when: st === 'overdue' ? t('p.dash.u.overdue') : t('p.dash.u.due_today'), cta: t('p.dash.cta.review'), href: `/operations/invoices/${i.id}` });
     }
   }
   for (const v of costVariances(must(expensesRes, 'expenses') as Pick<FinanceEntry, 'category' | 'amount_minor' | 'occurred_on' | 'kind'>[], now)) {
-    urgent.push({ id: `v-${v.category}`, area: 'Finance Ops', tone: 'warning', title: `${v.category} spend +${v.variancePct.toFixed(0)}% variance`,
-      body: 'This month is above the trailing 3-month average.', when: 'This month', cta: 'Review', href: '/operations?tab=finance' });
+    urgent.push({ id: `v-${v.category}`, area: t('p.dash.u.finance'), tone: 'warning', title: t('p.dash.u.variance', { category: v.category, pct: v.variancePct.toFixed(0) }),
+      body: t('p.dash.u.variance_body'), when: t('p.dash.u.this_month'), cta: t('p.dash.cta.review'), href: '/operations?tab=finance' });
   }
   for (const p of must(pendingRes, 'approvals') as FinanceEntry[]) {
-    urgent.push({ id: `p-${p.id}`, area: 'Finance Ops', tone: 'info', title: `Approve ${p.vendor ?? p.category ?? 'expense'}`, body: p.note ?? 'Expense awaiting approval',
-      when: 'Pending', cta: 'Approve', href: '/operations?tab=finance#approvals' });
+    urgent.push({ id: `p-${p.id}`, area: t('p.dash.u.finance'), tone: 'info', title: t('p.dash.u.approve', { what: p.vendor ?? p.category ?? t('p.dash.u.expense') }), body: p.note ?? t('p.dash.u.awaiting'),
+      when: t('p.dash.u.pending'), cta: t('p.dash.cta.approve'), href: '/operations?tab=finance#approvals' });
   }
   const order = { alert: 0, warning: 1, info: 2 };
   urgent.sort((a, b) => order[a.tone] - order[b.tone]);

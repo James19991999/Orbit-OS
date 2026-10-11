@@ -1,4 +1,4 @@
-import { conventionsFor, formatNumberWith, formatDateWith, regionOf } from '@/lib/locale/conventions';
+import { conventionsFor, formatNumberWith, formatDateWith, regionOf, type UiLang } from '@/lib/locale/conventions';
 
 export const CURRENCIES = ['KES', 'USD', 'EUR', 'GBP'] as const;
 export type Currency = (typeof CURRENCIES)[number];
@@ -70,19 +70,39 @@ export function signed(value: number, digits = 1, suffix = ''): string {
   return `${value > 0 ? '+' : ''}${s}${suffix}`;
 }
 
-let RTF: Intl.RelativeTimeFormat | undefined;
-export function relativeTime(date: Date | string | number, now: Date = new Date(), locale = 'en-KE', timeZone = 'UTC'): string {
+type Unit = 'minute' | 'hour' | 'day';
+/** Relative-time phrases, spelled out per language (Intl data differs between Node and browsers). */
+const REL: Record<UiLang, { now: string; past: (n: number, u: Unit) => string; future: (n: number, u: Unit) => string }> = {
+  en: {
+    now: 'just now',
+    past: (n, u) => (u === 'day' && n === 1 ? 'yesterday' : `${n} ${u}${n === 1 ? '' : 's'} ago`),
+    future: (n, u) => (u === 'day' && n === 1 ? 'tomorrow' : `in ${n} ${u}${n === 1 ? '' : 's'}`),
+  },
+  sw: {
+    now: 'sasa hivi',
+    past: (n, u) => (u === 'day' && n === 1 ? 'jana' : `${{ minute: 'dakika', hour: 'saa', day: 'siku' }[u]} ${n} ${n === 1 ? 'iliyopita' : 'zilizopita'}`),
+    future: (n, u) => (u === 'day' && n === 1 ? 'kesho' : `baada ya ${{ minute: 'dakika', hour: 'saa', day: 'siku' }[u]} ${n}`),
+  },
+  fr: {
+    now: 'à l’instant',
+    past: (n, u) => (u === 'day' && n === 1 ? 'hier' : `il y a ${n} ${{ minute: 'min', hour: 'h', day: n === 1 ? 'jour' : 'jours' }[u]}`),
+    future: (n, u) => (u === 'day' && n === 1 ? 'demain' : `dans ${n} ${{ minute: 'min', hour: 'h', day: n === 1 ? 'jour' : 'jours' }[u]}`),
+  },
+};
+
+export function relativeTime(date: Date | string | number, now: Date = new Date(), locale = 'en-KE', timeZone = 'UTC', lang: UiLang = 'en'): string {
   const d = new Date(date);
   const diff = Math.round((d.getTime() - now.getTime()) / 1000);
   const abs = Math.abs(diff);
-  const rtf = (RTF ??= new Intl.RelativeTimeFormat('en', { numeric: 'auto' }));
+  const R = REL[lang];
   // Within 45 s either way reads as "just now": a few seconds' clock difference between
   // server and phone must not show a past event as "in a moment".
-  if (abs < 45) return 'just now';
-  if (abs < 3600) return rtf.format(Math.round(diff / 60), 'minute');
-  if (abs < 86400) return rtf.format(Math.round(diff / 3600), 'hour');
-  if (abs < 86400 * 30) return rtf.format(Math.round(diff / 86400), 'day');
-  return formatDateWith(d, locale, 'short', timeZone);
+  if (abs < 45) return R.now;
+  const say = (n: number, u: Unit) => (n < 0 ? R.past(-n, u) : R.future(n, u));
+  if (abs < 3600) return say(Math.round(diff / 60) || (diff < 0 ? -1 : 1), 'minute');
+  if (abs < 86400) return say(Math.round(diff / 3600), 'hour');
+  if (abs < 86400 * 30) return say(Math.round(diff / 86400), 'day');
+  return formatDateWith(d, locale, 'short', timeZone, lang);
 }
 
 export function initials(name: string): string {

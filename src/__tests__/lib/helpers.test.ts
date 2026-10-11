@@ -15,7 +15,7 @@ import { auditLabel } from '@/lib/audit-labels';
 import { parsePayrollCsv } from '@/components/operations/FinanceDialogs';
 import { parseDevicesCsv } from '@/components/compliance/ComplianceActions';
 import { slugify } from '@/components/auth/OnboardingForm';
-import { dueLabel } from '@/lib/tasks';
+import { dueInfo } from '@/lib/tasks';
 
 
 describe('calendar invites (.ics)', () => {
@@ -164,13 +164,14 @@ describe('misc', () => {
   it('CSV importers validate rows', () => {
     const p = parsePayrollCsv('period,countries,total,provider\n2026-09,9,12500000.00,Deel\nbad,1,1,x');
     expect(p.rows).toEqual([{ period: '2026-09', country_count: 9, total_minor: 1250000000, provider_label: 'Deel' }]);
-    expect(p.errors[0]).toMatch(/Line 3/);
+    expect(p.errors[0]).toEqual({ key: 'pr.err_line_period', line: 3 });
     const d = parseDevicesCsv('name,os,owner,enc,agent\nMac,macOS,ANA@x.io,yes,no', { 'ana@x.io': 'u1' });
     expect(d.rows[0]).toEqual({ name: 'Mac', os: 'macOS', owner_id: 'u1', encrypted: true, agent_installed: false });
   });
   it('slugify and due labels', () => {
     expect(slugify('  Ácme Global Ltd. ')).toBe('acme-global-ltd');
-    expect(dueLabel('2026-10-06', new Date('2026-10-08T12:00:00Z'))).toBe('2d overdue');
-    expect(dueLabel('2026-10-08', new Date('2026-10-08T12:00:00Z'))).toBe('Due today');
+    expect(dueInfo('2026-10-06', new Date('2026-10-08T12:00:00Z'))).toEqual({ key: 'task.due.overdue', n: 2 });
+    expect(dueInfo('2026-10-08', new Date('2026-10-08T12:00:00Z'))).toEqual({ key: 'task.due.today', n: 0 });
+    expect(dueInfo('2026-10-11', new Date('2026-10-08T12:00:00Z'))).toEqual({ key: 'task.due.in', n: 3 });
   });
 });

@@ -9,14 +9,12 @@ import { nextInvoiceNumber } from '@/lib/metrics/invoices';
 import { useFormat } from '@/lib/locale/client';
 import { useT } from '@/i18n/client';
 
-const KINDS = [
-  { value: 'expense', label: 'Expense' }, { value: 'revenue', label: 'Revenue' },
-  { value: 'payroll', label: 'Payroll' }, { value: 'cash_balance', label: 'Cash balance (bank statement)' },
-];
+const KINDS = ['expense', 'revenue', 'payroll', 'cash_balance'] as const;
 
 export function FinanceEntryDialog({ open, onClose, orgId, currency, thresholdMinor, defaultKind = 'expense' }:
   { open: boolean; onClose: () => void; orgId: string; currency: Currency; thresholdMinor: number; defaultKind?: string }) {
   const fmt = useFormat();
+  const t = useT();
   const router = useRouter();
   const today = new Date().toISOString().slice(0, 10);
   const [f, setF] = useState({ kind: defaultKind, amount: '', category: '', vendor: '', occurred_on: today, note: '' });
@@ -29,7 +27,7 @@ export function FinanceEntryDialog({ open, onClose, orgId, currency, thresholdMi
   }).select('id, approval_status').single()) as { id: string; approval_status: string });
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (minor === null || minor <= 0) return setErr('Enter an amount greater than zero (up to 2 decimals).');
+    if (minor === null || minor <= 0) return setErr(t('fin.err_amount'));
     setErr(null);
     const r = await save.run();
     if (r) {
@@ -42,18 +40,18 @@ export function FinanceEntryDialog({ open, onClose, orgId, currency, thresholdMi
   }
   const needsApproval = f.kind === 'expense' && minor !== null && minor > thresholdMinor;
   return (
-    <Dialog open={open} onClose={onClose} title="Log a finance entry"
-      footer={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button type="submit" form="fin-form" loading={save.pending}>Save entry</Button></>}>
+    <Dialog open={open} onClose={onClose} title={t('fin.new')}
+      footer={<><Button variant="ghost" onClick={onClose}>{t('common.cancel')}</Button><Button type="submit" form="fin-form" loading={save.pending}>{t('fin.save')}</Button></>}>
       <form id="fin-form" onSubmit={submit} className="grid gap-4" noValidate>
-        <Select label="Type" value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })} options={KINDS} />
-        <Input label={`Amount (${currency})`} inputMode="decimal" placeholder="0.00" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })}
-          hint={needsApproval ? `Above ${fmt.money(thresholdMinor, currency)} — another owner or director must approve it.` : undefined} />
+        <Select label={t('fin.type')} value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })} options={KINDS.map((k) => ({ value: k, label: t(`fin.kind.${k}`) }))} />
+        <Input label={t('fin.amount', { currency })} inputMode="decimal" placeholder="0.00" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })}
+          hint={needsApproval ? t('fin.needs_approval', { amount: fmt.money(thresholdMinor, currency) }) : undefined} />
         <div className="grid grid-cols-2 gap-3">
-          <Input label="Category" placeholder="Cloud, Software, Travel…" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })} />
-          <Input label={f.kind === 'revenue' ? 'Customer' : 'Vendor'} value={f.vendor} onChange={(e) => setF({ ...f, vendor: e.target.value })} />
+          <Input label={t('fin.category')} placeholder={t('fin.category_ph')} value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })} />
+          <Input label={f.kind === 'revenue' ? t('fin.customer') : t('fin.vendor')} value={f.vendor} onChange={(e) => setF({ ...f, vendor: e.target.value })} />
         </div>
-        <Input label="Date" type="date" value={f.occurred_on} onChange={(e) => setF({ ...f, occurred_on: e.target.value })} />
-        <Textarea label="Note" rows={2} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} />
+        <Input label={t('fin.date')} type="date" value={f.occurred_on} onChange={(e) => setF({ ...f, occurred_on: e.target.value })} />
+        <Textarea label={t('fin.note')} rows={2} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} />
         <InlineError message={err ?? save.error} />
       </form>
     </Dialog>
@@ -61,17 +59,17 @@ export function FinanceEntryDialog({ open, onClose, orgId, currency, thresholdMi
 }
 
 /** Parses "period,countries,total,provider" CSV rows (header optional). Exported for tests. */
-export function parsePayrollCsv(text: string): { rows: { period: string; country_count: number; total_minor: number; provider_label: string }[]; errors: string[] } {
+export function parsePayrollCsv(text: string): { rows: { period: string; country_count: number; total_minor: number; provider_label: string }[]; errors: { key: 'pr.err_line_period' | 'pr.err_line_countries' | 'pr.err_line_total'; line: number }[] } {
   const rows: { period: string; country_count: number; total_minor: number; provider_label: string }[] = [];
-  const errors: string[] = [];
+  const errors: { key: 'pr.err_line_period' | 'pr.err_line_countries' | 'pr.err_line_total'; line: number }[] = [];
   text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).forEach((line, i) => {
     const cells = line.split(',').map((c) => c.trim().replace(/^"|"$/g, ''));
     if (i === 0 && /period/i.test(cells[0] ?? '')) return;
     const [period, countries, total, provider] = cells;
     const minor = parseMoneyToMinor(total ?? '');
-    if (!/^\d{4}-\d{2}$/.test(period ?? '')) errors.push(`Line ${i + 1}: period must look like 2026-09`);
-    else if (!Number.isInteger(Number(countries)) || Number(countries) < 1) errors.push(`Line ${i + 1}: countries must be a whole number`);
-    else if (minor === null) errors.push(`Line ${i + 1}: total must be a number`);
+    if (!/^\d{4}-\d{2}$/.test(period ?? '')) errors.push({ key: 'pr.err_line_period', line: i + 1 });
+    else if (!Number.isInteger(Number(countries)) || Number(countries) < 1) errors.push({ key: 'pr.err_line_countries', line: i + 1 });
+    else if (minor === null) errors.push({ key: 'pr.err_line_total', line: i + 1 });
     else rows.push({ period, country_count: Number(countries), total_minor: minor, provider_label: provider || 'Manual' });
   });
   return { rows, errors };
@@ -79,37 +77,38 @@ export function parsePayrollCsv(text: string): { rows: { period: string; country
 
 export function PayrollDialog({ open, onClose, orgId, currency }: { open: boolean; onClose: () => void; orgId: string; currency: Currency }) {
   const fmt = useFormat();
+  const t = useT();
   const router = useRouter();
   const [mode, setMode] = useState<'single' | 'csv'>('single');
   const [f, setF] = useState({ period: new Date().toISOString().slice(0, 7), countries: '1', total: '', provider: 'Manual', paid_on: '' });
   const [csv, setCsv] = useState('');
   const [err, setErr] = useState<string | null>(null);
-  const save = useAction(async (rows: Record<string, unknown>[]) => unwrap(await requireBrowserClient().from('payroll_runs').insert(rows).select('id')), { success: 'Payroll recorded' });
+  const save = useAction(async (rows: Record<string, unknown>[]) => unwrap(await requireBrowserClient().from('payroll_runs').insert(rows).select('id')), { success: t('pr.saved') });
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
     let rows: Record<string, unknown>[];
     if (mode === 'single') {
       const minor = fmt.parseMoney(f.total);
-      if (!/^\d{4}-\d{2}$/.test(f.period)) return setErr('Pick the payroll month.');
-      if (minor === null || minor <= 0) return setErr('Enter the payroll total.');
+      if (!/^\d{4}-\d{2}$/.test(f.period)) return setErr(t('pr.err_month'));
+      if (minor === null || minor <= 0) return setErr(t('pr.err_total'));
       rows = [{ org_id: orgId, period: f.period, country_count: Number(f.countries) || 1, total_minor: minor, currency, provider_label: f.provider.trim() || 'Manual', status: f.paid_on ? 'settled' : 'recorded', paid_on: f.paid_on || null }];
     } else {
       const parsed = parsePayrollCsv(csv);
-      if (parsed.errors.length) return setErr(parsed.errors.slice(0, 3).join(' · '));
-      if (!parsed.rows.length) return setErr('Paste at least one row.');
+      if (parsed.errors.length) return setErr(parsed.errors.slice(0, 3).map((x) => t(x.key, { n: x.line })).join(' · '));
+      if (!parsed.rows.length) return setErr(t('pr.err_rows'));
       rows = parsed.rows.map((r) => ({ ...r, org_id: orgId, currency, status: 'settled' }));
     }
     if (await save.run(rows)) { onClose(); router.refresh(); }
   }
   return (
-    <Dialog open={open} onClose={onClose} title="Record payroll" description="OrbitOS records payroll you ran with your provider. It does not move money."
-      footer={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button type="submit" form="pay-form" loading={save.pending}>Save</Button></>}>
-      <div className="mb-4 flex gap-2" role="radiogroup" aria-label="Entry mode">
+    <Dialog open={open} onClose={onClose} title={t('pr.title')} description={t('pr.desc')}
+      footer={<><Button variant="ghost" onClick={onClose}>{t('common.cancel')}</Button><Button type="submit" form="pay-form" loading={save.pending}>{t('common.save')}</Button></>}>
+      <div className="mb-4 flex gap-2" role="radiogroup" aria-label={t('pr.mode')}>
         {(['single', 'csv'] as const).map((m) => (
           <button key={m} type="button" role="radio" aria-checked={mode === m} onClick={() => setMode(m)}
             className={`h-8 rounded border px-3 text-label-sm ${mode === m ? 'border-primary-container bg-primary-container/15' : 'border-outline-variant text-on-surface-variant'}`}>
-            {m === 'single' ? 'Single run' : 'Import CSV'}
+            {m === 'single' ? t('pr.single') : t('pr.csv')}
           </button>
         ))}
       </div>
@@ -117,17 +116,17 @@ export function PayrollDialog({ open, onClose, orgId, currency }: { open: boolea
         {mode === 'single' ? (
           <>
             <div className="grid grid-cols-2 gap-3">
-              <Input label="Month" type="month" value={f.period} onChange={(e) => setF({ ...f, period: e.target.value })} />
-              <Input label="Countries paid" type="number" min={1} value={f.countries} onChange={(e) => setF({ ...f, countries: e.target.value })} />
+              <Input label={t('pr.month')} type="month" value={f.period} onChange={(e) => setF({ ...f, period: e.target.value })} />
+              <Input label={t('pr.countries')} type="number" min={1} value={f.countries} onChange={(e) => setF({ ...f, countries: e.target.value })} />
             </div>
-            <Input label={`Total (${currency})`} inputMode="decimal" value={f.total} onChange={(e) => setF({ ...f, total: e.target.value })} />
+            <Input label={t('pr.total', { currency })} inputMode="decimal" value={f.total} onChange={(e) => setF({ ...f, total: e.target.value })} />
             <div className="grid grid-cols-2 gap-3">
-              <Input label="Provider" placeholder="Wise, Deel, Manual…" value={f.provider} onChange={(e) => setF({ ...f, provider: e.target.value })} />
-              <Input label="Paid on (optional)" type="date" value={f.paid_on} onChange={(e) => setF({ ...f, paid_on: e.target.value })} />
+              <Input label={t('pr.provider')} placeholder={t('pr.provider_ph')} value={f.provider} onChange={(e) => setF({ ...f, provider: e.target.value })} />
+              <Input label={t('pr.paid_on')} type="date" value={f.paid_on} onChange={(e) => setF({ ...f, paid_on: e.target.value })} />
             </div>
           </>
         ) : (
-          <Textarea label="CSV rows" rows={6} value={csv} onChange={(e) => setCsv(e.target.value)} hint={`period,countries,total,provider — e.g. 2026-09,9,12500000.00,Deel (${currency})`} className="font-mono" />
+          <Textarea label={t('pr.rows')} rows={6} value={csv} onChange={(e) => setCsv(e.target.value)} hint={t('pr.rows_hint', { currency })} className="font-mono" />
         )}
         <InlineError message={err ?? save.error} />
       </form>

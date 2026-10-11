@@ -7,11 +7,12 @@ export const STATUS_LABEL: Record<TaskStatus, string> = { todo: 'To do', in_prog
 export const PRIORITY_LABEL: Record<Priority, string> = { low: 'Low', medium: 'Medium', high: 'High', critical: 'Critical' };
 export const PRIORITY_TONE: Record<Priority, Tone> = { low: 'neutral', medium: 'info', high: 'warning', critical: 'alert' };
 
-export function dueLabel(due: string | null, now = new Date()): string | null {
+/** Due-date phrase as a translation key + count ("3d overdue", "Due today", "Due in 2d"). */
+export function dueInfo(due: string | null, now = new Date()): { key: 'task.due.overdue' | 'task.due.today' | 'task.due.in'; n: number } | null {
   if (!due) return null;
   const today = now.toISOString().slice(0, 10);
   const days = Math.round((Date.parse(due) - Date.parse(today)) / 86_400_000);
-  if (days < 0) return `${-days}d overdue`;
-  if (days === 0) return 'Due today';
-  return `Due in ${days}d`;
+  if (days < 0) return { key: 'task.due.overdue', n: -days };
+  if (days === 0) return { key: 'task.due.today', n: 0 };
+  return { key: 'task.due.in', n: days };
 }

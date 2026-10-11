@@ -1,5 +1,8 @@
 import type { MessageKey } from './en';
 import { common } from './modules/common';
+import { operations } from './modules/operations';
+import { misc } from './modules/misc';
+import { dashboard } from './modules/dashboard';
 import { scheduling } from './modules/scheduling';
 import { invoices } from './modules/invoices';
 import { etims } from './modules/etims';
@@ -161,6 +164,9 @@ export const sw: Partial<Record<MessageKey, string>> = {
   'pay.sent_all': 'Malipo yametumwa — kila mtu amelipwa', 'pay.sent_processing': 'Malipo yameachiliwa — M-Pesa inayashughulikia',
   'pay.cancelled_toast': 'Rasimu imeghairiwa', 'pay.status_toast': 'Hali: {status}',
   ...common.sw,
+  ...operations.sw,
+  ...misc.sw,
+  ...dashboard.sw,
   ...scheduling.sw,
   ...invoices.sw,
   ...etims.sw,

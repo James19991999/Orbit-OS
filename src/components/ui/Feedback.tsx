@@ -16,12 +16,12 @@ export function EmptyState({ icon = 'inbox', title, body, action, className }: {
   );
 }
 
-export function ErrorState({ title = 'Something went wrong', body, onRetry, className }: { title?: string; body?: string; onRetry?: () => void; className?: string }) {
+export function ErrorState({ title = 'Something went wrong', body, onRetry, retryLabel = 'Try again', className }: { title?: string; body?: string; onRetry?: () => void; retryLabel?: string; className?: string }) {
   return (
     <div role="alert" className={cn('flex flex-col items-start gap-2 rounded-lg border border-alert/30 bg-alert/5 p-4', className)}>
       <p className="flex items-center gap-2 text-label-md text-alert"><Icon name="error" />{title}</p>
       {body && <p className="text-body-sm text-on-surface-variant">{body}</p>}
-      {onRetry && <button type="button" onClick={onRetry} className="text-label-sm text-primary underline underline-offset-2">Try again</button>}
+      {onRetry && <button type="button" onClick={onRetry} className="text-label-sm text-primary underline underline-offset-2">{retryLabel}</button>}
     </div>
   );
 }
