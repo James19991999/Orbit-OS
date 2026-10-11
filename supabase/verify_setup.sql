@@ -34,8 +34,10 @@ select 'languages and data saver on profiles',
        'profiles.language / data_saver / whatsapp_*'
 union all
 select 'server-only helpers locked down',
-       not has_function_privilege('authenticated', 'public.decide_expense_as(uuid, uuid, text)', 'execute')
-         and not has_function_privilege('authenticated', 'public.checkin_as(uuid, uuid, text, text, integer)', 'execute'),
+       coalesce(to_regprocedure('public.decide_expense_as(uuid, uuid, text)') is not null
+         and to_regprocedure('public.checkin_as(uuid, uuid, text, text, integer)') is not null
+         and not has_function_privilege('authenticated', to_regprocedure('public.decide_expense_as(uuid, uuid, text)')::oid, 'execute')
+         and not has_function_privilege('authenticated', to_regprocedure('public.checkin_as(uuid, uuid, text, text, integer)')::oid, 'execute'), false),
        'decide_expense_as, checkin_as: service role only'
 union all
 select 'KRA eTIMS and calendar sync (October 11 update)',
@@ -43,12 +45,14 @@ select 'KRA eTIMS and calendar sync (October 11 update)',
        coalesce((select string_agg(t, ', ') from unnest(array['etims_configs', 'etims_sequences', 'etims_documents', 'etims_item_classes', 'calendar_connections', 'calendar_busy', 'calendar_event_links']) t where to_regclass('public.' || t) is null), 'all present') || ' (missing if listed)'
 union all
 select 'eTIMS invoice numbering is server-only',
-       not has_function_privilege('authenticated', 'public.etims_claim(text, uuid)', 'execute'),
-       'etims_claim / etims_release: service role only'
+       coalesce(to_regprocedure('public.etims_claim(text, uuid)') is not null
+         and not has_function_privilege('authenticated', to_regprocedure('public.etims_claim(text, uuid)')::oid, 'execute'), false),
+       case when to_regprocedure('public.etims_claim(text, uuid)') is null then 'missing — run supabase/update_etims_calendar.sql' else 'etims_claim / etims_release: service role only' end
 union all
 select 'calendar tokens never readable by users',
-       not has_column_privilege('authenticated', 'public.calendar_connections', 'refresh_token_enc', 'select'),
-       'calendar_connections token columns: no client access'
+       coalesce(to_regclass('public.calendar_connections') is not null
+         and not has_column_privilege('authenticated', to_regclass('public.calendar_connections')::oid, 'refresh_token_enc', 'select'), false),
+       case when to_regclass('public.calendar_connections') is null then 'missing — run supabase/update_etims_calendar.sql' else 'calendar_connections token columns: no client access' end
 union all
 select 'no demo data (seed.sql not run)',
        not exists (select 1 from auth.users where email like '%@acme-global.demo'),
