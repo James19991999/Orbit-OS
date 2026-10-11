@@ -186,6 +186,8 @@ scripts/             local stack, IntaSend mock, e2e flows, a11y check
 
 ## Performance
 
+**Page-to-page navigation.** Clicking a link keeps the current page on screen with a thin progress bar until the next page is fully drawn — no placeholder boxes. Each app page makes its database calls in as few rounds as possible (the member list, page data and follow-ups load together; Culture and Operations start their tab's queries before the member list returns). Sign-in checks use `getClaims()`, which needs no network call on Supabase projects with JWT signing keys. With a simulated 90 ms gap between the app and the database, Culture went from 12 sequential rounds to 5. For production, run the Vercel functions in the same region as Supabase (docs/GO-LIVE.md, Step 3).
+
 Lighthouse (median of 3 runs, production build):
 
 | Pages | Desktop | Mobile (simulated slow 4G, 4× slower CPU) |

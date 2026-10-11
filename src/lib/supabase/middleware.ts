@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { supabaseEnv, REMEMBER_COOKIE, LAST_SEEN_COOKIE, TIMEOUT_COOKIE } from '@/lib/env';
 import { applyRemember } from './cookies';
+import { verifiedUser } from './verified-user';
 
 export { PROTECTED_PREFIXES, isProtected, isIdleExpired, tenantFromHost } from './session-rules';
 import { isProtected, isIdleExpired, tenantFromHost } from './session-rules';
@@ -28,7 +29,7 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await verifiedUser(supabase);
   const { pathname, search } = request.nextUrl;
 
   if (isProtected(pathname)) {

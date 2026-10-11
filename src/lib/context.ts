@@ -4,6 +4,7 @@ import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { User, SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
+import { verifiedUser } from '@/lib/supabase/verified-user';
 import { isSupabaseConfigured, ORG_COOKIE } from '@/lib/env';
 import type { Organization, Profile, Role } from '@/lib/types';
 
@@ -23,7 +24,7 @@ export interface AppContext {
 export const getAuthContext = cache(async (): Promise<Omit<AppContext, 'org' | 'role'> & { org: Organization | null; role: Role | null } | null> => {
   if (!isSupabaseConfigured()) return null;
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await verifiedUser(supabase);
   if (!user) return null;
 
   const [profileRes, membershipRes, aalRes] = await Promise.all([

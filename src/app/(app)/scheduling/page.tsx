@@ -31,13 +31,13 @@ const PHASE: Record<DayPhase, { icon: string; tone: 'healthy' | 'info' | 'warnin
 export default async function SchedulingPage() {
   const [{ supabase, org, profile, user, role }, t, fmt] = await Promise.all([requireAppContext(), getT(), getFormat()]);
   const now = Date.now();
-  const members = await loadMembers(supabase, org.id);
-  const windows = toWindows(members);
-  const people = nameMap(members);
-  const [upcomingRes, pastRes] = await Promise.all([
+  const [members, upcomingRes, pastRes] = await Promise.all([
+    loadMembers(supabase, org.id),
     supabase.from('meetings').select('*, meeting_participants(user_id, rsvp)').eq('org_id', org.id).gte('starts_at', new Date(now - 30 * 60_000).toISOString()).order('starts_at').limit(20),
     supabase.from('meetings').select('id, starts_at, duration_min, mode, meeting_participants(meeting_id, user_id)').eq('org_id', org.id).gte('starts_at', isoDaysAgo(14)).lt('starts_at', new Date(now).toISOString()),
   ]);
+  const windows = toWindows(members);
+  const people = nameMap(members);
   const upcoming = must(upcomingRes, 'meetings') as (Meeting & { meeting_participants: { user_id: string; rsvp: string }[] })[];
   const past = must(pastRes, 'meeting history') as (MeetingLike & { meeting_participants: ParticipantLike[] })[];
   const load = cognitiveLoad(past, past.flatMap((m) => m.meeting_participants), windows, 14);

@@ -34,11 +34,16 @@ export default async function OperationsPage(props: { searchParams: Promise<{ ta
   const { supabase, org, role, user, aal } = ctx;
   const tab = searchParams.tab === 'finance' || searchParams.tab === 'activity' ? searchParams.tab : 'sprints';
   const today = new Date().toISOString().slice(0, 10);
-  const members = await loadMembers(supabase, org.id);
+  // One round trip for everything the header and tabs share.
+  const [members, sprintsRes, invoicesRes] = await Promise.all([
+    loadMembers(supabase, org.id),
+    supabase.from('sprints').select('*').eq('org_id', org.id).order('starts_on', { ascending: false }).limit(20),
+    can.seeFinance(role) ? supabase.from('invoices').select('*').eq('org_id', org.id).order('issued_on', { ascending: false }).order('created_at', { ascending: false }).limit(100) : Promise.resolve({ data: [], error: null }),
+  ]);
   const people = nameMap(members);
-  const sprints = must(await supabase.from('sprints').select('*').eq('org_id', org.id).order('starts_on', { ascending: false }).limit(20), 'sprints') as Sprint[];
+  const sprints = must(sprintsRes, 'sprints') as Sprint[];
   const active = sprints.find((s) => s.starts_on <= today && s.ends_on >= today) ?? null;
-  const invoices = can.seeFinance(role) ? must(await supabase.from('invoices').select('*').eq('org_id', org.id).order('issued_on', { ascending: false }).order('created_at', { ascending: false }).limit(100), 'invoices') as Invoice[] : [];
+  const invoices = must(invoicesRes, 'invoices') as Invoice[];
 
   const actions = (
     <OpsActions orgId={org.id} userId={user.id} people={members.map((m) => ({ id: m.user_id, name: m.profile.full_name }))}

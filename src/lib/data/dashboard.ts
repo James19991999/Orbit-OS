@@ -17,8 +17,8 @@ export interface UrgentItem { id: string; area: string; tone: 'alert' | 'warning
 export async function loadDashboard(supabase: SupabaseClient, org: Organization, role: Role, userId: string, l: { t: T; fmt: Formatter }, now = new Date()) {
   const { t, fmt } = l;
   const today = now.toISOString().slice(0, 10);
-  const members = await loadMembers(supabase, org.id);
-  const [sprintRes, financeRes, checkinsRes, controlsRes, tasksRes, snapshotsRes, invoicesRes, expensesRes, meetingsRes, dsarRes, pendingRes] = await Promise.all([
+  const [members, sprintRes, financeRes, checkinsRes, controlsRes, tasksRes, snapshotsRes, invoicesRes, expensesRes, meetingsRes, dsarRes, pendingRes] = await Promise.all([
+    loadMembers(supabase, org.id),
     supabase.from('sprints').select('*').eq('org_id', org.id).lte('starts_on', today).gte('ends_on', today).order('starts_on', { ascending: false }).limit(1),
     supabase.rpc('finance_monthly', { p_org: org.id, p_months: 6 }),
     supabase.from('check_ins').select('user_id, for_date, mood').eq('org_id', org.id).gte('for_date', isoDaysAgo(30, now)),

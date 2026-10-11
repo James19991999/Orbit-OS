@@ -3,7 +3,16 @@ import http from 'node:http';
 import { createRequire } from 'node:module';
 const { WebSocketServer } = createRequire(import.meta.url)('ws');
 const routes = [['/auth/v1', 9999], ['/rest/v1', 3001]];
+// GATEWAY_LATENCY_MS simulates the app and the database being in different regions (e.g. 90 for US ↔ Frankfurt).
+// GATEWAY_LOG=1 prints each request with a timestamp, to count round trips per page.
+const LATENCY = Number(process.env.GATEWAY_LATENCY_MS || 0);
+const LOG = process.env.GATEWAY_LOG === '1';
 const server = http.createServer((req, res) => {
+  if (LOG) console.log(`${Date.now()} ${req.method} ${req.url.split('?')[0]}`);
+  if (LATENCY && req.method !== 'OPTIONS') { req.pause(); setTimeout(() => { req.resume(); handle(req, res); }, LATENCY); return; }
+  handle(req, res);
+});
+function handle(req, res) {
   const hit = routes.find(([p]) => req.url.startsWith(p));
   res.setHeader('access-control-allow-origin', req.headers.origin || '*');
   res.setHeader('access-control-allow-credentials', 'true');
@@ -21,7 +30,7 @@ const server = http.createServer((req, res) => {
   });
   up.on('error', (e) => { res.writeHead(502); res.end(String(e)); });
   req.pipe(up);
-});
+}
 
 // Minimal Supabase Realtime stand-in: accepts channel joins (postgres_changes, presence) and heartbeats
 // so the app sees a live connection, like production. It never pushes changes. Local testing only.

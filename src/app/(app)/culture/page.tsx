@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { cache } from 'react';
 import Link from '@/components/ui/SmartLink';
 import { requireAppContext } from '@/lib/context';
 import { loadMembers, nameMap, must } from '@/lib/data/members';
@@ -24,6 +25,11 @@ export default async function CulturePage(props: { searchParams: Promise<{ tab?:
   const [{ supabase, org, role, user, profile }, t] = await Promise.all([requireAppContext(), getT()]);
   const tab = searchParams.tab === 'channels' || searchParams.tab === 'kudos' ? searchParams.tab : 'lounge';
   const today = new Date().toISOString().slice(0, 10);
+  // Start the open tab's queries now, so they run alongside the member list instead of after it
+  // (the tab reads the same in-flight request through the per-request cache).
+  if (tab === 'lounge') void loungeQueries(supabase, org.id, today);
+  else if (tab === 'channels') void channelQueries(supabase, org.id);
+  else void kudosQuery(supabase, org.id);
   const members = await loadMembers(supabase, org.id);
   const people = nameMap(members);
   const cities = [...new Set(members.map((m) => m.profile.city).filter(Boolean) as string[])];
@@ -49,6 +55,18 @@ export default async function CulturePage(props: { searchParams: Promise<{ tab?:
 
 type SB = Awaited<ReturnType<typeof requireAppContext>>['supabase'];
 
+const loungeQueries = cache((supabase: SB, orgId: string, today: string) => Promise.all([
+  supabase.from('lounges').select('*').eq('org_id', orgId).order('kind'),
+  supabase.from('polls').select('*').eq('org_id', orgId).in('kind', ['pulse', 'announcement', 'enps']).order('created_at', { ascending: false }).limit(6),
+  supabase.from('check_ins').select('*').eq('org_id', orgId).eq('for_date', today),
+  supabase.from('channels').select('id').eq('org_id', orgId).eq('is_announcement', true),
+]));
+const channelQueries = cache((supabase: SB, orgId: string) => Promise.all([
+  supabase.from('channels').select('*').eq('org_id', orgId).order('name'),
+  supabase.from('messages').select('id, channel_id, parent_id, author_id, body, created_at').eq('org_id', orgId).order('created_at', { ascending: false }).limit(400),
+]));
+const kudosQuery = cache(async (supabase: SB, orgId: string) => supabase.from('kudos').select('*').eq('org_id', orgId).order('created_at', { ascending: false }).limit(30));
+
 async function pollBundle(supabase: SB, polls: Poll[], userId: string) {
   if (!polls.length) return [];
   const ids = polls.map((p) => p.id);
@@ -69,20 +87,19 @@ async function pollBundle(supabase: SB, polls: Poll[], userId: string) {
 async function LoungeTab({ orgId, orgSlug, userId, today, memberCount, canWrite, canManage, supabase }:
   { orgId: string; orgSlug: string; userId: string; today: string; memberCount: number; canWrite: boolean; canManage: boolean; supabase: SB }) {
   const [fmt, t] = await Promise.all([getFormat(), getT()]);
-  const [loungesRes, pollsRes, checkinsRes, annRes] = await Promise.all([
-    supabase.from('lounges').select('*').eq('org_id', orgId).order('kind'),
-    supabase.from('polls').select('*').eq('org_id', orgId).in('kind', ['pulse', 'announcement', 'enps']).order('created_at', { ascending: false }).limit(6),
-    supabase.from('check_ins').select('*').eq('org_id', orgId).eq('for_date', today),
-    supabase.from('channels').select('id').eq('org_id', orgId).eq('is_announcement', true),
-  ]);
+  const [loungesRes, pollsRes, checkinsRes, annRes] = await loungeQueries(supabase, orgId, today);
   const lounges = must(loungesRes, 'lounges') as Lounge[];
   const polls = must(pollsRes, 'polls') as Poll[];
-  const bundles = await pollBundle(supabase, polls, userId);
+  const annIds = (must(annRes, 'channels') as { id: string }[]).map((c) => c.id);
+  // Poll details and pinned announcements both depend only on the first batch: fetch them together.
+  const [bundles, pinnedRes] = await Promise.all([
+    pollBundle(supabase, polls, userId),
+    annIds.length ? supabase.from('messages').select('*').in('channel_id', annIds).eq('pinned', true).is('parent_id', null).order('created_at', { ascending: false }).limit(3) : Promise.resolve({ data: [], error: null }),
+  ]);
   const pulse = bundles.find((b) => b.poll.kind !== 'announcement');
   const annPolls = bundles.filter((b) => b.poll.kind === 'announcement');
   const checkins = must(checkinsRes, 'check-ins') as CheckIn[];
-  const annIds = (must(annRes, 'channels') as { id: string }[]).map((c) => c.id);
-  const pinned = annIds.length ? must(await supabase.from('messages').select('*').in('channel_id', annIds).eq('pinned', true).is('parent_id', null).order('created_at', { ascending: false }).limit(3), 'announcements') as Message[] : [];
+  const pinned = must(pinnedRes, 'announcements') as Message[];
   return (
     <div className="flex flex-col gap-4">
       {lounges.length ? <Lounges orgSlug={orgSlug} lounges={lounges} canWrite={canWrite} /> : <EmptyState icon="coffee" title={t('p.cul.no_lounges')} />}
@@ -116,10 +133,7 @@ async function LoungeTab({ orgId, orgSlug, userId, today, memberCount, canWrite,
 
 async function ChannelsTab({ orgId, supabase, people }: { orgId: string; supabase: SB; people: ReturnType<typeof nameMap> }) {
   const [fmt, t] = await Promise.all([getFormat(), getT()]);
-  const [chRes, msgRes] = await Promise.all([
-    supabase.from('channels').select('*').eq('org_id', orgId).order('name'),
-    supabase.from('messages').select('id, channel_id, parent_id, author_id, body, created_at').eq('org_id', orgId).order('created_at', { ascending: false }).limit(400),
-  ]);
+  const [chRes, msgRes] = await channelQueries(supabase, orgId);
   const channels = must(chRes, 'channels') as Channel[];
   const msgs = must(msgRes, 'messages') as Message[];
   const rows = channels.map((c) => {
@@ -149,7 +163,7 @@ async function ChannelsTab({ orgId, supabase, people }: { orgId: string; supabas
 async function KudosTab({ orgId, userId, canWrite, supabase, people, members }:
   { orgId: string; userId: string; canWrite: boolean; supabase: SB; people: ReturnType<typeof nameMap>; members: { id: string; name: string }[] }) {
   const t = await getT();
-  const kudos = must(await supabase.from('kudos').select('*').eq('org_id', orgId).order('created_at', { ascending: false }).limit(30), 'kudos') as Kudos[];
+  const kudos = must(await kudosQuery(supabase, orgId), 'kudos') as Kudos[];
   const reactions = kudos.length ? must(await supabase.from('kudos_reactions').select('kudos_id, user_id, emoji').in('kudos_id', kudos.map((k) => k.id)), 'reactions') as { kudos_id: string; user_id: string; emoji: string }[] : [];
   return (
     <div className="grid gap-4 lg:grid-cols-12 lg:items-start">

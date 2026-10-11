@@ -13,8 +13,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function PeoplePage() {
   const [{ supabase, org, role }, tr] = await Promise.all([requireAppContext(), getT()]);
-  const members = await loadMembers(supabase, org.id);
-  const [tasksR, kudosR, ciR] = await Promise.all([
+  const [members, tasksR, kudosR, ciR] = await Promise.all([
+    loadMembers(supabase, org.id),
     supabase.from('tasks').select('assignee_id').eq('org_id', org.id).neq('status', 'done'),
     supabase.from('kudos').select('to_id, message, created_at').eq('org_id', org.id).order('created_at', { ascending: false }).limit(200),
     supabase.from('check_ins').select('user_id, for_date').eq('org_id', org.id).gte('for_date', isoDaysAgo(60)),

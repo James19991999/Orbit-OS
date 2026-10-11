@@ -150,6 +150,10 @@ This step puts the app on your domain with every secret set and the five backgro
 
 Never set `INTASEND_BASE_URL` in production. It exists only for the local test mock. After changing any `NEXT_PUBLIC_` variable, redeploy, because those values are baked in at build time.
 
+**Put the app next to the database (biggest speed setting).** Vercel runs the app in Washington, D.C. (`iad1`) unless you change it, while your Supabase project is in Europe. Every page then waits for several trips across the Atlantic. In Vercel → your project → **Settings → Functions → Function Regions**, pick the region of your Supabase project: **Frankfurt (`fra1`)** for eu-central-1, **London (`lhr1`)** for eu-west-2. Redeploy. Pages typically load several hundred milliseconds faster after this.
+
+**Optional, also faster: Supabase JWT signing keys.** In Supabase → **Project Settings → JWT Keys**, if the project still uses the legacy JWT secret, click **Migrate JWT secret**, then **Rotate keys**. OrbitOS then checks sign-ins locally instead of asking Supabase Auth on every page. Nobody is signed out. Leave the old secret in place for at least 1 hour 15 minutes before you revoke it, or skip revoking entirely.
+
 **Passkeys are tied to the domain.** A passkey made on `app.yourdomain.com` will not work if you later move to another domain. Choose the final domain before users register passkeys.
 
 **Crons**

@@ -22,9 +22,9 @@ const FW_ICON: Record<string, string> = { soc2: 'domain_verification', gdpr: 'sh
 
 export default async function CompliancePage() {
   const [fmt, t, { supabase, org, role, user, aal }] = await Promise.all([getFormat(), getT(), requireAppContext()]);
-  const members = await loadMembers(supabase, org.id);
-  const people = nameMap(members);
-  const [fwRes, ctrlRes, devRes, dsarRes, campRes, logRes, vaultRes] = await Promise.all([
+  // One round trip: members load alongside the page's other queries.
+  const [members, fwRes, ctrlRes, devRes, dsarRes, campRes, logRes, vaultRes] = await Promise.all([
+    loadMembers(supabase, org.id),
     supabase.from('compliance_frameworks').select('*').eq('org_id', org.id).order('created_at'),
     supabase.from('compliance_controls').select('id, framework_id, status').eq('org_id', org.id),
     supabase.from('devices').select('*').eq('org_id', org.id).order('name'),
@@ -33,6 +33,7 @@ export default async function CompliancePage() {
     can.seeAudit(role) ? supabase.from('audit_log').select('*').eq('org_id', org.id).or('action.like.auth.%,action.like.member.%,action.like.org.%,action.like.billing.%,action.like.export.%,action.like.compliance.%').order('created_at', { ascending: false }).limit(12) : Promise.resolve({ data: [], error: null }),
     can.manage(role) ? supabase.from('vault_documents').select('*').eq('org_id', org.id).order('created_at', { ascending: false }) : Promise.resolve({ data: [], error: null }),
   ]);
+  const people = nameMap(members);
   const frameworks = must(fwRes, 'frameworks') as Framework[];
   const controls = must(ctrlRes, 'controls') as Pick<Control, 'id' | 'framework_id' | 'status'>[];
   const devices = must(devRes, 'devices') as Device[];

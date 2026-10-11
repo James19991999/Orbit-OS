@@ -27,8 +27,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function SettingsPage() {
   const [fmt, t, { supabase, org, role, user, aal }] = await Promise.all([getFormat(), getT(), requireAppContext()]);
-  const members = await loadMembers(supabase, org.id);
-  const [entRes, invRes, integRes] = await Promise.all([
+  const [members, entRes, invRes, integRes] = await Promise.all([
+    loadMembers(supabase, org.id),
     supabase.from('legal_entities').select('*').eq('org_id', org.id).order('is_primary', { ascending: false }),
     can.manage(role) ? supabase.from('invites').select('id, email, role, expires_at, code').eq('org_id', org.id).is('accepted_at', null).gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }) : Promise.resolve({ data: [], error: null }),
     can.manage(role) ? supabase.from('integrations').select('kind, enabled').eq('org_id', org.id) : Promise.resolve({ data: [], error: null }),

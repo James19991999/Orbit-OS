@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from '@/components/ui/SmartLink';
 import { usePathname, useRouter } from 'next/navigation';
 import { Icon, cn, Avatar, Dialog, Banner, useToast } from '@/components/ui';
@@ -12,6 +12,7 @@ import { NotificationsBell } from './NotificationsBell';
 import { applyTheme, type ThemePref } from './theme';
 import { TimezonePrompt } from './TimezonePrompt';
 import { NetworkStatus } from './NetworkStatus';
+import { NavProgress } from './NavProgress';
 import type { Role } from '@/lib/types';
 import { useFormat } from '@/lib/locale/client';
 import { useT } from '@/i18n/client';
@@ -89,6 +90,7 @@ export function AppShell({ user, org, role, workspaces, children }: ShellProps) 
         </div>
       )}
 
+      <Suspense fallback={null}><NavProgress /></Suspense>
       <NetworkStatus />
       {org.autoDetectTz && <TimezonePrompt userId={user.id} profileTz={user.timezone} />}
 

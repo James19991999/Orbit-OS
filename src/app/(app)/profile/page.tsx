@@ -18,13 +18,16 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ProfilePage() {
-  const { supabase, profile, user, role, org, aal } = await requireAppContext();
-  const t = await getT();
-  const { data: wa } = await supabase.from('whatsapp_links').select('phone').eq('user_id', user.id).maybeSingle();
-  // Own calendar connection (RLS + column grants: never the tokens).
-  const { data: cal } = await supabase.from('calendar_connections').select('provider, account_email, status, last_error, busy_synced_at').eq('user_id', user.id).maybeSingle();
+  const [{ supabase, profile, user, role, org, aal }, t] = await Promise.all([requireAppContext(), getT()]);
+  // One round trip. Own calendar connection: RLS + column grants, never the tokens.
+  const [{ data: wa }, { data: cal }, pkRes, regionCookie] = await Promise.all([
+    supabase.from('whatsapp_links').select('phone').eq('user_id', user.id).maybeSingle(),
+    supabase.from('calendar_connections').select('provider, account_email, status, last_error, busy_synced_at').eq('user_id', user.id).maybeSingle(),
+    supabase.from('passkeys').select('id, label, created_at').eq('user_id', user.id).order('created_at'),
+    cookies(),
+  ]);
   const calOn = isEncryptionConfigured();
-  const passkeys = must(await supabase.from('passkeys').select('id, label, created_at').eq('user_id', user.id).order('created_at'), 'passkeys') as { id: string; label: string; created_at: string }[];
+  const passkeys = must(pkRes, 'passkeys') as { id: string; label: string; created_at: string }[];
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-5">
       <div>
@@ -33,7 +36,7 @@ export default async function ProfilePage() {
       </div>
       <Card><CardHeader title={t('profile.personal')} icon="person" subtitle={t('profile.personal_sub')} /><PersonalForm profile={profile} /></Card>
       <Card id="language"><CardHeader title={t('profile.language')} icon="translate" subtitle={t('profile.language_sub')} /><div className="flex flex-col gap-3"><LanguageSelect userId={user.id} /><p className="text-body-sm text-on-surface-variant">{t('profile.language_note')}</p></div></Card>
-      <Card><CardHeader title={t('profile.region')} icon="language" subtitle={t('profile.region_sub')} /><RegionFormat saved={(await cookies()).get(LOCALE_COOKIE)?.value ?? ''} /></Card>
+      <Card><CardHeader title={t('profile.region')} icon="language" subtitle={t('profile.region_sub')} /><RegionFormat saved={regionCookie.get(LOCALE_COOKIE)?.value ?? ''} /></Card>
       <Card id="data"><CardHeader title={t('profile.data')} icon="network_check" subtitle={t('profile.data_sub')} /><DataSaverToggle userId={user.id} enabled={profile.data_saver} /></Card>
       <Card id="calendar"><CardHeader title={t('cal.title')} icon="calendar_month" subtitle={t('cal.sub')} />
         <CalendarPanel providers={{ google: calOn && isProviderConfigured('google'), microsoft: calOn && isProviderConfigured('microsoft') }}
