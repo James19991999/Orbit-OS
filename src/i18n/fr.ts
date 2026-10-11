@@ -1,4 +1,7 @@
 import type { MessageKey } from './en';
+import { common } from './modules/common';
+import { invoices } from './modules/invoices';
+import { etims } from './modules/etims';
 
 /** Français. Machine-assisted draft — have a native speaker review before marketing it. */
 export const fr: Partial<Record<MessageKey, string>> = {
@@ -156,4 +159,7 @@ export const fr: Partial<Record<MessageKey, string>> = {
   'pay.confirm_balance': 'Vérifiez que votre portefeuille IntaSend a un solde suffisant, frais M-Pesa compris.', 'pay.not_now': 'Plus tard',
   'pay.sent_all': 'Paiement envoyé — tout le monde a été payé', 'pay.sent_processing': 'Paiement libéré — M-Pesa le traite',
   'pay.cancelled_toast': 'Brouillon annulé', 'pay.status_toast': 'Statut : {status}',
+  ...common.fr,
+  ...invoices.fr,
+  ...etims.fr,
 };

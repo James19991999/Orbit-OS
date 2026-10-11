@@ -7,6 +7,7 @@ import { LocaleProvider } from '@/lib/locale/client';
 import { DataSaverProvider } from '@/components/shell/DataSaver';
 import { I18nProvider } from '@/i18n/client';
 import { getLanguage } from '@/i18n/server';
+import { clientMessages } from '@/i18n';
 import { getLocale } from '@/lib/locale/server';
 
 export const dynamic = 'force-dynamic';
@@ -20,7 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
   const [locale, lang] = await Promise.all([getLocale(), getLanguage()]);
   return (
-    <I18nProvider lang={lang}>
+    <I18nProvider lang={lang} messages={clientMessages(lang)}>
     <LocaleProvider locale={locale} timeZone={ctx.profile.timezone || 'UTC'}>
     <DataSaverProvider enabled={Boolean(ctx.profile.data_saver)}>
     <AppShell

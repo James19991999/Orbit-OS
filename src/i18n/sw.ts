@@ -1,4 +1,7 @@
 import type { MessageKey } from './en';
+import { common } from './modules/common';
+import { invoices } from './modules/invoices';
+import { etims } from './modules/etims';
 
 /** Kiswahili. Machine-assisted draft — have a native speaker review before marketing it. */
 export const sw: Partial<Record<MessageKey, string>> = {
@@ -156,4 +159,7 @@ export const sw: Partial<Record<MessageKey, string>> = {
   'pay.confirm_balance': 'Hakikisha pochi yako ya IntaSend ina salio la kutosha, pamoja na ada za M-Pesa.', 'pay.not_now': 'Si sasa',
   'pay.sent_all': 'Malipo yametumwa — kila mtu amelipwa', 'pay.sent_processing': 'Malipo yameachiliwa — M-Pesa inayashughulikia',
   'pay.cancelled_toast': 'Rasimu imeghairiwa', 'pay.status_toast': 'Hali: {status}',
+  ...common.sw,
+  ...invoices.sw,
+  ...etims.sw,
 };

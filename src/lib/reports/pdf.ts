@@ -1,7 +1,9 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
 
 export interface PdfTable { head: string[]; rows: string[][]; widths?: number[] }
-export interface PdfSection { heading: string; lines?: string[]; kv?: [string, string][]; table?: PdfTable }
+/** A QR code drawn beside a section (e.g. KRA's receipt check link on fiscal invoices). */
+export interface PdfQr { modules: boolean[][]; caption?: string }
+export interface PdfSection { heading: string; lines?: string[]; kv?: [string, string][]; table?: PdfTable; qr?: PdfQr }
 export interface PdfDoc { title: string; subtitle?: string; sections: PdfSection[]; footer?: string }
 
 /** Standard PDF fonts only cover WinAnsi; map common Unicode punctuation and drop the rest. */
@@ -45,10 +47,22 @@ export async function buildPdf(doc: PdfDoc): Promise<Uint8Array> {
   page.drawLine({ start: { x: M, y }, end: { x: A4.w - M, y }, thickness: 1, color: line }); y -= 22;
 
   for (const s of doc.sections) {
-    ensure(40);
+    const qrSize = s.qr ? 96 : 0;
+    ensure(40 + qrSize);
     text(s.heading, M, 13, bold); y -= 18;
+    if (s.qr) {
+      // Drawn top-right of the section; key/value text below is kept clear of it.
+      const n = s.qr.modules.length; const cell = qrSize / (n + 8); const x0 = A4.w - M - qrSize; const top = y + 10;
+      page.drawRectangle({ x: x0, y: top - qrSize, width: qrSize, height: qrSize, color: rgb(1, 1, 1) });
+      s.qr.modules.forEach((row, r) => row.forEach((on, c) => {
+        if (on) page.drawRectangle({ x: x0 + (c + 4) * cell, y: top - (r + 5) * cell, width: cell, height: cell, color: rgb(0, 0, 0) });
+      }));
+      if (s.qr.caption) { const cy = y; y = top - qrSize - 10; text(s.qr.caption, x0, 7, font, muted, qrSize); y = cy; }
+    }
+    const kvMax = s.qr ? A4.w - 2 * M - 190 - qrSize - 12 : A4.w - 2 * M - 190;
     for (const l of s.lines ?? []) for (const w of wrap(l, 10, A4.w - 2 * M)) { ensure(14); text(w, M, 10); y -= 14; }
-    for (const [k, v] of s.kv ?? []) { ensure(14); text(k, M, 10, font, muted); text(v, M + 190, 10, bold, ink, A4.w - 2 * M - 190); y -= 15; }
+    for (const [k, v] of s.kv ?? []) { ensure(14); text(k, M, 10, font, muted); text(v, M + 190, 10, bold, ink, kvMax); y -= 15; }
+    if (s.qr) y = Math.min(y, y - Math.max(0, qrSize + 20 - 15 * (s.kv?.length ?? 0) - 14 * (s.lines?.length ?? 0)));
     if (s.table) {
       const widths = s.table.widths ?? s.table.head.map(() => (A4.w - 2 * M) / s.table!.head.length);
       const drawHead = () => {

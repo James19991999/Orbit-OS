@@ -7,6 +7,7 @@ import { formatDate, localeForCurrency } from '@/lib/locale';
 import { appUrl } from '@/lib/env';
 import { cardCurrencies } from '@/lib/intasend/currencies';
 import type { Invoice } from '@/lib/types';
+import { queueInvoiceSale } from '@/lib/etims/service';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,6 +51,16 @@ export const POST = handler<{ params: Promise<{ id: string }> }>(async (req, rou
       `<p>Hello ${escapeHtml(invoice.client_name)},</p><p>${escapeHtml(ctx.org.legal_name || ctx.org.name)} has sent you an invoice for <strong>${formatMoney(invoice.amount_minor, invoice.currency, { locale: clientLocale })}</strong>, due <strong>${formatDate(`${invoice.due_on}T12:00:00Z`, 'long', clientLocale)}</strong>.</p>${invoice.description ? `<p>${escapeHtml(invoice.description)}</p>` : ''}${paymentUrl ? (invoice.currency === 'KES' ? '<p>You can pay securely by M-Pesa or card.</p>' : '<p>You can pay securely by card.</p>') : '<p>Please pay using the bank details agreed with us.</p>'}`,
       paymentUrl ? { label: 'Pay invoice', url: paymentUrl } : undefined),
   });
-  await audit(req, ctx.org.id, ctx.user.id, 'invoice.sent', { type: 'invoice', id: invoice.id }, { paymentLink, emailed: email.sent });
-  return json({ ok: true, paymentUrl, paymentLink, emailed: email.sent, emailReason: email.reason ?? null });
+  // Fiscalise with KRA eTIMS when the workspace has it connected. KRA being slow or down never blocks sending:
+  // the document waits in the queue and the hourly job retries it.
+  let etims: { status: string; reason?: string } = { status: 'not_sent', reason: 'not_configured' };
+  try {
+    const r = await queueInvoiceSale(admin, invoice);
+    etims = r.queued ? { status: r.doc?.status ?? 'queued' } : { status: 'not_sent', reason: r.reason };
+  } catch (e) {
+    console.error('[etims] invoice', invoice.id, (e as Error).message);
+    etims = { status: 'queued' };
+  }
+  await audit(req, ctx.org.id, ctx.user.id, 'invoice.sent', { type: 'invoice', id: invoice.id }, { paymentLink, emailed: email.sent, etims: etims.status });
+  return json({ ok: true, paymentUrl, paymentLink, emailed: email.sent, emailReason: email.reason ?? null, etims });
 });

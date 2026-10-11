@@ -1,4 +1,4 @@
-import type { MessageKey } from '@/i18n';
+import type { MessageKey } from '@/i18n/shared';
 
 export interface NavItem { href: string; label: string; labelKey: MessageKey; icon: string; primary?: boolean }
 

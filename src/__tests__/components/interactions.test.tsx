@@ -1,3 +1,4 @@
+import { WithEnglish } from '../i18n-wrapper';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe, toHaveNoViolations } from 'jest-axe';
@@ -25,7 +26,7 @@ function q(result: unknown) {
   c.single = () => Promise.resolve(result);
   return c;
 }
-const wrap = (ui: React.ReactElement) => render(<ToastProvider>{ui}</ToastProvider>);
+const wrap = (ui: React.ReactElement) => render(<WithEnglish><ToastProvider>{ui}</ToastProvider></WithEnglish>);
 beforeEach(() => { jest.clearAllMocks(); sb.channel.mockReturnValue({ on: () => ({ subscribe: () => ({}) }), subscribe: () => ({}) }); });
 
 describe('PollCard', () => {

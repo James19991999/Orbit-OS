@@ -1,18 +1,19 @@
 'use client';
 import { createContext, useContext, useEffect, useMemo } from 'react';
-import { makeT, LANGUAGE_COOKIE, type Language, type T } from './index';
+import { makeClientT, LANGUAGE_COOKIE, type Language, type Messages, type T } from './shared';
 
-const Ctx = createContext<Language>('en');
+const Ctx = createContext<{ lang: Language; messages: Messages }>({ lang: 'en', messages: {} });
 
-/** Supplies the server-resolved language; also keeps <html lang> in step for screen readers. */
-export function I18nProvider({ lang, children }: { lang: Language; children: React.ReactNode }) {
+/** Supplies the server-resolved language and its strings; also keeps <html lang> in step for screen readers. */
+export function I18nProvider({ lang, messages, children }: { lang: Language; messages: Messages; children: React.ReactNode }) {
   useEffect(() => { document.documentElement.lang = lang; }, [lang]);
-  return <Ctx.Provider value={lang}>{children}</Ctx.Provider>;
+  const value = useMemo(() => ({ lang, messages }), [lang, messages]);
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
-export const useLang = () => useContext(Ctx);
+export const useLang = () => useContext(Ctx).lang;
 export function useT(): T {
-  const lang = useContext(Ctx);
-  return useMemo(() => makeT(lang), [lang]);
+  const { messages } = useContext(Ctx);
+  return useMemo(() => makeClientT(messages), [messages]);
 }
 
 /** Remembers the language on this device (used before sign-in, e.g. on the login page). */

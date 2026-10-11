@@ -53,4 +53,12 @@ if [ "${WITH_AI_MOCK:-1}" = "1" ]; then
   setsid nohup node "$DIR/ai-mock.mjs" < /dev/null > /tmp/ai-mock.log 2>&1 &
   printf 'ANTHROPIC_API_KEY=local-anthropic-key\nANTHROPIC_BASE_URL=http://localhost:54420\nANTHROPIC_MODEL=claude-haiku-5-5\n' >> "$ROOT/.env.local"
 fi
+# Credentials at rest (eTIMS keys, calendar tokens) are encrypted with this test-only key.
+printf 'ENCRYPTION_KEY=%s\n' "$(printf 'local-test-encryption-key' | sha256sum | cut -c1-64)" >> "$ROOT/.env.local"
+if [ "${WITH_ETIMS_MOCK:-1}" = "1" ]; then
+  pkill -f "local-stack/etims-mock.mjs" 2>/dev/null || true
+  setsid nohup node "$DIR/etims-mock.mjs" < /dev/null > /tmp/etims-mock.log 2>&1 &
+  # OrbitOS's own (platform) eTIMS device, so plan payments get fiscal receipts in the tests too.
+  printf 'ETIMS_BASE_URL=http://localhost:54430/etims-api\nETIMS_ENV=sandbox\nETIMS_TIN=P051234567X\nETIMS_BHF_ID=00\nETIMS_DEVICE_SERIAL=ORBITOS-PLATFORM-1\nETIMS_ITEM_CLS_CD=8111150000\n' >> "$ROOT/.env.local"
+fi
 echo "stack up: gateway http://localhost:54321 (auth + rest), db=$DB; wrote .env.local"

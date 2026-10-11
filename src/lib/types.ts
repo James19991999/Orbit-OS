@@ -10,7 +10,7 @@ export interface Organization {
   sso_domain: string | null; enforce_mfa_admins: boolean; session_timeout_hours: number;
   core_window_start: string; core_window_end: string; golden_overlap_min_hours: number;
   quiet_hours: boolean; auto_detect_timezone: boolean;
-  expense_approval_threshold_minor: number; hourly_cost_minor: number; seat_autoscale: boolean; audit_retention_years: number; ai_enabled: boolean;
+  expense_approval_threshold_minor: number; hourly_cost_minor: number; seat_autoscale: boolean; audit_retention_years: number; ai_enabled: boolean; kra_pin: string | null;
   created_at: string;
 }
 
@@ -47,6 +47,7 @@ export interface Invoice {
   id: string; org_id: string; number: string; client_name: string; client_email: string; description: string | null;
   amount_minor: number; currency: Currency; terms_days: number; issued_on: string; due_on: string;
   status: 'draft' | 'sent' | 'paid' | 'void'; payment_url: string | null; paid_at: string | null; created_at: string; created_by: string | null;
+  client_kra_pin: string | null;
 }
 
 export interface PayrollRun { id: string; period: string; country_count: number; total_minor: number; currency: Currency; provider_label: string; status: 'recorded' | 'settled'; paid_on: string | null }

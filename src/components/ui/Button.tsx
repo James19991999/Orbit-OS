@@ -38,7 +38,8 @@ export function LinkButton({ href, variant = 'primary', size = 'md', icon, class
   const external = /^https?:/.test(href);
   const cls = cn(base, variants[variant], sizes[size], className);
   const content = (<>{icon ? <Icon name={icon} className="text-[18px]" /> : null}{children}</>);
-  return external
-    ? <a href={href} className={cls} target="_blank" rel="noopener noreferrer" {...rest}>{content}</a>
-    : <Link href={href} className={cls} {...rest}>{content}</Link>;
+  if (external) return <a href={href} className={cls} target="_blank" rel="noopener noreferrer" {...rest}>{content}</a>;
+  // Files served by API routes (PDFs, exports) are plain downloads, not client-side navigations.
+  if (href.startsWith('/api/')) return <a href={href} className={cls} {...rest}>{content}</a>;
+  return <Link href={href} className={cls} {...rest}>{content}</Link>;
 }

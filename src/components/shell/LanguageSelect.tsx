@@ -1,6 +1,6 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { LANGUAGES, isLanguage } from '@/i18n';
+import { LANGUAGES, isLanguage } from '@/i18n/shared';
 import { useLang, useT, setLanguageCookie } from '@/i18n/client';
 import { useToast } from '@/components/ui';
 

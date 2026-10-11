@@ -14,6 +14,11 @@ import { Integrations } from '@/components/settings/Integrations';
 import pkg from '../../../../package.json';
 import type { LegalEntity, Role } from '@/lib/types';
 import { getFormat } from '@/lib/locale/server';
+import { getAdminClient, hasServiceRole } from '@/lib/supabase/admin';
+import { loadConfig, publicConfig } from '@/lib/etims/service';
+import { isEncryptionConfigured } from '@/lib/crypto/secrets';
+import { EtimsSettings } from '@/components/settings/EtimsSettings';
+import { getT } from '@/i18n/server';
 
 export const metadata: Metadata = { title: 'Settings' };
 
@@ -27,6 +32,16 @@ export default async function SettingsPage() {
     can.manage(role) ? supabase.from('integrations').select('kind, enabled').eq('org_id', org.id) : Promise.resolve({ data: [], error: null }),
   ]);
   const integ = must(integRes, 'integrations') as { kind: string; enabled: boolean }[];
+  const t = await getT();
+  // KRA eTIMS: config and document counts are server-only tables (the communication key never leaves the server).
+  let etims: { config: ReturnType<typeof publicConfig>; counts: { submitted: number; queued: number; rejected: number } } | null = null;
+  if (can.seeFinance(role) && hasServiceRole()) {
+    const admin = getAdminClient();
+    const [cfg, { data: docs }] = await Promise.all([loadConfig(admin, org.id), admin.from('etims_documents').select('status').eq('scope', org.id)]);
+    const counts = { submitted: 0, queued: 0, rejected: 0 };
+    for (const d of docs ?? []) if (d.status in counts) counts[d.status as keyof typeof counts]++;
+    etims = { config: publicConfig(cfg), counts };
+  }
   const zones = new Set(members.map((m) => m.profile.timezone)).size;
   const invites = must(invRes, 'invites') as { id: string; email: string; role: Role; expires_at: string; code: string }[];
   const expires = new Date(org.plan_expires_at);
@@ -75,6 +90,12 @@ export default async function SettingsPage() {
           {can.manage(role) && (
             <Section id="integrations" title="Cloud & integrations" icon="hub" keywords="slack github calendar email cloudtrail webhook" badge={<span className="text-body-sm text-on-surface-variant">{integ.filter((i) => i.enabled).length} connected</span>}>
               <Integrations slack={integ.some((i) => i.kind === 'slack_webhook' && i.enabled)} github={integ.some((i) => i.kind === 'github' && i.enabled)} emailConfigured={isEmailConfigured()} canEdit={can.manage(role)} />
+            </Section>
+          )}
+          {etims && (
+            <Section id="etims" title={t('etims.title')} icon="receipt_long" keywords="kra etims tax vat invoice fiscal oscu kenya pin"
+              badge={etims.config?.status === 'active' ? <Pill tone="healthy">{t('etims.status.active')}</Pill> : undefined}>
+              <EtimsSettings config={etims.config} counts={etims.counts} encryptionConfigured={isEncryptionConfigured()} isOwner={role === 'owner'} canWrite={can.manage(role) && org.status === 'active'} />
             </Section>
           )}
           <Section id="data" title="Data governance & export" icon="gavel" keywords="residency retention archive export offboarding suspension delete">

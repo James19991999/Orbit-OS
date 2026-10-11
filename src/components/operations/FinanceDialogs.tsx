@@ -7,6 +7,7 @@ import { useAction, unwrap, postJson } from '@/hooks/useAction';
 import { parseMoneyToMinor, CURRENCIES, type Currency } from '@/lib/format';
 import { nextInvoiceNumber } from '@/lib/metrics/invoices';
 import { useFormat } from '@/lib/locale/client';
+import { useT } from '@/i18n/client';
 
 const KINDS = [
   { value: 'expense', label: 'Expense' }, { value: 'revenue', label: 'Revenue' },
@@ -136,46 +137,54 @@ export function PayrollDialog({ open, onClose, orgId, currency }: { open: boolea
 
 export function InvoiceDialog({ open, onClose, orgId, currency, existingNumbers }: { open: boolean; onClose: () => void; orgId: string; currency: Currency; existingNumbers: string[] }) {
   const fmt = useFormat();
+  const t = useT();
   const router = useRouter();
   const today = new Date().toISOString().slice(0, 10);
-  const [f, setF] = useState({ client_name: '', client_email: '', description: '', amount: '', currency, terms: '30', issued_on: today, send: true });
+  const [f, setF] = useState({ client_name: '', client_email: '', client_kra_pin: '', description: '', amount: '', currency, terms: '30', issued_on: today, send: true });
   const [err, setErr] = useState<string | null>(null);
+  const pin = f.client_kra_pin.replace(/\s+/g, '').toUpperCase();
   const save = useAction(async () => {
     const minor = fmt.parseMoney(f.amount)!;
     const due = new Date(Date.parse(f.issued_on) + Number(f.terms) * 86_400_000).toISOString().slice(0, 10);
     const inv = unwrap(await requireBrowserClient().from('invoices').insert({
       org_id: orgId, number: nextInvoiceNumber(existingNumbers, Number(f.issued_on.slice(0, 4))), client_name: f.client_name.trim(), client_email: f.client_email.trim(),
+      client_kra_pin: f.currency === 'KES' && pin ? pin : null,
       description: f.description.trim() || null, amount_minor: minor, currency: f.currency, terms_days: Number(f.terms), issued_on: f.issued_on, due_on: due, status: 'draft',
     }).select('id').single()) as { id: string };
     if (f.send) await postJson(`/api/invoices/${inv.id}/send`);
     return inv;
-  }, { success: f.send ? 'Invoice sent with an M-Pesa / card payment link' : 'Draft invoice saved' });
+  }, { success: f.send ? t('inv.sent_toast') : t('inv.draft_toast') });
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const minor = fmt.parseMoney(f.amount);
-    if (!f.client_name.trim()) return setErr('Enter the client name.');
-    if (!/^\S+@\S+\.\S+$/.test(f.client_email)) return setErr('Enter a valid client email.');
-    if (minor === null || minor <= 0) return setErr('Enter the invoice amount.');
+    if (!f.client_name.trim()) return setErr(t('inv.err_name'));
+    if (!/^\S+@\S+\.\S+$/.test(f.client_email)) return setErr(t('inv.err_email'));
+    if (minor === null || minor <= 0) return setErr(t('inv.err_amount'));
+    if (f.currency === 'KES' && pin && !/^[A-Z][0-9]{9}[A-Z]$/.test(pin)) return setErr(t('etims.inv.bad_pin'));
     setErr(null);
     if (await save.run()) { onClose(); router.refresh(); }
   }
   return (
-    <Dialog open={open} onClose={onClose} title="Issue an invoice" description="Clients pay through an IntaSend link by M-Pesa or card; it's marked paid automatically."
-      footer={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button type="submit" form="inv-form" loading={save.pending}>{f.send ? 'Create & send' : 'Save draft'}</Button></>}>
+    <Dialog open={open} onClose={onClose} title={t('inv.new_title')} description={t('inv.new_desc')}
+      footer={<><Button variant="ghost" onClick={onClose}>{t('common.cancel')}</Button><Button type="submit" form="inv-form" loading={save.pending}>{f.send ? t('inv.create_send') : t('inv.save_draft')}</Button></>}>
       <form id="inv-form" onSubmit={submit} className="grid gap-4" noValidate>
         <div className="grid gap-3 md:grid-cols-2">
-          <Input label="Client name" value={f.client_name} onChange={(e) => setF({ ...f, client_name: e.target.value })} />
-          <Input label="Client billing email" type="email" value={f.client_email} onChange={(e) => setF({ ...f, client_email: e.target.value })} />
+          <Input label={t('inv.client_name')} value={f.client_name} onChange={(e) => setF({ ...f, client_name: e.target.value })} />
+          <Input label={t('inv.client_email')} type="email" value={f.client_email} onChange={(e) => setF({ ...f, client_email: e.target.value })} />
         </div>
-        <Textarea label="Description" rows={2} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
+        {f.currency === 'KES' && (
+          <Input label={t('etims.inv.client_pin')} hint={t('etims.inv.client_pin_hint')} value={f.client_kra_pin} autoCapitalize="characters" maxLength={20}
+            onChange={(e) => setF({ ...f, client_kra_pin: e.target.value })} />
+        )}
+        <Textarea label={t('inv.description')} rows={2} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Input label={`Amount (${f.currency})`} inputMode="decimal" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} />
-          <Select label="Currency" value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value as Currency })} options={CURRENCIES.map((c) => ({ value: c, label: c }))}
-            hint={f.currency !== currency ? `Revenue in ${f.currency} isn't counted in your ${currency} finance metrics.` : undefined} />
-          <Select label="Terms" value={f.terms} onChange={(e) => setF({ ...f, terms: e.target.value })} options={[7, 14, 30, 45, 60].map((d) => ({ value: String(d), label: `Net ${d}` }))} />
-          <Input label="Issue date" type="date" value={f.issued_on} onChange={(e) => setF({ ...f, issued_on: e.target.value })} />
+          <Input label={t('inv.amount', { currency: f.currency })} inputMode="decimal" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} />
+          <Select label={t('inv.currency')} value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value as Currency })} options={CURRENCIES.map((c) => ({ value: c, label: c }))}
+            hint={f.currency !== currency ? t('inv.other_currency', { currency: f.currency, base: currency }) : undefined} />
+          <Select label={t('inv.terms')} value={f.terms} onChange={(e) => setF({ ...f, terms: e.target.value })} options={[7, 14, 30, 45, 60].map((d) => ({ value: String(d), label: t('inv.net', { days: d }) }))} />
+          <Input label={t('inv.issue_date')} type="date" value={f.issued_on} onChange={(e) => setF({ ...f, issued_on: e.target.value })} />
         </div>
-        <label className="flex items-center gap-2 text-body-md"><input type="checkbox" checked={f.send} onChange={(e) => setF({ ...f, send: e.target.checked })} className="h-4 w-4 accent-[#2563eb]" />Email the client a payment link now</label>
+        <label className="flex items-center gap-2 text-body-md"><input type="checkbox" checked={f.send} onChange={(e) => setF({ ...f, send: e.target.checked })} className="h-4 w-4 accent-[#2563eb]" />{t('inv.email_now')}</label>
         <InlineError message={err ?? save.error} />
       </form>
     </Dialog>

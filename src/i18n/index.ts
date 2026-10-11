@@ -1,45 +1,34 @@
+// Full dictionaries: server code (pages, routes, emails, WhatsApp) and tests. Client components use
+// '@/i18n/client' (useT) or '@/i18n/shared' instead, so the dictionaries stay out of browser bundles.
 import { en, type MessageKey } from './en';
 import { sw } from './sw';
 import { fr } from './fr';
+import { lookup, SERVER_ONLY_PREFIXES, type Language, type Messages, type T } from './shared';
 
-export type Language = 'en' | 'sw' | 'fr';
-export type { MessageKey };
-export const LANGUAGES: { value: Language; label: string }[] = [
-  { value: 'en', label: 'English' },
-  { value: 'sw', label: 'Kiswahili' },
-  { value: 'fr', label: 'Français' },
-];
-export const LANGUAGE_COOKIE = 'orbit_lang';
+export * from './shared';
 
-const DICTS: Record<Language, Partial<Record<MessageKey, string>>> = { en, sw, fr };
+const DICTS: Record<Language, Messages> = { en, sw, fr };
+const FILLED: Partial<Record<Language, Messages>> = {};
 
-export function isLanguage(v: unknown): v is Language {
-  return v === 'en' || v === 'sw' || v === 'fr';
-}
-
-/** Picks a supported UI language from a cookie, then Accept-Language ("sw-KE", "fr-FR;q=0.9"), else English. */
-export function resolveLanguage(cookie: string | null | undefined, acceptLanguage?: string | null): Language {
-  if (isLanguage(cookie)) return cookie;
-  for (const part of (acceptLanguage ?? '').split(',')) {
-    const base = part.split(';')[0]!.trim().toLowerCase().split('-')[0];
-    if (isLanguage(base)) return base;
-  }
-  return 'en';
+/** The language's dictionary with English filled in for anything missing. */
+export function dictionary(lang: Language): Messages {
+  return (FILLED[lang] ??= lang === 'en' ? en : { ...en, ...Object.fromEntries(Object.entries(DICTS[lang]).filter(([, v]) => v)) });
 }
 
 /** Translate a key, filling {name}-style placeholders. Missing translations fall back to English. */
 export function translate(lang: Language, key: MessageKey, vars?: Record<string, string | number>): string {
-  // Singular form: "<key>_one" is used when count is 1 (if the language defines it).
-  const oneKey = `${key}_one` as MessageKey;
-  const useOne = vars?.count === 1 && (oneKey in en);
-  const raw = (useOne ? DICTS[lang]?.[oneKey] ?? (lang === 'en' ? en[oneKey] : undefined) : undefined) ?? DICTS[lang]?.[key] ?? en[key];
-  if (!vars) return raw;
-  return raw.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
+  return lookup(dictionary(lang), key, vars);
 }
 
-export type T = (key: MessageKey, vars?: Record<string, string | number>) => string;
 export function makeT(lang: Language): T {
-  return (key, vars) => translate(lang, key, vars);
+  const d = dictionary(lang);
+  return (key, vars) => lookup(d, key, vars);
+}
+
+const CLIENT: Partial<Record<Language, Messages>> = {};
+/** The strings client components may need, in one language (sent to the browser with each page). */
+export function clientMessages(lang: Language): Messages {
+  return (CLIENT[lang] ??= Object.fromEntries(Object.entries(dictionary(lang)).filter(([k]) => !SERVER_ONLY_PREFIXES.some((p) => k.startsWith(p)))));
 }
 
 /** Share of English keys translated, per language (shown in docs and tests). */

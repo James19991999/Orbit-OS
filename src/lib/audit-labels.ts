@@ -13,12 +13,16 @@ const LABELS: Record<string, string> = {
   'profile.whatsapp_linked': 'WhatsApp number linked', 'profile.whatsapp_unlinked': 'WhatsApp number unlinked',
   'finance_entries.approval_status_changed': 'Expense approved or rejected', 'invoices.status_changed': 'Invoice status changed',
   'tasks.status_changed': 'Task status changed', 'compliance_controls.status_changed': 'Control status changed',
+  'etims.connected': 'KRA eTIMS connected', 'etims.disconnected': 'KRA eTIMS disconnected', 'etims.item_registered': 'KRA eTIMS service registered',
+  'etims.retried': 'KRA eTIMS sending retried', 'etims.invoice_sent': 'Invoice sent to KRA eTIMS', 'invoice.voided': 'Invoice voided',
+  'org.billing_details_updated': 'Tax details changed',
+  'calendar.connected': 'Calendar connected', 'calendar.disconnected': 'Calendar disconnected', 'meeting.cancelled': 'Meeting cancelled',
 };
 
 const TARGETS: Record<string, string> = {
   user: 'Person', membership: 'Member', organization: 'Workspace', invite: 'Invite', billing_payment: 'Plan payment', report: 'Report',
   invoice: 'Invoice', invoices: 'Invoice', finance_entries: 'Expense', payout_batch: 'M-Pesa payout', tasks: 'Task', compliance_controls: 'Control',
-  meeting: 'Meeting', integration: 'Integration',
+  meeting: 'Meeting', integration: 'Integration', calendar: 'Calendar',
 };
 /** Friendly name for an audit target type ("finance_entries" → "Expense"). */
 export function auditTargetLabel(type: string | null): string {

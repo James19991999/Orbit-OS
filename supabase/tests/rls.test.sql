@@ -294,6 +294,52 @@ select tests.eq(public.checkin_as('00000000-0000-0000-0000-00000000000e', curren
 select tests.eq(public.checkin_as('00000000-0000-0000-0000-00000000000b', current_setting('tests.org_a')::uuid, 'Shipped via WhatsApp', 'none', 5), 'saved', 'member checks in via WhatsApp');
 select tests.eq((select shipped from public.check_ins where user_id = '00000000-0000-0000-0000-00000000000b' order by for_date desc limit 1), 'Shipped via WhatsApp', 'WhatsApp check-in replaces today''s row');
 
+-- ── 9d. KRA eTIMS ──
+insert into public.etims_configs (scope, org_id, tin, device_serial, cmc_key_enc, status, item_cd, item_cls_cd)
+  values (current_setting('tests.org_a'), current_setting('tests.org_a')::uuid, 'A012345678B', 'DEV-1', 'v1.secret', 'active', 'KE3NTXU0000001', '8111150000');
+insert into public.invoices (org_id, number, client_name, client_email, amount_minor, currency, due_on, status)
+  values (current_setting('tests.org_a')::uuid, 'INV-ETIMS-1', 'Client', 'c@x.test', 116000, 'KES', current_date + 30, 'sent');
+insert into public.etims_documents (scope, org_id, kind, invoice_id, trade_invoice_no, amount_minor, tax_type, status, invc_no)
+  select current_setting('tests.org_a'), current_setting('tests.org_a')::uuid, 'sale', id, number, 116000, 'B', 'submitted', 1 from public.invoices where number = 'INV-ETIMS-1';
+select tests.expect_error($$insert into public.invoices (org_id, number, client_name, client_email, amount_minor, currency, due_on, client_kra_pin)
+  values ((select id from public.organizations where slug = 'alpha-co'), 'INV-BADPIN', 'X', 'x@x.test', 100, 'KES', current_date, '12345')$$, 'malformed client KRA PIN rejected');
+-- lease: one sender at a time, the number moves only when used
+select tests.eq(public.etims_claim(current_setting('tests.org_a'), '11111111-1111-1111-1111-111111111111')::text, '1', 'first claim gets invoice number 1');
+select tests.eq(coalesce(public.etims_claim(current_setting('tests.org_a'), '22222222-2222-2222-2222-222222222222')::text, 'null'), 'null', 'a second sender waits while the lease is held');
+select public.etims_release(current_setting('tests.org_a'), '11111111-1111-1111-1111-111111111111', false, 1);
+select tests.eq(public.etims_claim(current_setting('tests.org_a'), '22222222-2222-2222-2222-222222222222')::text, '1', 'an unused number is handed out again (no gaps)');
+select public.etims_release(current_setting('tests.org_a'), '22222222-2222-2222-2222-222222222222', true, 1);
+select tests.eq(public.etims_claim(current_setting('tests.org_a'), '33333333-3333-3333-3333-333333333333')::text, '2', 'a used number is never reused');
+select public.etims_release(current_setting('tests.org_a'), '33333333-3333-3333-3333-333333333333', false, 2);
+
+select tests.login('00000000-0000-0000-0000-00000000000a');
+set role authenticated;
+select tests.eq((select count(*)::text from public.etims_documents), '1', 'owner reads their fiscal documents');
+select tests.expect_error($$select count(*) from public.etims_configs$$, 'eTIMS configuration (and its key) is server-only');
+select tests.expect_error($$select count(*) from public.etims_sequences$$, 'eTIMS sequences are server-only');
+select tests.expect_error($$update public.etims_documents set rcpt_sign = 'forged'$$, 'fiscal documents cannot be edited by clients');
+select tests.expect_error($$select public.etims_claim('x', gen_random_uuid())$$, 'etims_claim is not callable by clients');
+select tests.expect_error($$update public.invoices set status = 'void' where number = 'INV-ETIMS-1'$$, 'a fiscalised invoice cannot be voided directly (needs a credit note)');
+select tests.expect_error($$update public.invoices set amount_minor = 1 where number = 'INV-ETIMS-1'$$, 'a fiscalised invoice amount cannot change');
+select tests.expect_error($$delete from public.invoices where number = 'INV-ETIMS-1'$$, 'a fiscalised invoice cannot be deleted');
+select tests.expect_error($$update public.organizations set kra_pin = 'A000000000Z' where slug = 'alpha-co'$$, 'workspace KRA PIN changes only through the owner API');
+update public.invoices set description = 'still editable' where number = 'INV-ETIMS-1';
+select tests.eq((select description from public.invoices where number = 'INV-ETIMS-1'), 'still editable', 'non-fiscal fields stay editable');
+reset role;
+
+select tests.login('00000000-0000-0000-0000-00000000000b');
+set role authenticated;
+select tests.eq((select count(*)::text from public.etims_documents), '0', 'contributors cannot see fiscal documents');
+reset role;
+select tests.login('00000000-0000-0000-0000-00000000000c');
+set role authenticated;
+select tests.eq((select count(*)::text from public.etims_documents), '1', 'auditors can read fiscal documents');
+reset role;
+select tests.login('00000000-0000-0000-0000-00000000000d');
+set role authenticated;
+select tests.eq((select count(*)::text from public.etims_documents), '0', 'other workspaces cannot see fiscal documents');
+reset role;
+
 -- ── 10. Anonymous ──
 set role anon;
 select set_config('request.jwt.claims', '', false);

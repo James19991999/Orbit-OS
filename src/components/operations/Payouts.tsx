@@ -8,7 +8,7 @@ import { useFormat } from '@/lib/locale/client';
 import { useToast } from '@/components/ui';
 import { parsePayoutCsv } from '@/lib/payouts/lines';
 import { useT } from '@/i18n/client';
-import type { MessageKey } from '@/i18n';
+import type { MessageKey } from '@/i18n/shared';
 
 export interface PayoutLineView { id: string; name: string; phone: string; amount_minor: number; status: 'pending' | 'sent' | 'failed'; failure_reason: string | null }
 export interface PayoutBatchView {

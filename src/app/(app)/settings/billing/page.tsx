@@ -8,6 +8,8 @@ import { PLANS } from '@/lib/billing/plans';
 import { isIntaSendConfigured } from '@/lib/intasend/client';
 import { Card, CardHeader, Icon, Pill, EmptyState, Banner } from '@/components/ui';
 import { BillingPlans } from '@/components/billing/BillingPlans';
+import { BillingDetails } from '@/components/billing/BillingDetails';
+import { getT } from '@/i18n/server';
 import { cardCurrencyFor } from '@/lib/intasend/currencies';
 import type { BillingPayment } from '@/lib/types';
 import { getFormat } from '@/lib/locale/server';
@@ -15,6 +17,7 @@ import { getFormat } from '@/lib/locale/server';
 export const metadata: Metadata = { title: 'Billing' };
 
 export default async function BillingPage() {
+  const t = await getT();
   const fmt = await getFormat();
   const { supabase, org, role } = await requireAppContext();
   const canSee = role === 'owner' || role === 'auditor';
@@ -36,6 +39,11 @@ export default async function BillingPage() {
       </div>
       {!isWritable(org) && <Banner tone="warning">The workspace is read-only until the plan is renewed.</Banner>}
       {role !== 'owner' && <Banner tone="info">Only workspace owners can change the plan.</Banner>}
+      <Card aria-labelledby="taxdetails-h">
+        <CardHeader title={<span id="taxdetails-h">{t('etims.billing.title')}</span>} icon="receipt" />
+        <p className="mb-3 text-body-md text-on-surface-variant">{t('etims.billing.body')}</p>
+        <BillingDetails kraPin={org.kra_pin} canEdit={role === 'owner' && isWritable(org)} />
+      </Card>
       <Card><CardHeader title="Seat alerts" icon="group" /><SeatAlertToggle orgId={org.id} enabled={org.seat_autoscale} canEdit={role === 'owner' && isWritable(org)} /></Card>
       <BillingPlans currentPlan={org.plan} currency={cardCurrencyFor(org.currency)} activeMembers={membersRes.count ?? 0} canPay={role === 'owner'} configured={isIntaSendConfigured()} />
       {canSee && (

@@ -1,3 +1,7 @@
+import { common } from './modules/common';
+import { invoices } from './modules/invoices';
+import { etims } from './modules/etims';
+
 /** English source strings. Keys are grouped by area; {name} placeholders are filled by translate(). */
 export const en = {
   // ── WhatsApp replies ──
@@ -171,6 +175,9 @@ export const en = {
   'pay.confirm_balance': 'Make sure your IntaSend wallet has enough balance, including M-Pesa transfer fees.', 'pay.not_now': 'Not now',
   'pay.sent_all': 'Payout sent — everyone was paid', 'pay.sent_processing': 'Payout released — M-Pesa is processing it',
   'pay.cancelled_toast': 'Draft cancelled', 'pay.status_toast': 'Status: {status}',
+  ...common.en,
+  ...invoices.en,
+  ...etims.en,
 } as const;
 
 export type MessageKey = keyof typeof en;

@@ -10,7 +10,7 @@ export const maxDuration = 60;
 const TABLES = ['organizations', 'memberships', 'legal_entities', 'sprints', 'tasks', 'finance_entries', 'invoices', 'payroll_runs', 'meetings',
   'meeting_participants', 'check_ins', 'channels', 'messages', 'polls', 'poll_options', 'kudos', 'lounges', 'compliance_frameworks',
   'compliance_controls', 'compliance_evidence', 'vault_documents', 'policies', 'dsar_requests', 'devices', 'training_campaigns',
-  'training_assignments', 'report_schedules', 'billing_payments', 'audit_log', 'activity_events', 'payout_batches', 'payout_lines', 'ai_briefs'] as const;
+  'training_assignments', 'report_schedules', 'billing_payments', 'audit_log', 'activity_events', 'payout_batches', 'payout_lines', 'ai_briefs', 'etims_documents'] as const;
 
 /** Full tenant archive (owner, Enterprise, MFA session): every org table as JSON + CSV, streamed as a ZIP. */
 export const POST = handler(async (req) => {

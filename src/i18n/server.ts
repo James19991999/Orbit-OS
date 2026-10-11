@@ -2,7 +2,7 @@ import 'server-only';
 import { cache } from 'react';
 import { cookies, headers } from 'next/headers';
 import { getAuthContext } from '@/lib/context';
-import { isLanguage, makeT, resolveLanguage, LANGUAGE_COOKIE, type Language } from './index';
+import { isLanguage, makeT, resolveLanguage, clientMessages, LANGUAGE_COOKIE, type Language } from './index';
 
 /** Signed-in: the profile's language. Otherwise: the orbit_lang cookie, then Accept-Language, then English. */
 export const getLanguage = cache(async (): Promise<Language> => {
@@ -14,4 +14,10 @@ export const getLanguage = cache(async (): Promise<Language> => {
 
 export async function getT() {
   return makeT(await getLanguage());
+}
+
+/** Language plus the strings client components need, for <I18nProvider>. */
+export async function getI18nProps() {
+  const lang = await getLanguage();
+  return { lang, messages: clientMessages(lang) };
 }
