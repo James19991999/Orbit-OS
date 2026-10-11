@@ -1,5 +1,6 @@
 import 'server-only';
 import { Resend } from 'resend';
+import { recordDeliveryFailure } from '@/lib/founder/record';
 
 export interface EmailResult { sent: boolean; reason?: 'not_configured' | 'error'; error?: string }
 
@@ -18,9 +19,10 @@ export async function sendEmail(msg: { to: string | string[]; subject: string; h
       to: msg.to, subject: msg.subject, html: msg.html, text: msg.text,
       attachments: msg.attachments?.map((a) => ({ filename: a.filename, content: a.content })),
     });
-    if (error) return { sent: false, reason: 'error', error: error.message };
+    if (error) { await recordDeliveryFailure('email', error.message, msg.subject); return { sent: false, reason: 'error', error: error.message }; }
     return { sent: true };
   } catch (e) {
+    await recordDeliveryFailure('email', (e as Error).message, msg.subject);
     return { sent: false, reason: 'error', error: (e as Error).message };
   }
 }

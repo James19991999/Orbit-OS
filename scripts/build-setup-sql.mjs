@@ -25,7 +25,7 @@ writeFileSync(join(dir, 'setup_all.sql'), `-- ${rule}
 --   if anything fails, nothing is applied and you can fix it and run it again.
 -- • It records the migrations as applied, so \`supabase db push\` later won't re-run them.
 -- • Already have OrbitOS? Run the update files instead: update_differentiators.sql (if set up before
---   October 9, 2026), then update_etims_calendar.sql (if set up before October 11, 2026).
+--   October 9, 2026), then update_etims_calendar.sql and update_founder_console.sql, in that order.
 -- • Do NOT run supabase/seed.sql on a real project (demo users with a public password).
 -- Generated from supabase/migrations by scripts/build-setup-sql.mjs — edit those files, not this one.
 -- ${rule}
@@ -73,7 +73,7 @@ commit;
 
 -- Done. Check it worked with supabase/verify_setup.sql
 `);
-const upd2 = files.filter((f) => f >= '20261011000008');
+const upd2 = files.filter((f) => f >= '20261011000008' && f < '20261011000010');
 writeFileSync(join(dir, 'update_etims_calendar.sql'), `-- ${rule}
 -- OrbitOS — UPDATE for a project that already has OrbitOS (setup_all.sql + update_differentiators.sql) from
 -- before October 11, 2026. Adds KRA eTIMS fiscal invoicing and Google Calendar / Outlook two-way sync.
@@ -103,4 +103,33 @@ commit;
 
 -- Done. Check it worked with supabase/verify_setup.sql
 `);
-console.log(`setup_all.sql: ${files.length} migrations; update_differentiators.sql: ${upd.join(', ')}; update_etims_calendar.sql: ${upd2.join(', ')}`);
+const upd3 = files.filter((f) => f >= '20261011000010');
+writeFileSync(join(dir, 'update_founder_console.sql'), `-- ${rule}
+-- OrbitOS — UPDATE that adds the Founder Console data (people online, background job runs, delivery failures).
+-- For a project that already ran update_etims_calendar.sql. Paste this whole file into Supabase → SQL Editor →
+-- New query, and click Run once. One transaction: if anything fails, nothing changes. Safe to run only once.
+-- Generated from supabase/migrations by scripts/build-setup-sql.mjs.
+-- ${rule}
+
+begin;
+
+do $guard$
+begin
+  if to_regclass('public.organizations') is null then
+    raise exception 'OrbitOS is not set up in this project yet. Run supabase/setup_all.sql instead — nothing was changed.';
+  end if;
+  if to_regclass('public.etims_configs') is null then
+    raise exception 'Run supabase/update_etims_calendar.sql first, then this file — nothing was changed.';
+  end if;
+  if to_regclass('public.user_activity') is not null then
+    raise exception 'This update has already been applied — nothing was changed.';
+  end if;
+end $guard$;
+
+${upd3.map(section).join('\n')}
+${record(upd3)}
+commit;
+
+-- Done. Check it worked with supabase/verify_setup.sql
+`);
+console.log(`setup_all.sql: ${files.length} migrations; update_differentiators.sql: ${upd.join(', ')}; update_etims_calendar.sql: ${upd2.join(', ')}; update_founder_console.sql: ${upd3.join(', ')}`);

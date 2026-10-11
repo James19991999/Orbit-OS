@@ -18,8 +18,8 @@ import { useFormat } from '@/lib/locale/client';
 import { useT } from '@/i18n/client';
 
 export interface ShellProps {
-  user: { id: string; name: string; email: string; avatar: string | null; theme: ThemePref; timezone: string };
-  org: { name: string; slug: string; plan: string; expiresAt: string; readOnly: boolean; timeoutHours: number; status: string; autoDetectTz: boolean };
+  user: { id: string; name: string; email: string; avatar: string | null; theme: ThemePref; timezone: string; founder?: boolean };
+  org: { id: string; name: string; slug: string; plan: string; expiresAt: string; readOnly: boolean; timeoutHours: number; status: string; autoDetectTz: boolean };
   role: Role;
   workspaces: { name: string; slug: string; role: Role }[];
   children: React.ReactNode;
@@ -36,6 +36,17 @@ export function AppShell({ user, org, role, workspaces, children }: ShellProps) 
 
   useSessionGuard(org.timeoutHours);
   useEffect(() => { applyTheme(user.theme); }, [user.theme]);
+  // "I'm here" for the Founder Console's people-online count: at most every 2 minutes, only while the tab is visible.
+  useEffect(() => {
+    const beat = () => {
+      if (document.visibilityState !== 'visible') return;
+      try { Promise.resolve(getBrowserClient()?.rpc('touch_activity', { p_org: org.id })).catch(() => undefined); } catch { /* best effort: never break the page */ }
+    };
+    beat();
+    const iv = setInterval(beat, 120_000);
+    document.addEventListener('visibilitychange', beat);
+    return () => { clearInterval(iv); document.removeEventListener('visibilitychange', beat); };
+  }, [org.id]);
   useEffect(() => { setMoreOpen(false); }, [pathname]);
 
   return (
@@ -267,6 +278,7 @@ function ProfileMenu({ user }: { user: ShellProps['user'] }) {
           </div>
           <div className="my-1 border-t border-outline-variant" />
           <Link role="menuitem" href="/profile" className="flex items-center gap-2 rounded px-3 py-2 text-body-md hover:bg-on-surface/5"><Icon name="person" />{t('shell.profile_security')}</Link>
+          {user.founder && <Link role="menuitem" href="/founder" className="flex items-center gap-2 rounded px-3 py-2 text-body-md hover:bg-on-surface/5"><Icon name="monitoring" />{t('shell.founder')}</Link>}
           <div className="px-3 py-2" role="group" aria-label={t('shell.theme')}>
             <p className="mb-1 text-label-xs uppercase text-on-surface-variant">{t('shell.theme')}</p>
             <div className="flex gap-1">

@@ -1,7 +1,7 @@
 // Pure session/routing rules (no next/server import) so they can be unit-tested anywhere.
 
 export const PROTECTED_PREFIXES = ['/dashboard', '/operations', '/scheduling', '/culture', '/compliance', '/reports',
-  '/people', '/settings', '/profile', '/notifications', '/onboarding', '/mfa'];
+  '/people', '/settings', '/profile', '/notifications', '/onboarding', '/mfa', '/founder'];
 
 export function isProtected(pathname: string) {
   return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'));

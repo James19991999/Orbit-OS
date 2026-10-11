@@ -1,4 +1,5 @@
 import 'server-only';
+import { recordDeliveryFailure } from '@/lib/founder/record';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 /**
@@ -24,18 +25,26 @@ export class WhatsAppError extends Error {
 }
 
 async function post(body: Record<string, unknown>): Promise<{ messageId: string | null }> {
-  const res = await fetch(`${base()}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`, {
+  const kind = String((body.template as { name?: string } | undefined)?.name ?? body.type ?? 'message');
+  let res: Response;
+  try {
+    res = await fetch(`${base()}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`, {
     method: 'POST',
     headers: { authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`, 'content-type': 'application/json' },
     body: JSON.stringify({ messaging_product: 'whatsapp', ...body }),
     signal: AbortSignal.timeout(15_000),
     cache: 'no-store',
   });
+  } catch (e) {
+    await recordDeliveryFailure('whatsapp', (e as Error).message, kind);
+    throw e;
+  }
   const text = await res.text();
   let data: unknown = null;
   try { data = JSON.parse(text); } catch { /* non-JSON error page */ }
   if (!res.ok) {
     const msg = (data as { error?: { message?: string } } | null)?.error?.message ?? text.slice(0, 200);
+    await recordDeliveryFailure('whatsapp', `${res.status}: ${msg}`, kind);
     throw new WhatsAppError(`WhatsApp error ${res.status}: ${msg}`, res.status, data);
   }
   const id = (data as { messages?: { id?: string }[] } | null)?.messages?.[0]?.id ?? null;

@@ -370,6 +370,21 @@ set role authenticated;
 select tests.eq((select count(*)::text from public.calendar_busy), '0', 'people outside the workspace see no busy times');
 reset role;
 
+-- ── 9f. Founder Console data (server-only) ──
+select tests.login('00000000-0000-0000-0000-00000000000a');
+set role authenticated;
+select public.touch_activity(null);
+select tests.expect_error($$select * from public.user_activity$$, 'last-seen records are not readable by users');
+select tests.expect_error($$insert into public.user_activity (user_id) values (auth.uid())$$, 'users cannot write last-seen records directly');
+select tests.expect_error($$select public.platform_metrics()$$, 'platform metrics are service-role only');
+select tests.expect_error($$select * from public.platform_workspaces(null)$$, 'the workspace list across tenants is service-role only');
+select tests.expect_error($$select * from public.job_runs$$, 'job runs are server-only');
+select tests.expect_error($$select * from public.delivery_failures$$, 'delivery failures are server-only');
+select tests.expect_error($$select * from public.platform_audit$$, 'the console access log is server-only');
+reset role;
+select tests.eq((select count(*)::text from public.user_activity where user_id = '00000000-0000-0000-0000-00000000000a'), '1', 'touch_activity records the signed-in person only');
+select tests.eq((select (public.platform_metrics() ->> 'online_now')), '1', 'platform metrics count people online in the last 5 minutes');
+
 -- ── 10. Anonymous ──
 set role anon;
 select set_config('request.jwt.claims', '', false);

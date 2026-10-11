@@ -1,6 +1,7 @@
 // Shell bits, errors, notifications and small shared components. Kiswahili/French are machine-assisted drafts.
 export const misc = {
   en: {
+    'shell.founder': 'Founder console',
     'ui.n_people': '{n} people',
     'meta.invoice': 'Invoice', 'meta.join': 'Join workspace',
     'chart.burn': 'Burn', 'chart.revenue': 'Revenue', 'chart.row': '{month}: burn {burn}, revenue {revenue}',
@@ -21,6 +22,7 @@ export const misc = {
     'ops.move_failed': 'Couldn’t move task: {error}', 'ops.chart_label': 'Monthly burn versus revenue',
   },
   sw: {
+    'shell.founder': 'Dashibodi ya mwanzilishi',
     'ui.n_people': 'watu {n}',
     'meta.invoice': 'Ankara', 'meta.join': 'Jiunge na eneo la kazi',
     'chart.burn': 'Matumizi', 'chart.revenue': 'Mapato', 'chart.row': '{month}: matumizi {burn}, mapato {revenue}',
@@ -41,6 +43,7 @@ export const misc = {
     'ops.move_failed': 'Imeshindwa kuhamisha kazi: {error}', 'ops.chart_label': 'Matumizi ya kila mwezi dhidi ya mapato',
   },
   fr: {
+    'shell.founder': 'Console du fondateur',
     'ui.n_people': '{n} personnes',
     'meta.invoice': 'Facture', 'meta.join': 'Rejoindre l’espace',
     'chart.burn': 'Dépenses', 'chart.revenue': 'Revenus', 'chart.row': '{month} : dépenses {burn}, revenus {revenue}',

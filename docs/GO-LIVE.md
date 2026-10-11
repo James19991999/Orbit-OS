@@ -47,8 +47,9 @@ This step leaves you with an empty production database that has the full schema,
 
 1. `supabase/update_differentiators.sql`, if the project was set up before 9 October 2026 (WhatsApp, payouts, languages, AI briefs).
 2. `supabase/update_etims_calendar.sql`, if it was set up before 11 October 2026 (KRA eTIMS and calendar sync).
+3. `supabase/update_founder_console.sql`, if it doesn't have the Founder Console yet (people online, job runs, undelivered messages).
 
-Each file refuses to run twice or out of order, and changes nothing if it stops. Then run `verify_setup.sql` again: all 13 rows `ok = true`. (With the CLI, `npx supabase db push` applies only the new migrations.)
+Each file refuses to run twice or out of order, and changes nothing if it stops. Then run `verify_setup.sql` again: all 14 rows `ok = true`. (With the CLI, `npx supabase db push` applies only the new migrations.)
 
 **Push the schema (from your computer, inside the OrbitOS folder)**
 
@@ -138,7 +139,8 @@ This step puts the app on your domain with every secret set and the five backgro
 | `WEBAUTHN_RP_ID` | `app.yourdomain.com` (just the host, no `https://`) | Yes, for passkeys |
 | `WEBAUTHN_RP_NAME` | `OrbitOS` | Yes, for passkeys |
 | `NEXT_PUBLIC_SENTRY_DSN` | Sentry DSN from Step 4 | Strongly recommended |
-| `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | from Step 4 (gives readable stack traces) | Optional |
+| `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | from Step 4 (readable stack traces; with `project:read` also lists errors in the Founder Console) | Optional |
+| `FOUNDER_EMAILS` | your own sign-in email (comma-separate several). Opens the Founder Console at `/founder` — [docs/FOUNDER.md](FOUNDER.md) | Recommended |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | a free Upstash Redis database | Recommended: makes login rate limits hold across all servers |
 | `NEXT_PUBLIC_DATA_REGION` | e.g. `EU (Frankfurt)`, matching your Supabase region | Optional, display only |
 | `NEXT_PUBLIC_ROOT_DOMAIN` | `yourdomain.com`, only if you want `acme.yourdomain.com` workspaces | Optional |
@@ -186,7 +188,7 @@ With this step, Sentry emails you within a minute of any crash: a page that fail
 
 1. At [sentry.io](https://sentry.io), sign up on the free **Developer** plan. Create a project with platform **Next.js** and alert frequency **Alert me on every new issue**.
 2. Copy the **DSN** from Project Settings → Client Keys. Put it in Vercel as `NEXT_PUBLIC_SENTRY_DSN`, then **redeploy**, because the DSN is read when the app is built.
-3. Optional, for readable stack traces: go to Settings → Developer Settings → **Organization Tokens** and create a token. Add `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` (your org slug) and `SENTRY_PROJECT` (the project slug) to Vercel. Source maps then upload during each build and are removed from the public site.
+3. Optional, for readable stack traces: go to Settings → Developer Settings → **Organization Tokens** and create a token. Add `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` (your org slug) and `SENTRY_PROJECT` (the project slug) to Vercel. Source maps then upload during each build and are removed from the public site. Give the token the `project:read` scope as well and the Founder Console lists new errors too.
 4. In **Alerts**, confirm the rule "A new issue is created → send email to" points at you. Optionally add a second rule: "Number of events in an issue is more than 10 in 1 hour".
 5. Test it: in the Sentry project, open **Issues** and wait. Then open any page of the app, press F12, and run `setTimeout(() => { throw new Error('sentry test') })` in the console. An issue should appear within a minute.
 

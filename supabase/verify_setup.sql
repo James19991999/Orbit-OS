@@ -54,6 +54,12 @@ select 'calendar tokens never readable by users',
          and not has_column_privilege('authenticated', to_regclass('public.calendar_connections')::oid, 'refresh_token_enc', 'select'), false),
        case when to_regclass('public.calendar_connections') is null then 'missing — run supabase/update_etims_calendar.sql' else 'calendar_connections token columns: no client access' end
 union all
+select 'Founder Console data (October 11 update)',
+       (select count(*) from information_schema.tables where table_schema = 'public' and table_name in ('user_activity', 'job_runs', 'delivery_failures', 'platform_audit')) = 4
+         and coalesce(to_regprocedure('public.platform_metrics()') is not null
+           and not has_function_privilege('authenticated', to_regprocedure('public.platform_metrics()')::oid, 'execute'), false),
+       case when to_regclass('public.user_activity') is null then 'missing — run supabase/update_founder_console.sql' else 'tables present; metrics service-role only' end
+union all
 select 'no demo data (seed.sql not run)',
        not exists (select 1 from auth.users where email like '%@acme-global.demo'),
        (select count(*) from auth.users where email like '%@acme-global.demo')::text || ' demo users';

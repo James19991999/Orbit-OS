@@ -95,7 +95,7 @@ describe('AppShell sign-out', () => {
     sb.from.mockReturnValue(q({ data: [], count: 0, error: null }));
     wrap(
       <AppShell user={{ id: 'me', name: 'Elena Kamau', email: 'e@x.io', avatar: null, theme: 'dark', timezone: 'Africa/Nairobi' }}
-        org={{ name: 'Acme', slug: 'acme', plan: 'pro', expiresAt: new Date(Date.now() + 1e9).toISOString(), readOnly: false, timeoutHours: 8, status: 'active', autoDetectTz: false }}
+        org={{ id: 'o1', name: 'Acme', slug: 'acme', plan: 'pro', expiresAt: new Date(Date.now() + 1e9).toISOString(), readOnly: false, timeoutHours: 8, status: 'active', autoDetectTz: false }}
         role="owner" workspaces={[{ name: 'Acme', slug: 'acme', role: 'owner' }]}><p>content</p></AppShell>,
     );
     await userEvent.click(screen.getByRole('button', { name: 'Account menu' }));

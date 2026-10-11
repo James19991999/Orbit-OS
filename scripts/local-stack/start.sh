@@ -37,6 +37,7 @@ CRON_SECRET=local-cron-secret
 INTASEND_WEBHOOK_CHALLENGE=local-challenge
 INTASEND_TEST_MODE=true
 WEBAUTHN_RP_ID=localhost
+FOUNDER_EMAILS=priya@acme-global.demo
 ENV
 if [ "${WITH_INTASEND_MOCK:-1}" = "1" ]; then
   pkill -f "local-stack/intasend-mock.mjs" 2>/dev/null || true

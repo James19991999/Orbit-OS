@@ -9,6 +9,7 @@ import { isSupabaseConfigured, ORG_COOKIE } from '@/lib/env';
 import { limiter } from '@/lib/ratelimit';
 import type { Organization, Role } from '@/lib/types';
 import { reportError, setReportingUser } from '@/lib/observability/report';
+import { recordJobRun } from '@/lib/founder/record';
 
 export class ApiError extends Error {
   constructor(public status: number, message: string, public extraHeaders?: Record<string, string>) { super(message); }
@@ -20,6 +21,19 @@ export function json(data: unknown, status = 200, extraHeaders?: Record<string, 
 
 /** Wraps a route handler: converts ApiError/ZodError into JSON responses, never leaks stack traces. */
 export function handler<C = unknown>(fn: (req: NextRequest, ctx: C) => Promise<Response>) {
+  const run = runHandler(fn);
+  return async (req: NextRequest, ctx: C) => {
+    // Background jobs (/api/cron/<job>): record when each ran and how it went, for the Founder Console.
+    const job = req.nextUrl.pathname.match(/^\/api\/cron\/([\w-]+)/)?.[1];
+    if (!job) return run(req, ctx);
+    const started = Date.now();
+    const res = await run(req, ctx);
+    if (res.status !== 401) await recordJobRun(job, res.status, Date.now() - started, await res.clone().text().catch(() => ''));
+    return res;
+  };
+}
+
+function runHandler<C>(fn: (req: NextRequest, ctx: C) => Promise<Response>) {
   return async (req: NextRequest, ctx: C) => {
     try {
       return await fn(req, ctx);
