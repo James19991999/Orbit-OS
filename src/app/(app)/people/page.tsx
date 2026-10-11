@@ -5,11 +5,14 @@ import { can } from '@/lib/roles';
 import { LinkButton } from '@/components/ui';
 import { Directory, type PersonRow } from '@/components/people/Directory';
 import { streakFrom } from '@/lib/streak';
+import { getT } from '@/i18n/server';
 
-export const metadata: Metadata = { title: 'People' };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())('p.ppl.title') };
+}
 
 export default async function PeoplePage() {
-  const { supabase, org, role } = await requireAppContext();
+  const [{ supabase, org, role }, tr] = await Promise.all([requireAppContext(), getT()]);
   const members = await loadMembers(supabase, org.id);
   const [tasksR, kudosR, ciR] = await Promise.all([
     supabase.from('tasks').select('assignee_id').eq('org_id', org.id).neq('status', 'done'),
@@ -29,10 +32,10 @@ export default async function PeoplePage() {
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-headline-lg-mobile md:text-headline-lg">People</h1>
-          <p className="text-body-md text-on-surface-variant">{members.length} members · local times update live</p>
+          <h1 className="text-headline-lg-mobile md:text-headline-lg">{tr('p.ppl.title')}</h1>
+          <p className="text-body-md text-on-surface-variant">{tr('p.ppl.sub', { count: members.length })}</p>
         </div>
-        {can.manage(role) && <LinkButton href="/settings?section=members#members" icon="person_add">Invite</LinkButton>}
+        {can.manage(role) && <LinkButton href="/settings?section=members#members" icon="person_add">{tr('p.ppl.invite')}</LinkButton>}
       </div>
       <Directory people={people} />
     </div>

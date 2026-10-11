@@ -87,6 +87,14 @@ const NAMES: Record<UiLang, { short: string[]; long: string[]; days: string[] }>
     days: ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'] },
 };
 
+const DAYS_LONG: Record<UiLang, string[]> = {
+  en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+  sw: ['Jumapili', 'Jumatatu', 'Jumanne', 'Jumatano', 'Alhamisi', 'Ijumaa', 'Jumamosi'],
+  fr: ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'],
+};
+/** Full weekday names, Sunday first. */
+export const weekdayNames = (lang: UiLang = 'en') => DAYS_LONG[lang];
+
 export type DateStyle = 'short' | 'long' | 'datetime' | 'month';
 
 // Creating Intl formatters is slow (and much slower on phones), so one is kept per time zone.

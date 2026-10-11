@@ -1,5 +1,6 @@
 import type { MessageKey } from './en';
 import { common } from './modules/common';
+import { reports } from './modules/reports';
 import { audit } from './modules/audit';
 import { compliance } from './modules/compliance';
 import { culture } from './modules/culture';
@@ -167,6 +168,7 @@ export const fr: Partial<Record<MessageKey, string>> = {
   'pay.sent_all': 'Paiement envoyé — tout le monde a été payé', 'pay.sent_processing': 'Paiement libéré — M-Pesa le traite',
   'pay.cancelled_toast': 'Brouillon annulé', 'pay.status_toast': 'Statut : {status}',
   ...common.fr,
+  ...reports.fr,
   ...audit.fr,
   ...compliance.fr,
   ...culture.fr,
