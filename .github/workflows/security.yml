@@ -1,0 +1,40 @@
+# Security checks on every push and pull request, plus weekly:
+#  • CodeQL: GitHub's code scanner looks for injection, XSS, unsafe redirects and similar bugs.
+#  • Dependency audit: fails if a package the live app ships has a known high or critical vulnerability.
+# Results: GitHub → Security tab → Code scanning. Free for public repositories.
+name: Security
+
+on:
+  push: { branches: [main] }
+  pull_request: { branches: [main] }
+  schedule:
+    - cron: '23 4 * * 1'   # Mondays 04:23 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  codeql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+      - uses: github/codeql-action/analyze@v3
+
+  dependencies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high

@@ -2,7 +2,7 @@
 grant select on auth.users to service_role;
 create schema if not exists storage;
 grant usage on schema storage to anon, authenticated, service_role;
-create table if not exists storage.buckets (id text primary key, name text, public boolean default false);
+create table if not exists storage.buckets (id text primary key, name text, public boolean default false, file_size_limit bigint, allowed_mime_types text[]);
 create table if not exists storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text references storage.buckets, name text not null, owner uuid default auth.uid());
 alter table storage.objects enable row level security;
 grant all on storage.objects, storage.buckets to authenticated, service_role;

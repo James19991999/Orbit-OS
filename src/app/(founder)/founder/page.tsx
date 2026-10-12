@@ -61,7 +61,7 @@ export default async function FounderConsole(props: { searchParams: Promise<{ q?
   return (
     <Shell right={<AutoRefresh generatedAt={m.generated_at} />}>
       {/* ───────── Health at a glance ───────── */}
-      <section aria-labelledby="glance-h" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <section aria-labelledby="glance-h" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <h2 id="glance-h" className="sr-only">Health at a glance</h2>
         <Signal icon="database" label="Database" ok={data.db.ok} value={data.db.ok ? `${data.db.ms} ms` : 'Down'} sub={data.db.ok ? 'Responding' : data.db.error} />
         <Signal icon="schedule" label="Background jobs" ok={jobsBad === 0} warn={jobs.every((j) => j.state === 'never')} value={jobsBad ? `${jobsBad} need attention` : jobs.every((j) => j.state === 'never') ? 'No runs yet' : 'All on time'} sub={`${jobs.length} jobs`} />
@@ -71,6 +71,11 @@ export default async function FounderConsole(props: { searchParams: Promise<{ q?
           sub={`${m.etims.submitted_24h} accepted today${m.etims.queued && m.etims.rejected_7d ? ` · ${m.etims.rejected_7d} rejected this week` : ''}${m.etims.oldest_queued ? ` · oldest waiting since ${fmt.relative(m.etims.oldest_queued)}` : ''}`} />
         <Signal icon="bug_report" label="Errors (Sentry, 24 h)" ok={data.sentry.status === 'ok' && data.sentry.issues.length === 0} warn={data.sentry.status === 'off'}
           value={data.sentry.status === 'off' ? 'Not connected' : data.sentry.status === 'error' ? 'Unavailable' : `${data.sentry.issues.length} open`} sub={data.sentry.status === 'off' ? 'Add SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT' : data.sentry.error ?? 'Unresolved issues'} />
+        {m.security
+          ? <Signal icon="security" label="Sign-in attempts" ok={m.security.failed_logins_1h < 20}
+              value={m.security.failed_logins_1h >= 20 ? `${m.security.failed_logins_1h} failed in 1 h` : `${m.security.failed_logins_24h} failed (24 h)`}
+              sub={`${m.security.accounts_targeted_24h} accounts targeted · ${m.security.mfa_users} people use two-factor`} />
+          : <Signal icon="security" label="Sign-in attempts" ok={false} warn value="Not set up" sub="Run supabase/update_security.sql" />}
       </section>
 
       {/* ───────── People ───────── */}

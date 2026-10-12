@@ -49,7 +49,7 @@ export const POST = handler(async (req) => {
       if (!r.invoice?.invoice_id) throw new IntaSendError('IntaSend did not return an invoice id for the M-Pesa request');
       // Without the invoice id the status poll can't reconcile, so a failed write must fail the request.
       const saved = await admin.from('billing_payments').update({ intasend_invoice_id: r.invoice.invoice_id, state: r.invoice.state ?? 'PENDING' }).eq('id', pay.id);
-      if (saved.error) throw new ApiError(500, `Payment started but could not be tracked: ${saved.error.message}. Your plan will still update when IntaSend confirms.`);
+      if (saved.error) { console.error('[checkout] tracking write failed', saved.error.message); throw new ApiError(500, 'Payment started but could not be tracked. Your plan will still update when IntaSend confirms.', undefined, true); }
       await audit(req, ctx.org.id, ctx.user.id, 'billing.checkout_started', { type: 'billing_payment', id: pay.id }, { method: 'MPESA', amount, currency, plan: b.plan, period: b.period });
       return json({ ref: apiRef, method: 'MPESA', amount, currency });
     }

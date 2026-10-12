@@ -207,6 +207,21 @@ select tests.login('00000000-0000-0000-0000-00000000000a', 'aal2');
 set role authenticated;
 select tests.eq((select count(*)::text from storage.objects where bucket_id = 'vault'), '1', 'owner with MFA (aal2) session can read vault');
 reset role;
+select tests.login('00000000-0000-0000-0000-00000000000a', 'aal1');
+set role authenticated;
+select tests.expect_error(format($q$insert into storage.objects (bucket_id, name) values ('vault', %L)$q$, current_setting('tests.org_a') || '/x.pdf'), 'owner without MFA session cannot add vault files');
+delete from storage.objects where bucket_id = 'vault';
+select tests.expect_error(format($q$insert into public.vault_documents (org_id, title, file_path) values (%L, 'x', 'x.pdf')$q$, current_setting('tests.org_a')), 'owner without MFA session cannot add vault records');
+reset role;
+select tests.eq((select count(*)::text from storage.objects where bucket_id = 'vault'), '1', 'a password-only session cannot delete vault files');
+select tests.login('00000000-0000-0000-0000-00000000000a', 'aal2');
+set role authenticated;
+insert into storage.objects (bucket_id, name) values ('vault', current_setting('tests.org_a') || '/y.pdf');
+insert into public.vault_documents (org_id, title, file_path) values (current_setting('tests.org_a')::uuid, 'y', 'y.pdf');
+select tests.pass('owner with MFA session can add vault files and records');
+reset role;
+select tests.eq((select file_size_limit::text from storage.buckets where id = 'avatars'), '2097152', 'profile photos are limited to 2 MB by storage itself');
+select tests.eq((select ('text/html' = any(allowed_mime_types))::text from storage.buckets where id = 'vault'), 'false', 'web pages cannot be uploaded as documents');
 
 -- ── 8. Payments (service role path), idempotency ──
 insert into public.billing_payments (org_id, plan, period, seats, amount_minor, currency, method, api_ref)
@@ -384,6 +399,7 @@ select tests.expect_error($$select * from public.platform_audit$$, 'the console 
 reset role;
 select tests.eq((select count(*)::text from public.user_activity where user_id = '00000000-0000-0000-0000-00000000000a'), '1', 'touch_activity records the signed-in person only');
 select tests.eq((select (public.platform_metrics() ->> 'online_now')), '1', 'platform metrics count people online in the last 5 minutes');
+select tests.eq((select (public.platform_metrics() -> 'security' ? 'failed_logins_24h')::text), 'true', 'platform metrics include failed sign-ins');
 
 -- ── 10. Anonymous ──
 set role anon;

@@ -24,6 +24,8 @@ export interface Metrics {
   jobs: { job: string; last_started_at: string | null; last_finished_at: string | null; last_ok_at: string | null; last_status: number | null;
     last_error: string | null; last_summary: string | null; last_duration_ms: number | null; runs: number; failures: number }[];
   calendar_connections: number;
+  /** Present once supabase/update_security.sql has run. */
+  security?: { failed_logins_1h: number; failed_logins_24h: number; accounts_targeted_24h: number; mfa_users: number };
 }
 export interface WorkspaceRow { id: string; name: string; slug: string; plan: string; plan_period: string; status: string; plan_expires_at: string;
   created_at: string; seat_limit: number; members: number; last_active: string | null; revenue: Record<string, number>; currency: string }

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { handler, json, parseBody, requireApiContext, audit, rateLimit, clientIp, ApiError } from '@/lib/api';
+import { likeExact } from '@/lib/security/request-guard';
 import { getAdminClient, hasServiceRole } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
@@ -20,7 +21,7 @@ export const POST = handler(async (req) => {
   }
   if (!hasServiceRole()) return json({ ok: true });
   const admin = getAdminClient();
-  const { data: profile } = await admin.from('profiles').select('id').ilike('email', body.email).maybeSingle();
+  const { data: profile } = await admin.from('profiles').select('id').ilike('email', likeExact(body.email)).maybeSingle();
   if (!profile) return json({ ok: true }); // never reveal whether an account exists
   let q = admin.from('memberships').select('org_id, org:organizations!inner(slug)').eq('user_id', profile.id).eq('status', 'active');
   if (body.slug) q = q.eq('organizations.slug', body.slug);

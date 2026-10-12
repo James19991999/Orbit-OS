@@ -10,9 +10,11 @@ import { limiter } from '@/lib/ratelimit';
 import type { Organization, Role } from '@/lib/types';
 import { reportError, setReportingUser } from '@/lib/observability/report';
 import { recordJobRun } from '@/lib/founder/record';
+import { MAX_API_BODY_BYTES } from '@/lib/security/request-guard';
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string, public extraHeaders?: Record<string, string>) { super(message); }
+  /** `expose` = a 5xx message written for people (no internal details), safe to show. Other 5xx messages are hidden. */
+  constructor(public status: number, message: string, public extraHeaders?: Record<string, string>, public expose = false) { super(message); }
 }
 
 export function json(data: unknown, status = 200, extraHeaders?: Record<string, string>) {
@@ -33,9 +35,13 @@ export function handler<C = unknown>(fn: (req: NextRequest, ctx: C) => Promise<R
   };
 }
 
+const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
 function runHandler<C>(fn: (req: NextRequest, ctx: C) => Promise<Response>) {
   return async (req: NextRequest, ctx: C) => {
     try {
+      // Flood protection for every change request, on top of the tighter per-action limits in each route.
+      if (WRITE_METHODS.has(req.method)) await rateLimit('writes', clientIp(req), 300, 60);
       return await fn(req, ctx);
     } catch (e) {
       // Never swallow Next.js control-flow signals (dynamic usage, redirect, notFound) — rethrow them.
@@ -43,7 +49,12 @@ function runHandler<C>(fn: (req: NextRequest, ctx: C) => Promise<Response>) {
       if (typeof digest === 'string' && (digest === 'DYNAMIC_SERVER_USAGE' || digest.startsWith('NEXT_'))) throw e;
       if (e instanceof ApiError) {
         // 5xx ApiErrors are real faults (e.g. a failed database write); 503 "not configured" is expected setup state.
-        if (e.status >= 500 && e.status !== 503) reportError(e, { route: req.nextUrl.pathname, method: req.method });
+        // Their details (database messages, provider errors) go to the logs and Sentry, never to the caller.
+        if (e.status >= 500 && e.status !== 503) {
+          console.error('[api]', req.nextUrl.pathname, e.message);
+          reportError(e, { route: req.nextUrl.pathname, method: req.method });
+          return json({ error: e.expose ? e.message : 'Something went wrong on our side. Please try again.' }, e.status, e.extraHeaders);
+        }
         return json({ error: e.message }, e.status, e.extraHeaders);
       }
       if (e instanceof z.ZodError) return json({ error: 'Invalid request', issues: e.issues.map((i) => ({ path: i.path.join('.'), message: i.message })) }, 400);
@@ -54,8 +65,10 @@ function runHandler<C>(fn: (req: NextRequest, ctx: C) => Promise<Response>) {
   };
 }
 
+/** The caller's IP as recorded by the hosting edge (Vercel sets x-real-ip itself, so callers can't fake it). */
 export function clientIp(req: NextRequest): string {
-  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
+  return req.headers.get('x-real-ip')?.trim() || req.headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim()
+    || req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
 }
 
 export async function rateLimit(name: string, key: string, limit: number, windowSec: number) {
@@ -91,8 +104,12 @@ export async function requireApiContext(opts: { roles?: Role[]; orgSlug?: string
 }
 
 export async function parseBody<T extends z.ZodTypeAny>(req: NextRequest, schema: T): Promise<z.infer<T>> {
+  let text: string;
+  try { text = await req.text(); } catch { throw new ApiError(400, 'Body must be JSON'); }
+  // Also covers bodies sent without a Content-Length header (the middleware checks the header).
+  if (text.length > MAX_API_BODY_BYTES) throw new ApiError(413, 'Request is too large');
   let raw: unknown;
-  try { raw = await req.json(); } catch { throw new ApiError(400, 'Body must be JSON'); }
+  try { raw = JSON.parse(text); } catch { throw new ApiError(400, 'Body must be JSON'); }
   return schema.parse(raw);
 }
 

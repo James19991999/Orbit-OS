@@ -48,8 +48,9 @@ This step leaves you with an empty production database that has the full schema,
 1. `supabase/update_differentiators.sql`, if the project was set up before 9 October 2026 (WhatsApp, payouts, languages, AI briefs).
 2. `supabase/update_etims_calendar.sql`, if it was set up before 11 October 2026 (KRA eTIMS and calendar sync).
 3. `supabase/update_founder_console.sql`, if it doesn't have the Founder Console yet (people online, job runs, undelivered messages).
+4. `supabase/update_security.sql` (October 12, 2026: upload size and type limits, two-factor for vault changes, failed sign-in counts). Safe to run again.
 
-Each file refuses to run twice or out of order, and changes nothing if it stops. Then run `verify_setup.sql` again: all 14 rows `ok = true`. (With the CLI, `npx supabase db push` applies only the new migrations.)
+Each file refuses to run twice or out of order, and changes nothing if it stops. Then run `verify_setup.sql` again: all 15 rows `ok = true`. (With the CLI, `npx supabase db push` applies only the new migrations.)
 
 **Push the schema (from your computer, inside the OrbitOS folder)**
 
@@ -301,6 +302,10 @@ Start with your own company as the first workspace and a pilot group of 5 to 10 
 - Don't switch `INTASEND_TEST_MODE` to `false` until a sandbox payment has worked end to end.
 - Don't change the domain after people have registered passkeys.
 - Don't edit tables by hand in the Supabase Table Editor to change plans or payments. Billing columns are locked to the server on purpose; use the app or ask a developer.
+
+## Security checklist
+
+Before the first paying customer, work through the one-hour account checklist in [SECURITY.md](SECURITY.md): two-factor on GitHub, Vercel, Supabase, IntaSend and the rest; GitHub secret scanning and push protection; Vercel preview protection; Supabase password rules and leaked-password protection; Upstash for shared rate limits.
 
 ## Compliance and business items
 

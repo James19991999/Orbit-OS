@@ -60,6 +60,12 @@ select 'Founder Console data (October 11 update)',
            and not has_function_privilege('authenticated', to_regprocedure('public.platform_metrics()')::oid, 'execute'), false),
        case when to_regclass('public.user_activity') is null then 'missing — run supabase/update_founder_console.sql' else 'tables present; metrics service-role only' end
 union all
+select 'Security update (October 12 update)',
+       coalesce((select file_size_limit = 2097152 from storage.buckets where id = 'avatars'), false)
+         and exists (select 1 from pg_policies where schemaname = 'storage' and policyname = 'vault write managers' and with_check like '%aal2%'),
+       case when coalesce((select file_size_limit from storage.buckets where id = 'avatars'), 0) = 0 then 'missing — run supabase/update_security.sql'
+            else 'upload limits on; vault changes need two-factor' end
+union all
 select 'no demo data (seed.sql not run)',
        not exists (select 1 from auth.users where email like '%@acme-global.demo'),
        (select count(*) from auth.users where email like '%@acme-global.demo')::text || ' demo users';

@@ -38,10 +38,10 @@ export const POST = handler(async (req) => {
   if (!verification.verified) throw new ApiError(401, 'Passkey verification failed.');
   // The signature counter is our cloned-authenticator defence: refuse to sign in if we can't record it.
   const ctr = await admin.from('passkeys').update({ counter: verification.authenticationInfo.newCounter }).eq('id', key.id);
-  if (ctr.error) throw new ApiError(500, 'Could not record passkey use; please try again.');
+  if (ctr.error) throw new ApiError(500, 'Could not record passkey use; please try again.', undefined, true);
 
   const { data: userRes, error: uErr } = await admin.auth.admin.getUserById(key.user_id);
-  if (uErr || !userRes.user?.email) throw new ApiError(500, 'Account lookup failed');
+  if (uErr || !userRes.user?.email) throw new ApiError(500, 'Account lookup failed. Please try again.', undefined, true);
   const { data: link, error: lErr } = await admin.auth.admin.generateLink({ type: 'magiclink', email: userRes.user.email });
   if (lErr || !link.properties?.hashed_token) throw new ApiError(500, lErr?.message ?? 'Could not create session');
 

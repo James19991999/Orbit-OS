@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { handler, json, parseBody, requireApiContext, audit, rateLimit, ApiError } from '@/lib/api';
+import { likeExact } from '@/lib/security/request-guard';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendEmail, emailLayout, escapeHtml } from '@/lib/email';
 import { appUrl } from '@/lib/env';
@@ -22,7 +23,7 @@ export const POST = handler(async (req) => {
     admin.from('invites').select('id', { count: 'exact', head: true }).eq('org_id', ctx.org.id).is('accepted_at', null).gt('expires_at', new Date().toISOString()),
   ]);
   if ((active ?? 0) + (pending ?? 0) >= ctx.org.seat_limit) throw new ApiError(409, `All ${ctx.org.seat_limit} seats are used or reserved by pending invites. Add seats in Billing.`);
-  const { data: existing } = await admin.from('profiles').select('id').ilike('email', email).maybeSingle();
+  const { data: existing } = await admin.from('profiles').select('id').ilike('email', likeExact(email)).maybeSingle();
   if (existing) {
     const { data: m } = await admin.from('memberships').select('status').eq('org_id', ctx.org.id).eq('user_id', existing.id).maybeSingle();
     if (m?.status === 'active') throw new ApiError(409, 'That person is already a member');

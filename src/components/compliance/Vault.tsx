@@ -38,10 +38,10 @@ export function Vault({ orgId, docs, aal2 }: { orgId: string; docs: VaultDoc[]; 
           ))}
         </ul>
       )}
-      <div className="mt-3 flex flex-wrap items-end gap-2">
+      {aal2 && <div className="mt-3 flex flex-wrap items-end gap-2">
         <Select label={t('cmp.v.category')} value={category} onChange={(e) => setCategory(e.target.value as VaultDoc['category'])} options={(['nda', 'ip', 'contract', 'other'] as const).map((c) => ({ value: c, label: t(`cmp.v.c.${c}`) }))} />
         <FileUpload bucket="vault" prefix={orgId} onUploaded={record} label={t('cmp.v.add')} accept=".pdf,.doc,.docx,.png,.jpg" />
-      </div>
+      </div>}
     </div>
   );
 }

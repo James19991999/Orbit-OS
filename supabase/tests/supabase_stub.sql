@@ -31,6 +31,11 @@ create table auth.identities (
   identity_data jsonb,
   last_sign_in_at timestamptz, created_at timestamptz, updated_at timestamptz
 );
+create table auth.mfa_factors (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users on delete cascade,
+  factor_type text, status text, created_at timestamptz default now()
+);
 create function auth.jwt() returns jsonb language sql stable as $$
   select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb
 $$;
@@ -41,7 +46,7 @@ grant execute on function auth.jwt(), auth.uid() to anon, authenticated, service
 
 create schema storage;
 grant usage on schema storage to anon, authenticated, service_role;
-create table storage.buckets (id text primary key, name text, public boolean default false);
+create table storage.buckets (id text primary key, name text, public boolean default false, file_size_limit bigint, allowed_mime_types text[]);
 create table storage.objects (
   id uuid primary key default gen_random_uuid(),
   bucket_id text references storage.buckets,
