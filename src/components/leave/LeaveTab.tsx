@@ -55,14 +55,17 @@ export async function LeaveTab({ supabase, orgId, userId, role, people }: {
               <ul className="divide-y divide-outline-variant">
                 {pending.map((r) => (
                   <li key={r.id} className="py-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Avatar name={nameOf(r.user_id)} src={people[r.user_id]?.avatar} size={28} />
-                      <span className="text-label-md">{nameOf(r.user_id)}</span>
-                      <Pill tone="info">{t(`lv.k.${r.kind}` as MessageKey)}</Pill>
-                      <span className="text-body-sm text-on-surface-variant tnum">{range(r)} · {t('lv.days', { count: r.days })}</span>
-                    </div>
-                    {r.note && <p className="mt-1 whitespace-pre-wrap text-body-sm text-on-surface-variant">“{r.note}”</p>}
-                    <DecideLeave id={r.id} name={nameOf(r.user_id)} />
+                    <DecideLeave id={r.id} name={nameOf(r.user_id)}>
+                      <div className="py-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Avatar name={nameOf(r.user_id)} src={people[r.user_id]?.avatar} size={28} />
+                          <span className="text-label-md">{nameOf(r.user_id)}</span>
+                          <Pill tone="info">{t(`lv.k.${r.kind}` as MessageKey)}</Pill>
+                          <span className="text-body-sm text-on-surface-variant tnum">{range(r)} · {t('lv.days', { count: r.days })}</span>
+                        </div>
+                        {r.note && <p className="mt-1 whitespace-pre-wrap text-body-sm text-on-surface-variant">“{r.note}”</p>}
+                      </div>
+                    </DecideLeave>
                   </li>
                 ))}
               </ul>

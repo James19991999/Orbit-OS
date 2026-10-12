@@ -14,13 +14,15 @@ import { TimezonePrompt } from './TimezonePrompt';
 import { NetworkStatus } from './NetworkStatus';
 import { NavProgress } from './NavProgress';
 import { QuickActions } from './QuickActions';
+import { ProductTour } from './ProductTour';
+import { brandCss } from '@/lib/brand';
 import type { Role } from '@/lib/types';
 import { useFormat } from '@/lib/locale/client';
 import { useT } from '@/i18n/client';
 
 export interface ShellProps {
-  user: { id: string; name: string; email: string; avatar: string | null; theme: ThemePref; timezone: string; founder?: boolean };
-  org: { id: string; name: string; slug: string; plan: string; expiresAt: string; readOnly: boolean; timeoutHours: number; status: string; autoDetectTz: boolean };
+  user: { id: string; name: string; email: string; avatar: string | null; theme: ThemePref; timezone: string; founder?: boolean; tourDone?: boolean };
+  org: { id: string; name: string; slug: string; plan: string; expiresAt: string; readOnly: boolean; timeoutHours: number; status: string; autoDetectTz: boolean; brandColor?: string | null; logoUrl?: string | null };
   role: Role;
   workspaces: { name: string; slug: string; role: Role }[];
   children: React.ReactNode;
@@ -53,8 +55,10 @@ export function AppShell({ user, org, role, workspaces, children }: ShellProps) 
   return (
     <div className="min-h-screen lg:pl-64">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-outline-variant bg-surface-container-lowest lg:flex" aria-label={t('nav.primary')}>
-        <div className="flex h-16 items-center px-5"><Logo href="/dashboard" /></div>
+      {org.brandColor && <style dangerouslySetInnerHTML={{ __html: brandCss(org.brandColor) }} />}
+      <ProductTour userId={user.id} done={!!user.tourDone} />
+      <aside data-tour="nav" className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-outline-variant bg-surface-container-lowest lg:flex" aria-label={t('nav.primary')}>
+        <div className="flex h-16 items-center px-5">{org.logoUrl ? <OrgLogo url={org.logoUrl} name={org.name} /> : <Logo href="/dashboard" />}</div>
         <nav aria-label={t('nav.main')} className="flex-1 overflow-y-auto px-3 py-2">
           <ul className="flex flex-col gap-0.5">
             {NAV.map((n) => {
@@ -81,15 +85,15 @@ export function AppShell({ user, org, role, workspaces, children }: ShellProps) 
 
       {/* Header */}
       <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-outline-variant bg-surface/85 px-4 backdrop-blur-xl lg:h-16 lg:px-8">
-        <div className="lg:hidden"><Logo href="/dashboard" compact /></div>
+        <div className="lg:hidden">{org.logoUrl ? <OrgLogo url={org.logoUrl} name={org.name} compact /> : <Logo href="/dashboard" compact />}</div>
         <p className="min-w-0 truncate text-label-md text-on-surface-variant">
           <span className="hidden sm:inline">OrbitOS · </span><span className="text-on-surface">{section}</span>
         </p>
         <div className="ml-auto flex items-center gap-1">
           <QuickActions role={role} />
           <OrgSwitcher current={org} workspaces={workspaces} />
-          <NotificationsBell userId={user.id} />
-          <ProfileMenu user={user} />
+          <span data-tour="bell" className="flex"><NotificationsBell userId={user.id} /></span>
+          <span data-tour="profile" className="flex"><ProfileMenu user={user} /></span>
         </div>
       </header>
 
@@ -110,7 +114,7 @@ export function AppShell({ user, org, role, workspaces, children }: ShellProps) 
       <main id="main" className="mx-auto max-w-canvas px-4 pb-28 pt-4 lg:px-8 lg:pb-10 lg:pt-6">{children}</main>
 
       {/* Mobile bottom nav */}
-      <nav aria-label={t('nav.main')} className="fixed inset-x-0 bottom-0 z-40 border-t border-outline-variant bg-surface-container-lowest/90 pb-safe backdrop-blur-xl shadow-[0_-1px_12px_rgba(0,0,0,0.35)] lg:hidden">
+      <nav data-tour="nav" aria-label={t('nav.main')} className="fixed inset-x-0 bottom-0 z-40 border-t border-outline-variant bg-surface-container-lowest/90 pb-safe backdrop-blur-xl shadow-[0_-1px_12px_rgba(0,0,0,0.35)] lg:hidden">
         <ul className="grid grid-cols-6">
           {NAV.filter((n) => n.primary).map((n) => {
             const active = isActive(pathname, n.href);
@@ -300,5 +304,17 @@ function ProfileMenu({ user }: { user: ShellProps['user'] }) {
         </div>
       )}
     </div>
+  );
+}
+
+/** The workspace's own logo (Settings → Branding), in place of the OrbitOS mark. */
+function OrgLogo({ url, name, compact }: { url: string; name: string; compact?: boolean }) {
+  const t = useT();
+  return (
+    <Link href="/dashboard" className="flex min-w-0 items-center gap-2 rounded text-on-surface" aria-label={`${name} · OrbitOS`}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- a small public image from Supabase Storage */}
+      <img src={url} alt={t('brand.logo_alt', { org: name })} className={compact ? 'h-7 max-w-[96px] object-contain' : 'h-8 max-w-[120px] object-contain'} />
+      {!compact && <span className="truncate text-headline-sm tracking-tight">{name}</span>}
+    </Link>
   );
 }

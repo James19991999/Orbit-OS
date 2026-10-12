@@ -1,3 +1,9 @@
+/** Public URL of a workspace logo in the 'branding' storage bucket. */
+export function brandLogoUrl(path: string | null | undefined): string | null {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  return path && url ? `${url.replace(/\/$/, '')}/storage/v1/object/public/branding/${path}` : null;
+}
+
 export function supabaseEnv(): { url: string; anonKey: string } | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

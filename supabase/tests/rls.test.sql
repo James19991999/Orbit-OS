@@ -515,6 +515,23 @@ select public.redeem_invite('code-gita');
 reset role;
 select tests.eq((select title || '/' || department from public.memberships where user_id = '00000000-0000-0000-0000-000000000011'), 'Accountant/Finance', 'an imported invite sets the job title and department on joining');
 
+-- ── 9j. Tour and branding ──
+select tests.login('00000000-0000-0000-0000-00000000000b');
+set role authenticated;
+update public.profiles set tour_done_at = now() where id = auth.uid();
+select tests.pass('people can record that they finished the tour');
+select tests.expect_error(format($q$update public.organizations set brand_color = '#ff0000' where id = %L$q$, current_setting('tests.org_a')), 'branding cannot be changed directly from the browser');
+select tests.expect_error(format($q$insert into storage.objects (bucket_id, name) values ('branding', %L)$q$, current_setting('tests.org_a') || '/logo-1760000000000.png'), 'contributors cannot upload the workspace logo');
+reset role;
+select tests.login('00000000-0000-0000-0000-00000000000a');
+set role authenticated;
+insert into storage.objects (bucket_id, name) values ('branding', current_setting('tests.org_a') || '/logo-1760000000000.png');
+select tests.pass('owners can upload the workspace logo');
+reset role;
+select tests.expect_error($$update public.organizations set brand_color = 'red' where slug = 'alpha-co'$$, 'brand colours must be #rrggbb');
+select tests.expect_error($$update public.organizations set brand_logo_path = '../../etc/passwd' where slug = 'alpha-co'$$, 'logo paths are restricted to the workspace folder pattern');
+select tests.eq((select allowed_mime_types::text from storage.buckets where id = 'branding'), '{image/png,image/jpeg,image/webp}', 'logos must be PNG, JPEG or WebP (no SVG)');
+
 -- ── 10. Anonymous ──
 set role anon;
 select set_config('request.jwt.claims', '', false);

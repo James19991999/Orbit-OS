@@ -11,10 +11,10 @@ import { getFormat } from '@/lib/locale/server';
 import { firstName } from '@/lib/format';
 import { greetingKey } from '@/lib/time-of-day';
 import { localDateOf } from '@/lib/scheduling/time';
-import { PRIORITY_TONE } from '@/lib/tasks';
 import { localizeNotification } from '@/lib/notification-text';
 import type { Task } from '@/lib/types';
 import type { AwayRow, LeaveRequest } from '@/lib/leave';
+import { MyDayTasks } from '@/components/myday/MyDayTasks';
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getT())('md.title') };
@@ -64,23 +64,6 @@ export default async function MyDayPage() {
   const away = ((awayR.data ?? []) as AwayRow[]).filter((a) => a.user_id !== user.id);
   const myLeave = ((myLeaveR.data ?? []) as LeaveRequest[])[0];
 
-  const group = (label: string, list: Task[], tone?: 'alert' | 'warning') => list.length > 0 && (
-    <div>
-      <h3 className={`mb-1 text-label-xs uppercase ${tone === 'alert' ? 'text-alert' : tone === 'warning' ? 'text-warning' : 'text-on-surface-variant'}`}>{label} · {list.length}</h3>
-      <ul className="divide-y divide-outline-variant">
-        {list.map((x) => (
-          <li key={x.id}>
-            <Link href={`/operations/tasks/${x.id}`} className="flex items-center gap-3 rounded px-1 py-2 hover:bg-on-surface/5">
-              <Pill tone={PRIORITY_TONE[x.priority]}>{t(`task.pr.${x.priority}` as MessageKey)}</Pill>
-              <span className="min-w-0 flex-1 truncate text-body-md">{x.title}</span>
-              {x.due_on && <span className="text-body-sm text-on-surface-variant tnum">{fmt.date(x.due_on)}</span>}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-
   return (
     <div className="flex flex-col gap-5">
       <div>
@@ -88,17 +71,17 @@ export default async function MyDayPage() {
         <p className="mt-1 text-body-md text-on-surface-variant">{t('md.title')} · {fmt.date(now, 'long')}</p>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-12 xl:items-start">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-12 xl:items-start">
         <div className="flex flex-col gap-4 xl:col-span-7">
           <Card aria-labelledby="md-tasks-h">
             <CardHeader title={<span id="md-tasks-h">{t('md.tasks')}</span>} icon="task_alt" action={<Link href="/operations" className="text-label-md text-primary hover:underline">{t('md.view_all')}</Link>} />
             {tasks.length === 0 ? <p className="text-body-md text-on-surface-variant">{t('md.tasks_empty')}</p> : (
-              <div className="flex flex-col gap-4">
-                {group(t('md.overdue'), overdue, 'alert')}
-                {group(t('md.today'), dueToday, 'warning')}
-                {group(t('md.doing'), doing)}
-                {group(t('md.next'), next)}
-              </div>
+              <MyDayTasks groups={[
+                { key: 'overdue', label: t('md.overdue'), tone: 'alert' as const, tasks: overdue },
+                { key: 'today', label: t('md.today'), tone: 'warning' as const, tasks: dueToday },
+                { key: 'doing', label: t('md.doing'), tasks: doing },
+                { key: 'next', label: t('md.next'), tasks: next },
+              ].map((g) => ({ ...g, tasks: g.tasks.map(({ id, title, priority, due_on, status }) => ({ id, title, priority, due_on, status })) }))} />
             )}
           </Card>
 

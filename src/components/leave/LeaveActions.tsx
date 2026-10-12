@@ -1,4 +1,5 @@
 'use client';
+import { SwipeRow } from '@/components/ui/SwipeRow';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Dialog, Input, Select, Textarea, useToast } from '@/components/ui';
@@ -58,7 +59,7 @@ export function CancelLeave({ id }: { id: string }) {
 }
 
 /** Approve or decline, with an optional message to the person. */
-export function DecideLeave({ id, name }: { id: string; name: string }) {
+export function DecideLeave({ id, name, children }: { id: string; name: string; children?: React.ReactNode }) {
   const t = useT();
   const router = useRouter();
   const { toast } = useToast();
@@ -73,6 +74,14 @@ export function DecideLeave({ id, name }: { id: string; name: string }) {
     } catch (e) { toast(errorMessage(e), 'error'); } finally { setBusy(null); }
   };
   return (
+    <>
+    {children && (
+      <SwipeRow disabled={!!busy}
+        right={{ label: t('lv.approve'), icon: 'check_circle', tone: 'healthy', run: () => void decide(true) }}
+        left={{ label: t('lv.decline'), icon: 'cancel', tone: 'alert', run: () => void decide(false) }}>
+        {children}
+      </SwipeRow>
+    )}
     <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end">
       <Input label={t('lv.reply', { name })} value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} className="flex-1" />
       <div className="flex gap-2">
@@ -80,6 +89,7 @@ export function DecideLeave({ id, name }: { id: string; name: string }) {
         <Button size="sm" variant="secondary" icon="close" loading={busy === 'no'} disabled={!!busy} onClick={() => void decide(false)}>{t('lv.decline')}</Button>
       </div>
     </div>
+    </>
   );
 }
 

@@ -11,6 +11,7 @@ export interface Organization {
   core_window_start: string; core_window_end: string; golden_overlap_min_hours: number;
   quiet_hours: boolean; auto_detect_timezone: boolean;
   expense_approval_threshold_minor: number; hourly_cost_minor: number; seat_autoscale: boolean; audit_retention_years: number; ai_enabled: boolean; kra_pin: string | null;
+  brand_color?: string | null; brand_logo_path?: string | null;
   created_at: string;
 }
 
@@ -18,7 +19,7 @@ export interface Profile {
   id: string; email: string | null; full_name: string; avatar_url: string | null; timezone: string;
   work_start: string; work_end: string; city: string | null; country_code: string | null;
   theme: 'system' | 'dark' | 'light'; email_notifications: boolean; checkin_reminders: boolean;
-  language: 'en' | 'sw' | 'fr'; data_saver: boolean; whatsapp_checkins: boolean; whatsapp_approvals: boolean;
+  language: 'en' | 'sw' | 'fr'; data_saver: boolean; whatsapp_checkins: boolean; whatsapp_approvals: boolean; tour_done_at?: string | null;
 }
 
 export interface Member {

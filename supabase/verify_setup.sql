@@ -60,6 +60,14 @@ select 'Founder Console data (October 11 update)',
            and not has_function_privilege('authenticated', to_regprocedure('public.platform_metrics()')::oid, 'execute'), false),
        case when to_regclass('public.user_activity') is null then 'missing — run supabase/update_founder_console.sql' else 'tables present; metrics service-role only' end
 union all
+select 'Tour and branding (October 12 update)',
+       exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'profiles' and column_name = 'tour_done_at')
+         and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'organizations' and column_name = 'brand_color')
+         and coalesce((select file_size_limit = 1048576 from storage.buckets where id = 'branding'), false)
+         and not has_column_privilege('authenticated', 'public.organizations', 'brand_color', 'UPDATE'),
+       case when not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'profiles' and column_name = 'tour_done_at')
+            then 'missing — run supabase/update_polish.sql' else 'tour on; branding changes by the owner only' end
+union all
 select 'Leave and phone notifications (October 12 update)',
        to_regclass('public.leave_requests') is not null and to_regclass('public.push_subscriptions') is not null
          and coalesce(to_regprocedure('public.team_away(uuid,date,date)') is not null, false)

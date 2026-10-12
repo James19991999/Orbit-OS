@@ -86,7 +86,7 @@ export default async function SchedulingPage() {
         </ul>
       </Card>
 
-      <div className="grid gap-4 xl:grid-cols-12 xl:items-start">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-12 xl:items-start">
         <Card glow className="xl:col-span-7">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <h2 className="flex items-center gap-2 text-headline-sm"><Icon name="timelapse" className="text-secondary" />{t('p.sch.overlap')}</h2>
@@ -112,7 +112,7 @@ export default async function SchedulingPage() {
         </Card>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-12 xl:items-start">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-12 xl:items-start">
         <Card className="xl:col-span-5">
           <CardHeader title={t('p.sch.load')} icon="monitoring" subtitle={t('p.sch.last14')} />
           <div className="grid grid-cols-3 gap-3">

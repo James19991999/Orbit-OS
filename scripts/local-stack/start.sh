@@ -25,7 +25,8 @@ psql -q -d "$DB" -v ON_ERROR_STOP=1 -f "$ROOT/supabase/seed.sql" >/dev/null
 PGRST_DB_URI="postgres://authenticator@localhost:$PGPORT/$DB?host=$PGHOST" PGRST_DB_SCHEMAS=public PGRST_DB_ANON_ROLE=anon \
   PGRST_JWT_SECRET="$SECRET" PGRST_SERVER_PORT=3001 PGRST_SERVER_HOST=127.0.0.1 PGRST_DB_POOL=10 \
   setsid nohup "$BIN/postgrest" < /dev/null > /tmp/postgrest.log 2>&1 &
-setsid nohup node "$DIR/proxy.mjs" < /dev/null > /tmp/gateway.log 2>&1 &
+rm -rf /tmp/orbit-storage
+DB="$DB" JWT_SECRET="$SECRET" setsid nohup node "$DIR/proxy.mjs" < /dev/null > /tmp/gateway.log 2>&1 &
 for i in $(seq 1 40); do curl -sf http://127.0.0.1:3001/ >/dev/null && break; sleep 0.5; done
 ANON=$(node "$DIR/jwt.mjs" anon "$SECRET"); SERVICE=$(node "$DIR/jwt.mjs" service_role "$SECRET")
 cat > "$ROOT/.env.local" <<ENV
@@ -81,4 +82,4 @@ if [ "${WITH_PUSH_MOCK:-1}" = "1" ]; then
   keys=$(cat /tmp/orbit-push/vapid.txt)
   printf 'NEXT_PUBLIC_VAPID_PUBLIC_KEY=%s\nVAPID_PRIVATE_KEY=%s\nVAPID_SUBJECT=mailto:test@orbitos.local\nPUSH_WEBHOOK_SECRET=local-push-secret\n' ${keys% *} ${keys#* } >> "$ROOT/.env.local"
 fi
-echo "stack up: gateway http://localhost:54321 (auth + rest), db=$DB; wrote .env.local"
+echo "stack up: gateway http://localhost:54321 (auth + rest + storage), db=$DB; wrote .env.local"

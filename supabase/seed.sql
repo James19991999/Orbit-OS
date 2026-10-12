@@ -257,3 +257,6 @@ begin
   insert into public.health_snapshots (org_id, taken_on, score, components)
   select v_org, current_date - d, 80 + (d % 5), '{}' from generate_series(1, 14) d;
 end $$;
+
+-- Demo people have already seen the product tour (new sign-ups get the prompt).
+update public.profiles set tour_done_at = now();

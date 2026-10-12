@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { ImportButton } from '@/components/import/ImportDialog';
+import { TemplatePicker } from './TemplatePicker';
 import { useSearchParams } from 'next/navigation';
 import { Button, Dialog, Icon } from '@/components/ui';
 import { TaskDialog, type PersonOption } from './TaskDialog';
@@ -31,6 +32,7 @@ export function OpsActions({ orgId, userId, people, sprints, activeSprintId, cur
     <>
       <div className="flex flex-wrap gap-2">
         {show.includes('task') && <Button icon="add_task" variant="secondary" size="sm" onClick={() => setOpen('task')}>{t('ops.new_task')}</Button>}
+        {show.includes('task') && <TemplatePicker orgId={orgId} people={people} sprints={sprints} activeSprintId={activeSprintId} />}
         {show.includes('task') && memberEmails && <ImportButton kind="tasks" memberEmails={memberEmails} />}
         {show.includes('sprint') && canManage && <Button icon="date_range" variant="secondary" size="sm" onClick={() => setOpen('sprint')}>{t('ops.plan_sprint')}</Button>}
         {show.includes('finance') && canManage && <Button icon="receipt_long" variant="secondary" size="sm" onClick={() => { setFinanceKind('expense'); setOpen('finance'); }}>{t('ops.log_entry')}</Button>}

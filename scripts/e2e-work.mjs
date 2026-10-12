@@ -153,7 +153,7 @@ wb.save('${xlsx}')`]);
   const p = elena.page;
   await p.goto(`${base}/settings?section=members`, { waitUntil: 'networkidle' });
   await p.getByRole('button', { name: 'Import people' }).click();
-  await p.locator('input[type=file]').setInputFiles(xlsx);
+  await p.locator('dialog[open] input[type=file]').setInputFiles(xlsx);
   await p.getByText('2 ready · 1 with problems').waitFor({ timeout: 10000 });
   await p.getByRole('button', { name: 'Import 2 rows' }).click();
   await p.getByText(/Invitations created: 2/).waitFor({ timeout: 20000 });

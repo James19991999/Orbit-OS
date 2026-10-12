@@ -10,6 +10,7 @@ import { getLanguage } from '@/i18n/server';
 import { clientMessages } from '@/i18n';
 import { getLocale } from '@/lib/locale/server';
 import { isFounderEmail } from '@/lib/founder/emails';
+import { brandLogoUrl } from '@/lib/env';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,8 +27,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <LocaleProvider locale={locale} timeZone={ctx.profile.timezone || 'UTC'}>
     <DataSaverProvider enabled={Boolean(ctx.profile.data_saver)}>
     <AppShell
-      user={{ id: ctx.user.id, name: ctx.profile.full_name || ctx.user.email || 'Member', email: ctx.user.email ?? '', avatar: ctx.profile.avatar_url, theme: ctx.profile.theme, timezone: ctx.profile.timezone, founder: isFounderEmail(ctx.user.email) }}
-      org={{ id: ctx.org.id, name: ctx.org.name, slug: ctx.org.slug, plan: ctx.org.plan, expiresAt: ctx.org.plan_expires_at, readOnly: !isWritable(ctx.org), timeoutHours: ctx.org.session_timeout_hours, status: ctx.org.status, autoDetectTz: ctx.org.auto_detect_timezone }}
+      user={{ id: ctx.user.id, name: ctx.profile.full_name || ctx.user.email || 'Member', email: ctx.user.email ?? '', avatar: ctx.profile.avatar_url, theme: ctx.profile.theme, timezone: ctx.profile.timezone, founder: isFounderEmail(ctx.user.email), tourDone: Boolean(ctx.profile.tour_done_at) }}
+      org={{ id: ctx.org.id, name: ctx.org.name, slug: ctx.org.slug, plan: ctx.org.plan, expiresAt: ctx.org.plan_expires_at, readOnly: !isWritable(ctx.org), timeoutHours: ctx.org.session_timeout_hours, status: ctx.org.status, autoDetectTz: ctx.org.auto_detect_timezone, brandColor: ctx.org.brand_color ?? null, logoUrl: brandLogoUrl(ctx.org.brand_logo_path) }}
       role={ctx.role}
       workspaces={ctx.memberships.map((m) => ({ name: m.org.name, slug: m.org.slug, role: m.role }))}
     >

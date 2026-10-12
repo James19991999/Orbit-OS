@@ -85,7 +85,7 @@ async function SprintsTab({ t, ctxOrgId, active, sprints, people, canManage, use
   return (
     <div className="flex flex-col gap-4">
       {active && prog ? (
-        <div className="grid gap-4 xl:grid-cols-12 xl:items-start">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-12 xl:items-start">
           <Card glow className="xl:col-span-5">
             <div className="flex items-center justify-between gap-2">
               <p className="text-label-xs uppercase text-on-surface-variant">{t('p.ops.active', { day: prog.day, total: prog.totalDays })}</p>
@@ -166,7 +166,7 @@ async function FinanceTab({ t, supabase, orgId, currency, invoices, people, user
   const lastRun = runs[0];
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid gap-4 xl:grid-cols-12 xl:items-start">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-12 xl:items-start">
         <Card glow className="xl:col-span-8">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <h2 className="flex items-center gap-2 text-headline-sm"><Icon name="account_balance" className="text-secondary" />{t('p.ops.cash')}</h2>

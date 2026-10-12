@@ -56,6 +56,7 @@ export function QuickActions({ role }: { role: Role }) {
       { id: 'a-profile', label: t('cmdk.a.profile'), icon: 'person', href: '/profile' },
       { id: 'a-notifications', label: t('cmdk.a.notifications'), icon: 'notifications', href: '/notifications' },
       { id: 'a-shortcuts', label: t('cmdk.a.shortcuts'), icon: 'keyboard', run: () => { setOpen(false); setHelp(true); } },
+      { id: 'a-tour', label: t('cmdk.a.tour'), icon: 'tour', run: () => { setOpen(false); window.dispatchEvent(new Event('orbit:tour')); } },
     ];
     const pages: Item[] = NAV.map((n) => ({ id: `p-${n.href}`, label: t(n.labelKey), icon: n.icon, href: n.href }));
     return [{ key: 'actions', label: t('cmdk.actions'), items: actions }, { key: 'pages', label: t('cmdk.pages'), items: pages }];
@@ -134,7 +135,7 @@ export function QuickActions({ role }: { role: Role }) {
   let n = -1;
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-keyshortcuts="Control+K Meta+K /"
+      <button type="button" data-tour="search" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-keyshortcuts="Control+K Meta+K /"
         className="flex h-9 items-center gap-2 rounded border border-outline-variant px-2 text-body-sm text-on-surface-variant hover:bg-on-surface/5 hover:text-on-surface md:min-w-[11rem] md:px-3">
         <Icon name="search" className="text-[20px]" />
         <span className="sr-only md:not-sr-only">{t('cmdk.open')}</span>

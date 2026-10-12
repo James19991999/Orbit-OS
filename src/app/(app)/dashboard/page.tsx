@@ -62,7 +62,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ wel
           onTrial={ctx.org.plan_period === 'trial'} hasTwoFactor={ctx.aal.next === 'aal2' || ctx.aal.current === 'aal2'} />
       )}
 
-      <div className="grid gap-4 xl:grid-cols-12 xl:items-start">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-12 xl:items-start">
         {/* Health index */}
         <Card glow className="xl:col-span-7" aria-labelledby="health-h">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -137,7 +137,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ wel
         </Card>
       )}
 
-      <div className="grid gap-4 xl:grid-cols-12">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
         <Card className="xl:col-span-8" aria-labelledby="pulse-h">
           <CardHeader title={<span id="pulse-h">{t('p.dash.pulse')}</span>} icon="monitor_heart" subtitle={t('p.dash.pulse_sub')} />
           <ul className="grid gap-4 md:grid-cols-3">

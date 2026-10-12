@@ -5,7 +5,7 @@ import { loadMembers, must } from '@/lib/data/members';
 import { can } from '@/lib/roles';
 import { planAllows, PLANS } from '@/lib/billing/plans';
 import { isEmailConfigured } from '@/lib/email';
-import { appUrl } from '@/lib/env';
+import { appUrl, brandLogoUrl } from '@/lib/env';
 import { Card, Icon, Pill, Stat, LinkButton } from '@/components/ui';
 import { SettingsFilter, Section } from '@/components/settings/Filter';
 import { OrgForm, LegalEntities, AuthSettings, TimezoneEngine, GovernanceActions } from '@/components/settings/OrgSettings';
@@ -19,6 +19,7 @@ import { loadConfig, publicConfig } from '@/lib/etims/service';
 import { isEncryptionConfigured } from '@/lib/crypto/secrets';
 import { isProviderConfigured } from '@/lib/calendar/providers';
 import { EtimsSettings } from '@/components/settings/EtimsSettings';
+import { BrandingSettings } from '@/components/settings/BrandingSettings';
 import { getT } from '@/i18n/server';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -78,6 +79,9 @@ export default async function SettingsPage() {
         <div className="mt-4 grid gap-4 xl:grid-cols-2 xl:items-start">
           <Section id="organization" title={t('p.set.s.org')} icon="apartment" keywords="name legal currency threshold approval cost">
             <OrgForm org={org} canEdit={can.manage(role)} />
+          </Section>
+          <Section id="branding" title={t('brand.title')} icon="palette" keywords="branding brand logo colour color accent theme white label">
+            <BrandingSettings orgId={org.id} orgName={org.name} color={org.brand_color ?? null} logoUrl={brandLogoUrl(org.brand_logo_path)} canEdit={role === 'owner'} />
           </Section>
           <Section id="entities" title={t('p.set.s.entities')} icon="account_balance" keywords="entities legal subsidiaries jurisdiction" badge={<span className="text-body-sm text-on-surface-variant">{t('p.set.n_entities', { count: (entRes.data ?? []).length })}</span>}>
             <LegalEntities orgId={org.id} items={must(entRes, 'entities') as LegalEntity[]} canEdit={can.manage(role)} />

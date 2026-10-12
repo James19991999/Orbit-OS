@@ -1,7 +1,8 @@
-// Minimal Supabase-style gateway: /auth/v1 → GoTrue, /rest/v1 → PostgREST. Local testing only.
+// Minimal Supabase-style gateway: /auth/v1 → GoTrue, /rest/v1 → PostgREST, /storage/v1 → storage-mock. Local testing only.
 import http from 'node:http';
 import { createRequire } from 'node:module';
 const { WebSocketServer } = createRequire(import.meta.url)('ws');
+import { handleStorage } from './storage-mock.mjs';
 const routes = [['/auth/v1', 9999], ['/rest/v1', 3001]];
 // GATEWAY_LATENCY_MS simulates the app and the database being in different regions (e.g. 90 for US ↔ Frankfurt).
 // GATEWAY_LOG=1 prints each request with a timestamp, to count round trips per page.
@@ -20,6 +21,7 @@ function handle(req, res) {
   res.setHeader('access-control-allow-methods', 'GET,POST,PATCH,PUT,DELETE,OPTIONS');
   res.setHeader('access-control-expose-headers', 'content-range, x-supabase-api-version');
   if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+  if (req.url.startsWith('/storage/v1/')) return void handleStorage(req, res);
   if (!hit) { res.writeHead(501, { 'content-type': 'application/json' }); return res.end('{"message":"not available in local stack"}'); }
   const [prefix, port] = hit;
   const up = http.request({ host: '127.0.0.1', port, path: req.url.slice(prefix.length) || '/', method: req.method, headers: { ...req.headers, host: `127.0.0.1:${port}` } }, (r) => {
