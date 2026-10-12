@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { ImportButton } from '@/components/import/ImportDialog';
 import { useSearchParams } from 'next/navigation';
 import { Button, Dialog, Icon } from '@/components/ui';
 import { TaskDialog, type PersonOption } from './TaskDialog';
@@ -11,9 +12,9 @@ import { useT } from '@/i18n/client';
 
 type Which = null | 'task' | 'sprint' | 'finance' | 'payroll' | 'invoice' | 'chooser';
 
-export function OpsActions({ orgId, userId, people, sprints, activeSprintId, currency, thresholdMinor, invoiceNumbers, canManage, canWrite, show }:
+export function OpsActions({ orgId, userId, people, sprints, activeSprintId, currency, thresholdMinor, invoiceNumbers, canManage, canWrite, memberEmails, show }:
   { orgId: string; userId: string; people: PersonOption[]; sprints: Pick<Sprint, 'id' | 'name'>[]; activeSprintId: string | null; currency: Currency;
-    thresholdMinor: number; invoiceNumbers: string[]; canManage: boolean; canWrite: boolean; show: ('task' | 'sprint' | 'finance' | 'payroll' | 'invoice')[] }) {
+    thresholdMinor: number; invoiceNumbers: string[]; canManage: boolean; canWrite: boolean; memberEmails?: string[]; show: ('task' | 'sprint' | 'finance' | 'payroll' | 'invoice')[] }) {
   const t = useT();
   const sp = useSearchParams();
   const [open, setOpen] = useState<Which>(null);
@@ -30,6 +31,7 @@ export function OpsActions({ orgId, userId, people, sprints, activeSprintId, cur
     <>
       <div className="flex flex-wrap gap-2">
         {show.includes('task') && <Button icon="add_task" variant="secondary" size="sm" onClick={() => setOpen('task')}>{t('ops.new_task')}</Button>}
+        {show.includes('task') && memberEmails && <ImportButton kind="tasks" memberEmails={memberEmails} />}
         {show.includes('sprint') && canManage && <Button icon="date_range" variant="secondary" size="sm" onClick={() => setOpen('sprint')}>{t('ops.plan_sprint')}</Button>}
         {show.includes('finance') && canManage && <Button icon="receipt_long" variant="secondary" size="sm" onClick={() => { setFinanceKind('expense'); setOpen('finance'); }}>{t('ops.log_entry')}</Button>}
         {show.includes('payroll') && canManage && <Button icon="payments" variant="secondary" size="sm" onClick={() => setOpen('payroll')}>{t('ops.record_payroll')}</Button>}

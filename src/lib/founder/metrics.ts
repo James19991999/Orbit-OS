@@ -40,6 +40,7 @@ export const JOBS: { job: string; label: string; everyHours: number }[] = [
   { job: 'ai-briefs', label: 'AI chief-of-staff briefs', everyHours: 1 },
   { job: 'etims', label: 'KRA eTIMS retries', everyHours: 1 },
   { job: 'calendar', label: 'Calendar busy times', everyHours: 1 },
+  { job: 'push', label: 'Phone notifications (catch-up)', everyHours: 1 },
   { job: 'health-snapshot', label: 'Team-health snapshot', everyHours: 24 },
   { job: 'retention', label: 'Retention clean-up', everyHours: 24 },
 ];
@@ -57,6 +58,7 @@ export function configChecklist() {
     { label: 'Outlook sync', ok: isProviderConfigured('microsoft'), note: 'Optional' },
     { label: 'WhatsApp', ok: isWhatsAppConfigured(), note: 'Optional' },
     { label: 'AI chief of staff (Claude)', ok: Boolean(process.env.ANTHROPIC_API_KEY), note: 'Optional' },
+    { label: 'Phone notifications (Web Push)', ok: Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY), note: process.env.PUSH_WEBHOOK_SECRET ? 'Optional' : 'Optional · add PUSH_WEBHOOK_SECRET for instant delivery' },
     { label: 'Shared rate limits (Upstash)', ok: Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN), note: 'Recommended' },
   ];
 }

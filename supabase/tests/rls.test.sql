@@ -455,6 +455,66 @@ delete from public.task_comments where task_id = current_setting('tests.task_c')
 select tests.eq((select count(*)::text from public.task_comments where task_id = current_setting('tests.task_c')::uuid), '0', 'owners can remove any comment');
 reset role;
 
+-- ── 9h. Leave and push subscriptions ──
+select tests.login('00000000-0000-0000-0000-00000000000b');
+set role authenticated;
+insert into public.leave_requests (org_id, kind, starts_on, ends_on, note) values (current_setting('tests.org_a')::uuid, 'sick', '2026-11-02', '2026-11-08', 'doctor');
+select tests.eq((select days::text from public.leave_requests where note = 'doctor'), '5', 'leave counts working days only (Mon–Fri)');
+select tests.expect_error(format($q$insert into public.leave_requests (org_id, starts_on, ends_on) values (%L, '2026-11-05', '2026-11-06')$q$, current_setting('tests.org_a')), 'overlapping time off is refused');
+select tests.expect_error(format($q$insert into public.leave_requests (org_id, starts_on, ends_on, status) values (%L, '2026-12-01', '2026-12-02', 'approved')$q$, current_setting('tests.org_a')), 'nobody can file leave as already approved');
+select tests.expect_error(format($q$insert into public.leave_requests (org_id, user_id, starts_on, ends_on) values (%L, '00000000-0000-0000-0000-00000000000a', '2026-12-01', '2026-12-02')$q$, current_setting('tests.org_a')), 'nobody can request leave for someone else');
+select set_config('tests.leave', (select id::text from public.leave_requests where note = 'doctor'), false);
+select tests.expect_error(format($q$select public.decide_leave(%L, true)$q$, current_setting('tests.leave')), 'a contributor cannot approve leave');
+select tests.expect_error(format($q$update public.leave_requests set status = 'approved' where id = %L$q$, current_setting('tests.leave')), 'requesters cannot approve by editing the row');
+reset role;
+select tests.eq((select status from public.leave_requests where id = current_setting('tests.leave')::uuid), 'pending', 'leave status cannot be changed directly');
+select tests.eq((select count(*)::text from public.notifications where kind = 'leave_request' and user_id = '00000000-0000-0000-0000-00000000000a'), '1', 'managers are told about new requests');
+select tests.login('00000000-0000-0000-0000-00000000000c');
+set role authenticated;
+select tests.eq((select count(*)::text from public.leave_requests), '0', 'auditors cannot see leave requests (type and note are private)');
+select tests.expect_error(format($q$insert into public.leave_requests (org_id, starts_on, ends_on) values (%L, '2026-12-01', '2026-12-02')$q$, current_setting('tests.org_a')), 'auditors cannot request leave in a workspace they only review');
+reset role;
+select tests.login('00000000-0000-0000-0000-00000000000d');
+set role authenticated;
+select tests.eq((select count(*)::text from public.leave_requests), '0', 'another workspace cannot see leave');
+select tests.eq((select count(*)::text from public.team_away(current_setting('tests.org_a')::uuid, '2026-11-01', '2026-11-30')), '0', 'another workspace cannot see who is away');
+select tests.expect_error(format($q$select public.decide_leave(%L, true)$q$, current_setting('tests.leave')), 'another workspace cannot approve leave');
+reset role;
+select tests.login('00000000-0000-0000-0000-00000000000a');
+set role authenticated;
+select public.decide_leave(current_setting('tests.leave')::uuid, true, 'Get well soon');
+select tests.expect_error(format($q$select public.decide_leave(%L, false)$q$, current_setting('tests.leave')), 'a decision cannot be made twice');
+insert into public.leave_requests (org_id, starts_on, ends_on, note) values (current_setting('tests.org_a')::uuid, '2026-12-21', '2026-12-24', 'owner break');
+select public.decide_leave((select id from public.leave_requests where note = 'owner break'), true);
+select tests.pass('an owner with no other manager can approve their own leave');
+reset role;
+select tests.eq((select count(*)::text from public.notifications where kind = 'leave_decided' and user_id = '00000000-0000-0000-0000-00000000000b'), '1', 'the requester hears the decision');
+select tests.login('00000000-0000-0000-0000-00000000000c');
+set role authenticated;
+select tests.eq((select count(*)::text from public.team_away(current_setting('tests.org_a')::uuid, '2026-11-01', '2026-11-30')), '1', 'teammates see who is away (dates only)');
+reset role;
+select tests.login('00000000-0000-0000-0000-00000000000b');
+set role authenticated;
+select public.cancel_leave(current_setting('tests.leave')::uuid);
+select tests.eq((select status from public.leave_requests where id = current_setting('tests.leave')::uuid), 'cancelled', 'people can cancel their own upcoming leave');
+insert into public.push_subscriptions (endpoint, p256dh, auth) values ('https://push.example/abc', 'k', 'a');
+select tests.expect_error($$insert into public.push_subscriptions (user_id, endpoint, p256dh, auth) values ('00000000-0000-0000-0000-00000000000a', 'https://push.example/x', 'k', 'a')$$, 'nobody can register a phone for someone else');
+select tests.expect_error($$insert into public.push_subscriptions (endpoint, p256dh, auth) values ('http://push.example/y', 'k', 'a')$$, 'push endpoints must be https');
+reset role;
+select tests.login('00000000-0000-0000-0000-00000000000a');
+set role authenticated;
+select tests.eq((select count(*)::text from public.push_subscriptions), '0', 'phones registered by others are invisible');
+reset role;
+
+-- ── 9i. Imported invites carry job title and department ──
+insert into auth.users (id, email, raw_user_meta_data) values ('00000000-0000-0000-0000-000000000011', 'gita@a.test', '{"full_name":"Gita Imported"}');
+insert into public.invites (org_id, email, role, code, title, department) values (current_setting('tests.org_a')::uuid, 'gita@a.test', 'contributor', 'code-gita', 'Accountant', 'Finance');
+select tests.login('00000000-0000-0000-0000-000000000011');
+set role authenticated;
+select public.redeem_invite('code-gita');
+reset role;
+select tests.eq((select title || '/' || department from public.memberships where user_id = '00000000-0000-0000-0000-000000000011'), 'Accountant/Finance', 'an imported invite sets the job title and department on joining');
+
 -- ── 10. Anonymous ──
 set role anon;
 select set_config('request.jwt.claims', '', false);

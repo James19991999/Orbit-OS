@@ -18,7 +18,7 @@ const ids = {
   channel: one("select slug from channels order by name limit 1"),
 };
 const PAGES = ['/dashboard', '/operations', '/scheduling', '/culture', '/culture?tab=channels', '/culture?tab=kudos', '/compliance',
-  '/reports', '/people', '/settings', '/settings/audit-log', '/settings/billing', '/profile', '/notifications',
+  '/reports', '/people', '/people?tab=leave', '/my-day', '/settings', '/settings/audit-log', '/settings/billing', '/profile', '/notifications',
   ids.task && `/operations/tasks/${ids.task}`, ids.invoice && `/operations/invoices/${ids.invoice}`, ids.meeting && `/scheduling/meetings/${ids.meeting}`,
   ids.framework && `/compliance/frameworks/${ids.framework}`, ids.channel && `/culture/channels/${ids.channel}`].filter(Boolean);
 const PUBLIC = { en: ['/', '/pricing', '/security', '/trust'], sw: ['/sw', '/sw/pricing', '/sw/security', '/sw/trust'], fr: ['/fr', '/fr/pricing', '/fr/security', '/fr/trust'] };

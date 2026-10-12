@@ -5,6 +5,7 @@ export interface NavItem { href: string; label: string; labelKey: MessageKey; ic
 /** One unified nav (the Stitch export had a 5-tab and a 7-tab variant). First five are mobile tabs. */
 export const NAV: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', labelKey: 'nav.dashboard', icon: 'grid_view', primary: true },
+  { href: '/my-day', label: 'My day', labelKey: 'nav.my_day', icon: 'today' },
   { href: '/operations', label: 'Operations', labelKey: 'nav.operations', icon: 'view_kanban', primary: true },
   { href: '/scheduling', label: 'Scheduling', labelKey: 'nav.scheduling', icon: 'schedule', primary: true },
   { href: '/culture', label: 'Culture', labelKey: 'nav.culture', icon: 'auto_awesome', primary: true },

@@ -3,7 +3,7 @@
    • Pages: always from the network; if that fails, the offline page. Signed-in pages are never
      cached, so nothing private is left on a shared device.
    • API calls, auth and Supabase are never touched. */
-const VERSION = 'orbit-v2';
+const VERSION = 'orbit-v3';
 const STATIC = `${VERSION}-static`;
 // A plain HTML file with no app scripts: it keeps working after every new release.
 const OFFLINE_URL = '/offline.html';
@@ -54,4 +54,31 @@ self.addEventListener('fetch', (event) => {
   if (req.mode === 'navigate') {
     event.respondWith(fetch(req).catch(async () => (await caches.match(OFFLINE_URL)) || new Response('Offline', { status: 503 })));
   }
+});
+
+// ───────── Notifications (Web Push) ─────────
+// The server sends {title, body, url, tag}; tapping opens (or focuses) OrbitOS on that page.
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { data = { title: event.data ? event.data.text() : 'OrbitOS' }; }
+  const title = data.title || 'OrbitOS';
+  event.waitUntil(self.registration.showNotification(title, {
+    body: data.body || '',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    tag: data.tag || 'orbitos',
+    renotify: true,
+    data: { url: typeof data.url === 'string' && data.url.startsWith('/') ? data.url : '/notifications' },
+  }));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = new URL(event.notification.data?.url || '/notifications', self.location.origin).href;
+  event.waitUntil((async () => {
+    const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const same = wins.find((w) => w.url.startsWith(self.location.origin));
+    if (same) { await same.focus(); if ('navigate' in same) return same.navigate(url); return; }
+    return self.clients.openWindow(url);
+  })());
 });

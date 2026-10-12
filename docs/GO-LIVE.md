@@ -50,8 +50,9 @@ This step leaves you with an empty production database that has the full schema,
 3. `supabase/update_founder_console.sql`, if it doesn't have the Founder Console yet (people online, job runs, undelivered messages).
 4. `supabase/update_security.sql` (October 12, 2026: upload size and type limits, two-factor for vault changes, failed sign-in counts). Safe to run again.
 5. `supabase/update_comments_undo.sql` (October 12, 2026: comments with @mentions on tasks, and Undo for deleted tasks).
+6. `supabase/update_leave_push.sql` (October 12, 2026: leave and time off, phone notifications, job title and department on imported invites).
 
-Each file refuses to run twice or out of order, and changes nothing if it stops. Then run `verify_setup.sql` again: all 16 rows `ok = true`. (With the CLI, `npx supabase db push` applies only the new migrations.)
+Each file refuses to run twice or out of order, and changes nothing if it stops. Then run `verify_setup.sql` again: all 17 rows `ok = true`. (With the CLI, `npx supabase db push` applies only the new migrations.)
 
 **Push the schema (from your computer, inside the OrbitOS folder)**
 
@@ -142,6 +143,7 @@ This step puts the app on your domain with every secret set and the five backgro
 | `WEBAUTHN_RP_NAME` | `OrbitOS` | Yes, for passkeys |
 | `NEXT_PUBLIC_SENTRY_DSN` | Sentry DSN from Step 4 | Strongly recommended |
 | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | from Step 4 (readable stack traces; with `project:read` also lists errors in the Founder Console) | Optional |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `PUSH_WEBHOOK_SECRET` | phone notifications — [docs/PUSH.md](PUSH.md) | Optional |
 | `FOUNDER_EMAILS` | your own sign-in email (comma-separate several). Opens the Founder Console at `/founder` — [docs/FOUNDER.md](FOUNDER.md) | Recommended |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | a free Upstash Redis database | Recommended: makes login rate limits hold across all servers |
 | `NEXT_PUBLIC_DATA_REGION` | e.g. `EU (Frankfurt)`, matching your Supabase region | Optional, display only |

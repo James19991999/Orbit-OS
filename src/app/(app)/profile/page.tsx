@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { PushSettings } from '@/components/profile/PushSettings';
 import { requireAppContext } from '@/lib/context';
 import { must } from '@/lib/data/members';
 import { getT } from '@/i18n/server';
@@ -43,6 +44,7 @@ export default async function ProfilePage() {
           connection={cal ? { provider: cal.provider, accountEmail: cal.account_email, status: cal.status, lastError: cal.last_error, busySyncedAt: cal.busy_synced_at } : null} />
       </Card>
       <Card id="whatsapp"><CardHeader title={t('profile.whatsapp')} icon="chat" subtitle={t('profile.whatsapp_sub')} /><WhatsAppPanel userId={user.id} linkedPhone={wa?.phone ? maskPhone(wa.phone) : null} checkins={profile.whatsapp_checkins} approvals={profile.whatsapp_approvals} configured={isWhatsAppConfigured()} /></Card>
+      <Card id="push"><CardHeader title={t('push.title')} icon="notifications_active" /><PushSettings publicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || null} /></Card>
       <Card><CardHeader title={t('profile.notifications')} icon="notifications" /><NotificationPrefs profile={profile} /></Card>
       <Card id="security"><CardHeader title={t('profile.security')} icon="shield_lock" /><SecurityPanel passkeys={passkeys} aal={aal.current} /></Card>
     </div>

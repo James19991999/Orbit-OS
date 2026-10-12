@@ -68,4 +68,17 @@ if [ "${WITH_CALENDAR_MOCK:-1}" = "1" ]; then
   printf 'GOOGLE_CALENDAR_CLIENT_ID=local-google-client\nGOOGLE_CALENDAR_CLIENT_SECRET=local-google-secret\nGOOGLE_OAUTH_BASE=http://localhost:54440\nGOOGLE_TOKEN_BASE=http://localhost:54440\nGOOGLE_API_BASE=http://localhost:54440\n' >> "$ROOT/.env.local"
   printf 'MICROSOFT_CALENDAR_CLIENT_ID=local-ms-client\nMICROSOFT_CALENDAR_CLIENT_SECRET=local-ms-secret\nMICROSOFT_LOGIN_BASE=http://localhost:54440/ms\nMICROSOFT_GRAPH_BASE=http://localhost:54440/graph\n' >> "$ROOT/.env.local"
 fi
+if [ "${WITH_PUSH_MOCK:-1}" = "1" ]; then
+  # A push service stand-in over HTTPS with a throwaway certificate. Start the app with
+  # NODE_EXTRA_CA_CERTS=/tmp/orbit-push/cert.pem so it trusts it (see README → Local development).
+  mkdir -p /tmp/orbit-push
+  [ -f /tmp/orbit-push/cert.pem ] || openssl req -x509 -newkey rsa:2048 -nodes -days 30 -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost" \
+    -keyout /tmp/orbit-push/key.pem -out /tmp/orbit-push/cert.pem >/dev/null 2>&1
+  pkill -f "local-stack/push-mock.mjs" 2>/dev/null || true
+  setsid nohup node "$DIR/push-mock.mjs" < /dev/null > /tmp/push-mock.log 2>&1 &
+  # Same keys every run: NEXT_PUBLIC_VAPID_PUBLIC_KEY is built into the app.
+  [ -f /tmp/orbit-push/vapid.txt ] || (cd "$ROOT" && node -e "const w=require('web-push');const k=w.generateVAPIDKeys();console.log(k.publicKey+' '+k.privateKey)") > /tmp/orbit-push/vapid.txt
+  keys=$(cat /tmp/orbit-push/vapid.txt)
+  printf 'NEXT_PUBLIC_VAPID_PUBLIC_KEY=%s\nVAPID_PRIVATE_KEY=%s\nVAPID_SUBJECT=mailto:test@orbitos.local\nPUSH_WEBHOOK_SECRET=local-push-secret\n' ${keys% *} ${keys#* } >> "$ROOT/.env.local"
+fi
 echo "stack up: gateway http://localhost:54321 (auth + rest), db=$DB; wrote .env.local"

@@ -49,7 +49,7 @@ export default async function OperationsPage(props: { searchParams: Promise<{ ta
     <OpsActions orgId={org.id} userId={user.id} people={members.map((m) => ({ id: m.user_id, name: m.profile.full_name }))}
       sprints={sprints.map((s) => ({ id: s.id, name: s.name }))} activeSprintId={active?.id ?? null} currency={org.currency}
       thresholdMinor={Number(org.expense_approval_threshold_minor)} invoiceNumbers={invoices.map((i) => i.number)}
-      canManage={can.manage(role)} canWrite={can.write(role)}
+      canManage={can.manage(role)} canWrite={can.write(role)} memberEmails={members.map((m) => m.profile.email ?? '').filter(Boolean)}
       show={tab === 'sprints' ? ['task', 'sprint'] : tab === 'finance' ? ['finance', 'payroll', 'invoice'] : ['task']} />
   );
 

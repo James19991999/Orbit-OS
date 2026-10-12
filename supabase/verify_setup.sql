@@ -60,6 +60,12 @@ select 'Founder Console data (October 11 update)',
            and not has_function_privilege('authenticated', to_regprocedure('public.platform_metrics()')::oid, 'execute'), false),
        case when to_regclass('public.user_activity') is null then 'missing — run supabase/update_founder_console.sql' else 'tables present; metrics service-role only' end
 union all
+select 'Leave and phone notifications (October 12 update)',
+       to_regclass('public.leave_requests') is not null and to_regclass('public.push_subscriptions') is not null
+         and coalesce(to_regprocedure('public.team_away(uuid,date,date)') is not null, false)
+         and not has_table_privilege('authenticated', 'public.leave_requests', 'UPDATE'),
+       case when to_regclass('public.leave_requests') is null then 'missing — run supabase/update_leave_push.sql' else 'leave private to the person and managers; decisions only through approval' end
+union all
 select 'Comments and undo (October 12 update)',
        to_regclass('public.task_comments') is not null
          and coalesce(to_regprocedure('public.restore_task(uuid)') is not null, false)

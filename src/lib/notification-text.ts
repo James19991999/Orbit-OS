@@ -13,6 +13,14 @@ export function localizeNotification(n: { kind: string; title: string; body: str
     case 'task_comment':
       m = n.title.match(/^(.*) (?:mentioned you on|commented on) “(.*)”$/);
       return { title: m ? t(n.kind === 'mention' ? 'notif.k.mention' : 'notif.k.task_comment', { name: m[1] === 'A teammate' ? t('notif.k.teammate') : m[1]!, title: m[2]! }) : n.title, body: n.body };
+    case 'leave_request':
+    case 'leave_decided': {
+      const b = n.body?.match(/^(\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2}) · (\d+) days$/);
+      const body = b ? t('notif.k.leave_body', { from: b[1]!, to: b[2]!, days: t(Number(b[3]) === 1 ? 'lv.days_one' : 'lv.days', { count: Number(b[3]) }) }) : n.body;
+      if (n.kind === 'leave_decided') return { title: t(/approved/.test(n.title) ? 'notif.k.leave_approved' : 'notif.k.leave_declined'), body };
+      m = n.title.match(/^(.*) requested time off$/);
+      return { title: m ? t('notif.k.leave_request', { name: m[1] === 'A teammate' ? t('notif.k.teammate') : m[1]! }) : n.title, body };
+    }
     case 'kudos':
       m = n.title.match(/^(.*) sent you kudos$/);
       return { title: m ? t('notif.k.kudos', { name: m[1] === 'A teammate' ? t('notif.k.teammate') : m[1]! }) : n.title, body: n.body };

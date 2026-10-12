@@ -27,3 +27,27 @@ describe('mentions', () => {
     expect(suggest(people, 'mar').map((p) => p.id)).toEqual(['b']);
   });
 });
+
+import { weekdaysBetween, annualBalance, awayOn } from '@/lib/leave';
+describe('leave', () => {
+  it('counts Monday–Friday only, inclusive', () => {
+    expect(weekdaysBetween('2026-11-02', '2026-11-08')).toBe(5);
+    expect(weekdaysBetween('2026-11-07', '2026-11-08')).toBe(0);
+    expect(weekdaysBetween('2026-12-31', '2027-01-01')).toBe(2);
+    expect(weekdaysBetween('bad', '2026-01-01')).toBe(0);
+  });
+  it('computes the annual balance for this year only', () => {
+    const b = annualBalance([
+      { kind: 'annual', status: 'approved', starts_on: '2026-03-02', days: 5 },
+      { kind: 'annual', status: 'pending', starts_on: '2026-12-21', days: 4 },
+      { kind: 'sick', status: 'approved', starts_on: '2026-04-01', days: 2 },
+      { kind: 'annual', status: 'approved', starts_on: '2025-12-01', days: 3 },
+      { kind: 'annual', status: 'declined', starts_on: '2026-05-01', days: 3 },
+    ], 21, 2026);
+    expect(b).toEqual({ allowance: 21, used: 5, pending: 4, left: 12 });
+  });
+  it('knows who is away on a date', () => {
+    expect(awayOn([{ user_id: 'u', starts_on: '2026-11-02', ends_on: '2026-11-06' }], 'u', '2026-11-04')).toBe(true);
+    expect(awayOn([{ user_id: 'u', starts_on: '2026-11-02', ends_on: '2026-11-06' }], 'u', '2026-11-07')).toBe(false);
+  });
+});

@@ -14,7 +14,7 @@ interface Item { id: string; label: string; sub?: string | null; icon: string; h
 interface Group { key: string; label: string; items: Item[] }
 
 /** "G then D" style navigation. */
-export const GO_KEYS: Record<string, string> = { d: '/dashboard', o: '/operations', s: '/scheduling', c: '/culture', a: '/compliance', r: '/reports', p: '/people', t: '/settings', n: '/notifications' };
+export const GO_KEYS: Record<string, string> = { y: '/my-day', d: '/dashboard', o: '/operations', s: '/scheduling', c: '/culture', a: '/compliance', r: '/reports', p: '/people', t: '/settings', n: '/notifications' };
 
 const isTyping = (el: EventTarget | null) => {
   const e = el as HTMLElement | null;

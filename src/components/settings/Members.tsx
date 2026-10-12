@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { ImportButton } from '@/components/import/ImportDialog';
 import { useRouter } from 'next/navigation';
 import { Avatar, Button, Dialog, Input, Select, InlineError, Banner, useToast, TimeAgo } from '@/components/ui';
 import { requireBrowserClient } from '@/lib/supabase/client';
@@ -45,7 +46,12 @@ export function Members({ members, invites, myRole, myId, seatLimit, appUrl }: {
       </ul>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-body-sm text-on-surface-variant tnum">{t('mem.seats', { used: members.length + invites.length, limit: seatLimit })}</p>
-        {canInvite && <Button icon="person_add" onClick={() => { setResult(null); setOpen(true); }}>{t('mem.invite')}</Button>}
+        {canInvite && (
+          <div className="flex flex-wrap items-center gap-2">
+            <ImportButton kind="people" memberEmails={members.map((m) => m.email ?? '').filter(Boolean)} seatsFree={Math.max(0, seatLimit - members.length - invites.length)} />
+            <Button icon="person_add" onClick={() => { setResult(null); setOpen(true); }}>{t('mem.invite')}</Button>
+          </div>
+        )}
       </div>
       <ul className="divide-y divide-outline-variant">
         {members.map((m) => (
