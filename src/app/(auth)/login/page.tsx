@@ -5,7 +5,7 @@ import { isSupabaseConfigured } from '@/lib/env';
 import { SetupNotice } from '@/components/auth/SetupNotice';
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getT())('auth.sign_in'), description: "Sign in to OrbitOS with your work email, a passkey, Google, Microsoft or your company's single sign-on." };
+  return { title: (await getT())('auth.sign_in'), description: "Sign in to OrbitOS with your work email, a passkey, Google, Microsoft or your company's single sign-on.", alternates: { canonical: '/login' } };
 }
 
 export default async function LoginPage(props: { searchParams: Promise<{ next?: string; reason?: string; error?: string }> }) {

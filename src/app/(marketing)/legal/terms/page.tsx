@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Prose } from '@/components/marketing/Prose';
 
-export const metadata: Metadata = { title: 'Terms of Service' };
+export const metadata: Metadata = { title: 'Terms of Service', description: 'The terms for using OrbitOS: accounts, plans and M-Pesa or card payments, acceptable use, data ownership, availability and liability.', alternates: { canonical: '/legal/terms' } };
 
 export default function Terms() {
   return (

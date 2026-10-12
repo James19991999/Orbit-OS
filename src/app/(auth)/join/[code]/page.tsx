@@ -10,7 +10,7 @@ import { getT } from '@/i18n/server';
 import type { Role } from '@/lib/types';
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getT())('meta.join') };
+  return { title: (await getT())('meta.join'), robots: { index: false, follow: false } };
 }
 export const dynamic = 'force-dynamic';
 

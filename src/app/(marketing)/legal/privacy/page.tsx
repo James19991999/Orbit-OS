@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { contactEmail } from '@/lib/env';
 import { Prose } from '@/components/marketing/Prose';
 
-export const metadata: Metadata = { title: 'Privacy Policy' };
+export const metadata: Metadata = { title: 'Privacy Policy', description: 'What personal data OrbitOS collects, why, where it is stored, who processes it, and your rights under the Kenya Data Protection Act and GDPR.', alternates: { canonical: '/legal/privacy' } };
 
 export default function Privacy() {
   const contact = contactEmail();

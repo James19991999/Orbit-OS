@@ -8,17 +8,34 @@ import { PLANS, type PlanId } from '@/lib/billing/plans';
 import { contactEmail } from '@/lib/env';
 import { PricingTable, type PricingLabels } from './PricingTable';
 import { Prose } from './Prose';
+import { HomeStructuredData, PricingStructuredData } from './StructuredData';
 import { alternatesFor, localePath } from './paths';
 
 export type MarketingPage = 'home' | 'pricing' | 'security' | 'trust';
 const PATH: Record<MarketingPage, string> = { home: '', pricing: '/pricing', security: '/security', trust: '/trust' };
 
+const SHARE_IMAGE = { url: '/opengraph-image', width: 1200, height: 630, alt: 'OrbitOS — remote team management software built for Africa' };
+const OG_LOCALE: Record<Language, string> = { en: 'en_KE', sw: 'sw_KE', fr: 'fr_FR' };
+
 export function marketingMetadata(lang: Language, page: MarketingPage): Metadata {
   const t = makeT(lang);
   const alternates = alternatesFor(lang, PATH[page]);
-  if (page === 'home') return { title: { absolute: t('mk.meta.title') }, description: t('mk.meta.desc'), alternates, openGraph: { locale: lang } };
-  if (page === 'pricing') return { title: t('mk.pr.title'), description: t('mk.pr.desc'), alternates };
-  return { title: t(page === 'security' ? 'mk.sec.title' : 'mk.tr.title'), alternates };
+  const title = page === 'home' ? t('mk.meta.title') : page === 'pricing' ? t('mk.pr.meta_title') : t(page === 'security' ? 'mk.sec.title' : 'mk.tr.title');
+  const description = page === 'home' ? t('mk.meta.desc') : page === 'pricing' ? t('mk.pr.desc') : t(page === 'security' ? 'mk.sec.desc' : 'mk.tr.desc');
+  const shareTitle = page === 'home' ? title : `${title} · OrbitOS`;
+  return {
+    title: page === 'home' ? { absolute: title } : title,
+    description,
+    keywords: page === 'home' ? t('mk.meta.keywords') : undefined,
+    alternates,
+    openGraph: {
+      type: 'website', siteName: 'OrbitOS', title: shareTitle, description, url: alternates.canonical,
+      locale: OG_LOCALE[lang], alternateLocale: (['en', 'sw', 'fr'] as const).filter((l) => l !== lang).map((l) => OG_LOCALE[l]),
+      // Setting openGraph here replaces the app-wide one, so the share picture is named explicitly.
+      images: [SHARE_IMAGE],
+    },
+    twitter: { card: 'summary_large_image', title: shareTitle, description, images: [SHARE_IMAGE] },
+  };
 }
 
 function pricingLabels(t: T): PricingLabels {
@@ -37,6 +54,7 @@ export function HomePage({ lang }: { lang: Language }) {
   const t = makeT(lang);
   return (
     <>
+      <HomeStructuredData lang={lang} />
       <section className="relative overflow-hidden">
         <div className="pointer-events-none absolute inset-0" aria-hidden>
           <div className="absolute -top-32 left-1/2 h-[520px] w-[820px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.22),transparent_65%)]" />
@@ -88,6 +106,7 @@ export function PricingPage({ lang }: { lang: Language }) {
   const t = makeT(lang);
   return (
     <div className="mx-auto max-w-6xl px-4 py-14">
+      <PricingStructuredData lang={lang} />
       <h1 className="text-headline-lg-mobile md:text-headline-lg">{t('mk.pr.title')}</h1>
       <p className="mt-2 max-w-2xl text-body-lg text-on-surface-variant">{t('mk.pr.sub')}</p>
       <div className="mt-8"><PricingTable labels={pricingLabels(t)} /></div>

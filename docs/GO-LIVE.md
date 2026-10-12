@@ -303,6 +303,16 @@ Start with your own company as the first workspace and a pilot group of 5 to 10 
 - Don't change the domain after people have registered passkeys.
 - Don't edit tables by hand in the Supabase Table Editor to change plans or payments. Billing columns are locked to the server on purpose; use the app or ask a developer.
 
+## Search engines (Google and Bing)
+
+The site is technically ready for search (Lighthouse SEO 100 on every public page). To get found:
+1. **Set `NEXT_PUBLIC_APP_URL`** to your final address (e.g. `https://orbitos.co.ke`) and redeploy. Canonical tags, the sitemap and share links use it. If you move to your own domain later, set up a permanent redirect from the old one in Vercel → Domains.
+2. **Google Search Console** ([search.google.com/search-console](https://search.google.com/search-console)): add your domain. Choose the *HTML tag* method, copy only the `content="…"` value into Vercel as `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`, redeploy, click **Verify**. Then **Sitemaps → add `sitemap.xml`**.
+3. **Bing Webmaster Tools** ([bing.com/webmasters](https://www.bing.com/webmasters)): you can import from Google Search Console, or use `NEXT_PUBLIC_BING_SITE_VERIFICATION` the same way. Bing also feeds DuckDuckGo and ChatGPT search.
+4. **Google Business Profile** ([business.google.com](https://business.google.com)): list OrbitOS (Nairobi) so it shows on Maps and in local searches.
+5. **Check share previews**: paste your link into WhatsApp, and into LinkedIn's Post Inspector, to see the picture and title.
+6. **What moves rankings after that** is outside the code: links from other sites (Kenyan startup directories, tech blogs, partners, your JG Creative Tech site), reviews on G2/Capterra, and regular articles that answer what your customers search for (e.g. "how to pay remote staff via M-Pesa", "KRA eTIMS for small businesses"). Expect weeks to months before positions settle.
+
 ## Security checklist
 
 Before the first paying customer, work through the one-hour account checklist in [SECURITY.md](SECURITY.md): two-factor on GitHub, Vercel, Supabase, IntaSend and the rest; GitHub secret scanning and push protection; Vercel preview protection; Supabase password rules and leaked-password protection; Upstash for shared rate limits.

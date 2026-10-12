@@ -7,8 +7,11 @@ export function supabaseEnv(): { url: string; anonKey: string } | null {
 
 export const isSupabaseConfigured = () => supabaseEnv() !== null;
 
+/** The site's public address. Set NEXT_PUBLIC_APP_URL; on Vercel it falls back to the production domain, so links,
+ *  canonical tags and the sitemap never point at localhost if the variable is forgotten. */
 export function appUrl(): string {
-  return (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const vercel = process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  return (process.env.NEXT_PUBLIC_APP_URL || (vercel ? `https://${vercel}` : 'http://localhost:3000')).replace(/\/$/, '');
 }
 
 export const REMEMBER_COOKIE = 'orbit_remember';

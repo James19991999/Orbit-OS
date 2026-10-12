@@ -5,7 +5,7 @@ import { SetupNotice } from '@/components/auth/SetupNotice';
 import { isSupabaseConfigured } from '@/lib/env';
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getT())('signup.title'), description: "Create an OrbitOS workspace for your remote team. 14-day free trial, no card or M-Pesa needed." };
+  return { title: (await getT())('signup.title'), description: "Create an OrbitOS workspace for your remote team. 14-day free trial, no card or M-Pesa needed.", alternates: { canonical: '/signup' } };
 }
 
 export default async function SignupPage(props: { searchParams: Promise<{ next?: string; email?: string }> }) {

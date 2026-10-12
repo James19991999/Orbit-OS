@@ -5,7 +5,7 @@ import { SetupNotice } from '@/components/auth/SetupNotice';
 import { isSupabaseConfigured } from '@/lib/env';
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getT())('reset.title'), description: "Choose a new password for your OrbitOS account." };
+  return { title: (await getT())('reset.title'), description: "Choose a new password for your OrbitOS account.", robots: { index: false, follow: false } };
 }
 export default function Page() {
   return isSupabaseConfigured() ? <ResetForm /> : <SetupNotice />;

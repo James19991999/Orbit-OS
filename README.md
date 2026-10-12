@@ -218,6 +218,17 @@ The remaining mobile cost on the app is React and Next.js start-up plus the Supa
 
 ---
 
+## SEO
+
+Lighthouse SEO is **100 on every public page** (home, pricing, security, trust, sign-in, sign-up, privacy, terms; English, Kiswahili and French; desktop and mobile), with performance 94–100 and accessibility and best practices 100.
+* **Search titles and descriptions** written around what people search for (remote team management, HR software Kenya, M-Pesa, KRA eTIMS), in all three languages.
+* **Every language linked** (`hreflang` + `x-default`) and a **canonical** address on each page, so Google shows people the right language and never counts versions as duplicates.
+* **Structured data** (schema.org): Organization, WebSite and SoftwareApplication with plan prices in KES on the home page; FAQ, prices and breadcrumbs on pricing.
+* **Share previews**: a 1200×630 image, Open Graph and X/Twitter tags on every page (WhatsApp, LinkedIn, Facebook, Slack).
+* **Sitemap** (`/sitemap.xml`) with all language versions and **robots.txt** keeping the signed-in app, invites and payment pages out of search. Password-reset and invite pages are `noindex`.
+* Site address: `NEXT_PUBLIC_APP_URL`, falling back to the Vercel production domain, so tags never point at localhost.
+* Ranking also needs time, content and links from other sites; see docs/GO-LIVE.md → Search engines.
+
 ## Verification status
 
 **Proven in this build environment**

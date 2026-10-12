@@ -10,7 +10,14 @@ export const metadata: Metadata = {
   title: { default: 'OrbitOS — The operating system for remote-first companies', template: '%s · OrbitOS' },
   description: 'Run a distributed company from one place: executive dashboard, operations & runway, time-zone scheduling, culture, compliance and reports.',
   applicationName: 'OrbitOS',
-  openGraph: { type: 'website', siteName: 'OrbitOS', title: 'OrbitOS', description: 'The distributed operating system for remote-first enterprises.' },
+  openGraph: { type: 'website', siteName: 'OrbitOS', title: 'OrbitOS', description: 'Remote team management software built for Africa.' },
+  twitter: { card: 'summary_large_image' },
+  // Search Console / Bing Webmaster ownership checks (set the codes in Vercel; nothing is added when empty).
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
+    other: process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION ? { 'msvalidate.01': process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION } : undefined,
+  },
+  formatDetection: { telephone: false },
   icons: { icon: '/icon.svg', apple: '/apple-touch-icon.png' },
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, title: 'OrbitOS', statusBarStyle: 'black-translucent' },
