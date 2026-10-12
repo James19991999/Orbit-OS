@@ -1,5 +1,6 @@
 import type { MessageKey } from './en';
 import { common } from './modules/common';
+import { ux } from './modules/ux';
 import { emails } from './modules/emails';
 import { marketing } from './modules/marketing';
 import { account } from './modules/account';
@@ -172,6 +173,7 @@ export const fr: Partial<Record<MessageKey, string>> = {
   'pay.sent_all': 'Paiement envoyé — tout le monde a été payé', 'pay.sent_processing': 'Paiement libéré — M-Pesa le traite',
   'pay.cancelled_toast': 'Brouillon annulé', 'pay.status_toast': 'Statut : {status}',
   ...common.fr,
+  ...ux.fr,
   ...emails.fr,
   ...marketing.fr,
   ...account.fr,

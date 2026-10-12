@@ -49,8 +49,9 @@ This step leaves you with an empty production database that has the full schema,
 2. `supabase/update_etims_calendar.sql`, if it was set up before 11 October 2026 (KRA eTIMS and calendar sync).
 3. `supabase/update_founder_console.sql`, if it doesn't have the Founder Console yet (people online, job runs, undelivered messages).
 4. `supabase/update_security.sql` (October 12, 2026: upload size and type limits, two-factor for vault changes, failed sign-in counts). Safe to run again.
+5. `supabase/update_comments_undo.sql` (October 12, 2026: comments with @mentions on tasks, and Undo for deleted tasks).
 
-Each file refuses to run twice or out of order, and changes nothing if it stops. Then run `verify_setup.sql` again: all 15 rows `ok = true`. (With the CLI, `npx supabase db push` applies only the new migrations.)
+Each file refuses to run twice or out of order, and changes nothing if it stops. Then run `verify_setup.sql` again: all 16 rows `ok = true`. (With the CLI, `npx supabase db push` applies only the new migrations.)
 
 **Push the schema (from your computer, inside the OrbitOS folder)**
 

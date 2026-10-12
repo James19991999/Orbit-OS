@@ -13,6 +13,7 @@ import { applyTheme, type ThemePref } from './theme';
 import { TimezonePrompt } from './TimezonePrompt';
 import { NetworkStatus } from './NetworkStatus';
 import { NavProgress } from './NavProgress';
+import { QuickActions } from './QuickActions';
 import type { Role } from '@/lib/types';
 import { useFormat } from '@/lib/locale/client';
 import { useT } from '@/i18n/client';
@@ -85,6 +86,7 @@ export function AppShell({ user, org, role, workspaces, children }: ShellProps) 
           <span className="hidden sm:inline">OrbitOS · </span><span className="text-on-surface">{section}</span>
         </p>
         <div className="ml-auto flex items-center gap-1">
+          <QuickActions role={role} />
           <OrgSwitcher current={org} workspaces={workspaces} />
           <NotificationsBell userId={user.id} />
           <ProfileMenu user={user} />

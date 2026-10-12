@@ -9,6 +9,10 @@ export function localizeNotification(n: { kind: string; title: string; body: str
   switch (n.kind) {
     case 'task_assigned':
       return { title: t('notif.k.task_assigned'), body: n.body };
+    case 'mention':
+    case 'task_comment':
+      m = n.title.match(/^(.*) (?:mentioned you on|commented on) “(.*)”$/);
+      return { title: m ? t(n.kind === 'mention' ? 'notif.k.mention' : 'notif.k.task_comment', { name: m[1] === 'A teammate' ? t('notif.k.teammate') : m[1]!, title: m[2]! }) : n.title, body: n.body };
     case 'kudos':
       m = n.title.match(/^(.*) sent you kudos$/);
       return { title: m ? t('notif.k.kudos', { name: m[1] === 'A teammate' ? t('notif.k.teammate') : m[1]! }) : n.title, body: n.body };

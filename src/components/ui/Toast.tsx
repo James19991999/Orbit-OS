@@ -4,16 +4,20 @@ import { cn } from './cn';
 import { Icon } from './Icon';
 
 type ToastTone = 'success' | 'error' | 'info';
-interface ToastItem { id: number; tone: ToastTone; message: string }
-const Ctx = createContext<{ toast: (message: string, tone?: ToastTone) => void } | null>(null);
+export interface ToastOptions { action?: { label: string; onClick: () => void }; durationMs?: number }
+interface ToastItem { id: number; tone: ToastTone; message: string; action?: ToastOptions['action'] }
+type ToastFn = (message: string, tone?: ToastTone, opts?: ToastOptions) => void;
+const Ctx = createContext<{ toast: ToastFn } | null>(null);
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
-  const toast = useCallback((message: string, tone: ToastTone = 'success') => {
+  const dismiss = useCallback((id: number) => setItems((s) => s.filter((t) => t.id !== id)), []);
+  const toast = useCallback<ToastFn>((message, tone = 'success', opts) => {
     const id = Date.now() + Math.random();
-    setItems((s) => [...s, { id, tone, message }]);
-    setTimeout(() => setItems((s) => s.filter((t) => t.id !== id)), tone === 'error' ? 7000 : 4000);
-  }, []);
+    setItems((s) => [...s, { id, tone, message, action: opts?.action }]);
+    // A toast with an action (e.g. Undo) stays long enough to use it.
+    setTimeout(() => dismiss(id), opts?.durationMs ?? (opts?.action ? 8000 : tone === 'error' ? 7000 : 4000));
+  }, [dismiss]);
   return (
     <Ctx.Provider value={{ toast }}>
       {children}
@@ -25,6 +29,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             <Icon name={t.tone === 'error' ? 'error' : t.tone === 'success' ? 'check_circle' : 'info'}
               className={t.tone === 'error' ? 'text-alert' : t.tone === 'success' ? 'text-healthy' : 'text-secondary'} />
             <span>{t.message}</span>
+            {t.action && (
+              <button type="button" onClick={() => { dismiss(t.id); t.action!.onClick(); }}
+                className="-my-1 ml-2 rounded px-2 py-1 text-label-md text-primary underline-offset-2 hover:bg-on-surface/5 hover:underline">
+                {t.action.label}
+              </button>
+            )}
           </div>
         ))}
       </div>

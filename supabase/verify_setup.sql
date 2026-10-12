@@ -60,6 +60,12 @@ select 'Founder Console data (October 11 update)',
            and not has_function_privilege('authenticated', to_regprocedure('public.platform_metrics()')::oid, 'execute'), false),
        case when to_regclass('public.user_activity') is null then 'missing — run supabase/update_founder_console.sql' else 'tables present; metrics service-role only' end
 union all
+select 'Comments and undo (October 12 update)',
+       to_regclass('public.task_comments') is not null
+         and coalesce(to_regprocedure('public.restore_task(uuid)') is not null, false)
+         and not exists (select 1 from information_schema.role_table_grants where table_schema = 'public' and table_name = 'task_trash' and grantee in ('authenticated', 'anon')),
+       case when to_regclass('public.task_comments') is null then 'missing — run supabase/update_comments_undo.sql' else 'task comments on; deleted tasks kept 10 minutes for undo' end
+union all
 select 'Security update (October 12 update)',
        coalesce((select file_size_limit = 2097152 from storage.buckets where id = 'avatars'), false)
          and exists (select 1 from pg_policies where schemaname = 'storage' and policyname = 'vault write managers' and with_check like '%aal2%'),

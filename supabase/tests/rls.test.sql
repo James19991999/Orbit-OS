@@ -401,6 +401,60 @@ select tests.eq((select count(*)::text from public.user_activity where user_id =
 select tests.eq((select (public.platform_metrics() ->> 'online_now')), '1', 'platform metrics count people online in the last 5 minutes');
 select tests.eq((select (public.platform_metrics() -> 'security' ? 'failed_logins_24h')::text), 'true', 'platform metrics include failed sign-ins');
 
+-- ── 9g. Task comments, @mentions and undo ──
+select set_config('tests.org_b', (select id::text from public.organizations where slug='beta-ltd'), false);
+select tests.login('00000000-0000-0000-0000-00000000000b');
+set role authenticated;
+insert into public.tasks (org_id, title, status, assignee_id) values (current_setting('tests.org_a')::uuid, 'Comment target', 'done', '00000000-0000-0000-0000-00000000000b');
+select set_config('tests.task_c', (select id::text from public.tasks where title = 'Comment target'), false);
+insert into public.task_comments (org_id, task_id, body, mentions)
+  values (current_setting('tests.org_a')::uuid, current_setting('tests.task_c')::uuid, 'Can you check this @Alice?', array['00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000d']::uuid[]);
+select tests.pass('a contributor can comment on a task in their workspace');
+select tests.expect_error(format($q$insert into public.task_comments (org_id, task_id, body, author_id) values (%L, %L, 'x', '00000000-0000-0000-0000-00000000000a')$q$, current_setting('tests.org_a'), current_setting('tests.task_c')), 'nobody can comment as someone else');
+reset role;
+select tests.eq((select count(*)::text from public.notifications where kind = 'mention' and user_id = '00000000-0000-0000-0000-00000000000a'), '1', 'the mentioned teammate is notified');
+select tests.eq((select count(*)::text from public.notifications where kind = 'mention' and user_id = '00000000-0000-0000-0000-00000000000d'), '0', 'mentioning someone outside the workspace notifies nobody');
+select tests.eq((select count(*)::text from public.notifications where kind in ('mention', 'task_comment') and user_id = '00000000-0000-0000-0000-00000000000b'), '0', 'authors are not notified about their own comments');
+select set_config('tests.done_at', (select completed_at::text from public.tasks where id = current_setting('tests.task_c')::uuid), false);
+select tests.login('00000000-0000-0000-0000-00000000000d');
+set role authenticated;
+select tests.eq((select count(*)::text from public.task_comments), '0', 'another workspace cannot read comments');
+select tests.expect_error(format($q$insert into public.task_comments (org_id, task_id, body) values (%L, %L, 'hi')$q$, current_setting('tests.org_b'), current_setting('tests.task_c')), 'a comment cannot be attached to another workspace''s task');
+select tests.expect_error(format($q$select public.delete_task(%L)$q$, current_setting('tests.task_c')), 'another workspace cannot delete the task');
+reset role;
+select tests.login('00000000-0000-0000-0000-00000000000c');
+set role authenticated;
+select tests.expect_error(format($q$insert into public.task_comments (org_id, task_id, body) values (%L, %L, 'hi')$q$, current_setting('tests.org_a'), current_setting('tests.task_c')), 'auditors cannot comment');
+select tests.expect_error(format($q$select public.delete_task(%L)$q$, current_setting('tests.task_c')), 'auditors cannot delete tasks');
+select tests.expect_error($$select * from public.task_trash$$, 'the trash is not readable by users');
+reset role;
+select tests.login('00000000-0000-0000-0000-00000000000b');
+set role authenticated;
+select public.delete_task(current_setting('tests.task_c')::uuid);
+select tests.eq((select count(*)::text from public.tasks where id = current_setting('tests.task_c')::uuid), '0', 'the creator can delete their task');
+reset role;
+select tests.login('00000000-0000-0000-0000-00000000000a');
+set role authenticated;
+select tests.expect_error(format($q$select public.restore_task(%L)$q$, current_setting('tests.task_c')), 'only the person who deleted a task can undo it');
+reset role;
+select tests.login('00000000-0000-0000-0000-00000000000b');
+set role authenticated;
+select public.restore_task(current_setting('tests.task_c')::uuid);
+reset role;
+select tests.eq((select count(*)::text from public.task_comments where task_id = current_setting('tests.task_c')::uuid), '1', 'undo brings the task back with its comments');
+select tests.eq((select completed_at::text from public.tasks where id = current_setting('tests.task_c')::uuid), current_setting('tests.done_at'), 'undo keeps the original completion time');
+select tests.eq((select count(*)::text from public.notifications where kind = 'mention' and user_id = '00000000-0000-0000-0000-00000000000a'), '1', 'undo does not send the notifications again');
+select tests.eq((select count(*)::text from public.task_trash), '0', 'the trash copy is removed after undo');
+select tests.login('00000000-0000-0000-0000-00000000000b');
+set role authenticated;
+delete from public.task_comments where author_id = '00000000-0000-0000-0000-00000000000a';
+reset role;
+select tests.login('00000000-0000-0000-0000-00000000000a');
+set role authenticated;
+delete from public.task_comments where task_id = current_setting('tests.task_c')::uuid;
+select tests.eq((select count(*)::text from public.task_comments where task_id = current_setting('tests.task_c')::uuid), '0', 'owners can remove any comment');
+reset role;
+
 -- ── 10. Anonymous ──
 set role anon;
 select set_config('request.jwt.claims', '', false);

@@ -25,7 +25,7 @@ writeFileSync(join(dir, 'setup_all.sql'), `-- ${rule}
 --   if anything fails, nothing is applied and you can fix it and run it again.
 -- • It records the migrations as applied, so \`supabase db push\` later won't re-run them.
 -- • Already have OrbitOS? Run the update files instead: update_differentiators.sql (if set up before
---   October 9, 2026), then update_etims_calendar.sql, update_founder_console.sql and update_security.sql, in that order.
+--   October 9, 2026), then update_etims_calendar.sql, update_founder_console.sql, update_security.sql and update_comments_undo.sql, in that order.
 -- • Do NOT run supabase/seed.sql on a real project (demo users with a public password).
 -- Generated from supabase/migrations by scripts/build-setup-sql.mjs — edit those files, not this one.
 -- ${rule}
@@ -132,7 +132,7 @@ commit;
 
 -- Done. Check it worked with supabase/verify_setup.sql
 `);
-const upd4 = files.filter((f) => f >= '20261012000011');
+const upd4 = files.filter((f) => f >= '20261012000011' && f < '20261012000012');
 writeFileSync(join(dir, 'update_security.sql'), `-- ${rule}
 -- OrbitOS — SECURITY UPDATE (October 12, 2026): file size and type limits on uploads, two-factor required to add or
 -- delete vault documents, and failed sign-in counts in the Founder Console.
@@ -159,4 +159,33 @@ commit;
 
 -- Done. Check it worked with supabase/verify_setup.sql
 `);
-console.log(`setup_all.sql: ${files.length} migrations; update_differentiators.sql: ${upd.join(', ')}; update_etims_calendar.sql: ${upd2.join(', ')}; update_founder_console.sql: ${upd3.join(', ')}; update_security.sql: ${upd4.join(', ')}`);
+const upd5 = files.filter((f) => f >= '20261012000012');
+writeFileSync(join(dir, 'update_comments_undo.sql'), `-- ${rule}
+-- OrbitOS — UPDATE (October 12, 2026): comments with @mentions on tasks, and Undo for deleted tasks.
+-- For a project that already ran update_security.sql. Paste this whole file into Supabase → SQL Editor →
+-- New query, and click Run once. One transaction: if anything fails, nothing changes. Safe to run only once.
+-- Generated from supabase/migrations by scripts/build-setup-sql.mjs.
+-- ${rule}
+
+begin;
+
+do $guard$
+begin
+  if to_regclass('public.organizations') is null then
+    raise exception 'OrbitOS is not set up in this project yet. Run supabase/setup_all.sql instead — nothing was changed.';
+  end if;
+  if to_regclass('public.user_activity') is null then
+    raise exception 'Run supabase/update_founder_console.sql and supabase/update_security.sql first — nothing was changed.';
+  end if;
+  if to_regclass('public.task_comments') is not null then
+    raise exception 'This update has already been applied — nothing was changed.';
+  end if;
+end $guard$;
+
+${upd5.map(section).join('\n')}
+${record(upd5)}
+commit;
+
+-- Done. Check it worked with supabase/verify_setup.sql
+`);
+console.log(`setup_all.sql: ${files.length} migrations; update_differentiators.sql: ${upd.join(', ')}; update_etims_calendar.sql: ${upd2.join(', ')}; update_founder_console.sql: ${upd3.join(', ')}; update_security.sql: ${upd4.join(', ')}; update_comments_undo.sql: ${upd5.join(', ')}`);

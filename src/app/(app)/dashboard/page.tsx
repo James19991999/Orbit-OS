@@ -13,6 +13,8 @@ import { LiveSync } from '@/components/dashboard/LiveSync';
 import { getFormat } from '@/lib/locale/server';
 import { getT } from '@/i18n/server';
 import { ChiefOfStaff, type BriefView } from '@/components/dashboard/ChiefOfStaff';
+import { GettingStarted, GS_COOKIE } from '@/components/dashboard/GettingStarted';
+import { cookies } from 'next/headers';
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getT())('p.dash.title') };
@@ -29,6 +31,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ wel
   const brief = ctx.org.ai_enabled && (ctx.role === 'owner' || ctx.role === 'director')
     ? ((await ctx.supabase.from('ai_briefs').select('id, kind, content, source, created_at').eq('org_id', ctx.org.id).eq('user_id', ctx.user.id).order('created_at', { ascending: false }).limit(1)).data?.[0] as BriefView | undefined) ?? null
     : null;
+  const gsHidden = decodeURIComponent((await cookies()).get(GS_COOKIE)?.value ?? '').split(',').includes(ctx.org.id);
   const now = new Date();
   const qd = quarterDay(now);
   const cur = ctx.org.currency;
@@ -54,11 +57,9 @@ export default async function DashboardPage(props: { searchParams: Promise<{ wel
         </div>
       </div>
 
-      {(searchParams.welcome || d.members.length === 1) && can.manage(ctx.role) && (
-        <Banner tone="info" icon="waving_hand">
-          <strong>{t('p.dash.welcome')}</strong> {t('p.dash.welcome_body')}{' '}
-          <Link href="/settings?section=members" className="text-primary underline">{t('p.dash.invite')}</Link>
-        </Banner>
+      {can.manage(ctx.role) && !gsHidden && (
+        <GettingStarted supabase={ctx.supabase} orgId={ctx.org.id} members={d.members.length} isOwner={ctx.role === 'owner'}
+          onTrial={ctx.org.plan_period === 'trial'} hasTwoFactor={ctx.aal.next === 'aal2' || ctx.aal.current === 'aal2'} />
       )}
 
       <div className="grid gap-4 xl:grid-cols-12 xl:items-start">

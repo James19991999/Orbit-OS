@@ -7,6 +7,7 @@ import { can } from '@/lib/roles';
 
 import { Card, Pill, Icon } from '@/components/ui';
 import { TaskDetailActions } from '@/components/operations/TaskDetailActions';
+import { TaskComments, type CommentView } from '@/components/tasks/TaskComments';
 import { PRIORITY_TONE, dueInfo } from '@/lib/tasks';
 import { getT } from '@/i18n/server';
 import type { MessageKey } from '@/i18n/shared';
@@ -24,9 +25,10 @@ export default async function TaskPage(props: { params: Promise<{ id: string }> 
   const { data } = await supabase.from('tasks').select('*').eq('id', params.id).eq('org_id', org.id).maybeSingle();
   if (!data) notFound();
   const task = data as Task;
-  const [members, sprints] = await Promise.all([
+  const [members, sprints, commentsRes] = await Promise.all([
     loadMembers(supabase, org.id),
     supabase.from('sprints').select('id, name').eq('org_id', org.id).order('starts_on', { ascending: false }).limit(20),
+    supabase.from('task_comments').select('id, created_at, author_id, body').eq('task_id', task.id).order('created_at').limit(500),
   ]);
   const people = nameMap(members);
   const sprintList = must(sprints, 'sprints') as Pick<Sprint, 'id' | 'name'>[];
@@ -52,6 +54,9 @@ export default async function TaskPage(props: { params: Promise<{ id: string }> 
         {task.tags.length > 0 && <p className="mt-4 flex flex-wrap gap-1.5">{task.tags.map((tag) => <span key={tag} className="rounded-full bg-surface-container-highest px-2 py-0.5 text-body-sm">#{tag}</span>)}</p>}
         {editable && <TaskDetailActions task={task} orgId={org.id} userId={user.id} people={members.map((m) => ({ id: m.user_id, name: m.profile.full_name }))} sprints={sprintList} canDelete={can.manage(role) || task.created_by === user.id} />}
       </Card>
+      <TaskComments orgId={org.id} taskId={task.id} userId={user.id} comments={(commentsRes.data ?? []) as CommentView[]}
+        people={members.map((m) => ({ id: m.user_id, name: m.profile.full_name, avatar: m.profile.avatar_url }))}
+        canComment={can.write(role)} canModerate={can.manage(role)} />
     </div>
   );
 }

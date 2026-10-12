@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { formatInTimeZone } from 'date-fns-tz';
 import { Avatar, Input, Select, Pill, EmptyState, Dialog, TimeAgo } from '@/components/ui';
 import { dayPhase, regionOf } from '@/lib/scheduling/time';
@@ -21,6 +22,13 @@ export function Directory({ people }: { people: PersonRow[] }) {
   const [dept, setDept] = useState('');
   const [now, setNow] = useState<number | null>(null);
   const [open, setOpen] = useState<PersonRow | null>(null);
+  // /people?person=<id> (from search) opens that person's card.
+  const sp = useSearchParams();
+  useEffect(() => {
+    const id = sp.get('person');
+    const p = id ? people.find((x) => x.id === id) : undefined;
+    if (p) setOpen(p);
+  }, [sp, people]);
   useEffect(() => { setNow(Date.now()); const id = setInterval(() => setNow(Date.now()), 60_000); return () => clearInterval(id); }, []);
   const depts = useMemo(() => [...new Set(people.map((p) => p.department).filter(Boolean) as string[])].sort(), [people]);
   const shown = people.filter((p) => (!q || `${p.name} ${p.email} ${p.title} ${p.city}`.toLowerCase().includes(q.toLowerCase()))
