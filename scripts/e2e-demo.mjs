@@ -190,6 +190,21 @@ await step('typing in a field is never hijacked by the demo keys', async () => {
   await p.keyboard.press('Shift+Escape');
   return (v === 'hm m ' && stillOn === 1) || fail(`typed “${v}”`);
 });
+await step('typing “demo” finds it in Kiswahili and French too (accents ignored)', async () => {
+  const out = [];
+  for (const [lang, label] of [['sw', 'Anza hali ya maonyesho'], ['fr', 'Lancer le mode démo']]) {
+    sql(`update profiles set language = '${lang}' where id = (select id from auth.users where email = '${FOUNDER}')`);
+    try {
+      const x = await login(browser, FOUNDER);
+      await openSearch(x.page, 'demo');
+      await x.page.getByRole('option', { name: label }).click({ timeout: 8000 });
+      await x.page.getByTestId('demo').waitFor();
+      await x.ctx.close();
+      out.push(lang);
+    } finally { sql(`update profiles set language = 'en' where id = (select id from auth.users where email = '${FOUNDER}')`); }
+  }
+  return out.join(', ');
+});
 await step('no JavaScript errors', async () => (errors.length ? fail(errors.slice(0, 3).join(' | ')) : true));
 
 await f.ctx.close();

@@ -10,7 +10,9 @@ import { useT } from '@/i18n/client';
 import { NAV } from './nav';
 
 interface Hit { type: 'task' | 'person' | 'meeting' | 'invoice'; id: string; title: string; sub: string | null; href: string }
-interface Item { id: string; label: string; sub?: string | null; icon: string; href?: string; run?: () => void }
+interface Item { id: string; label: string; sub?: string | null; icon: string; href?: string; run?: () => void; keywords?: string }
+/** Lower-case and without accents, so "demo" finds "démo". */
+const fold = (s: string) => s.toLocaleLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
 interface Group { key: string; label: string; items: Item[] }
 
 /** "G then D" style navigation. */
@@ -45,22 +47,22 @@ export function QuickActions({ role, founder = false }: { role: Role; founder?: 
   // Pages and actions this person can use.
   const statics = useMemo<Group[]>(() => {
     const actions: Item[] = [
-      ...(can.write(role) ? [{ id: 'a-task', label: t('cmdk.a.task'), icon: 'add_task', href: '/operations?new=task' }] : []),
-      ...(can.write(role) ? [{ id: 'a-checkin', label: t('cmdk.a.checkin'), icon: 'edit_note', href: '/culture' }] : []),
-      ...(can.write(role) ? [{ id: 'a-meeting', label: t('cmdk.a.meeting'), icon: 'event', href: '/scheduling' }] : []),
+      ...(can.write(role) ? [{ id: 'a-task', keywords: 'new task create add', label: t('cmdk.a.task'), icon: 'add_task', href: '/operations?new=task' }] : []),
+      ...(can.write(role) ? [{ id: 'a-checkin', keywords: 'check-in checkin standup', label: t('cmdk.a.checkin'), icon: 'edit_note', href: '/culture' }] : []),
+      ...(can.write(role) ? [{ id: 'a-meeting', keywords: 'meeting schedule', label: t('cmdk.a.meeting'), icon: 'event', href: '/scheduling' }] : []),
       ...(can.manage(role) ? [
-        { id: 'a-expense', label: t('cmdk.a.expense'), icon: 'receipt_long', href: '/operations?tab=finance&new=expense' },
-        { id: 'a-invoice', label: t('cmdk.a.invoice'), icon: 'request_quote', href: '/operations?tab=finance&new=invoice' },
-        { id: 'a-invite', label: t('cmdk.a.invite'), icon: 'person_add', href: '/settings?section=members' },
+        { id: 'a-expense', keywords: 'expense spend', label: t('cmdk.a.expense'), icon: 'receipt_long', href: '/operations?tab=finance&new=expense' },
+        { id: 'a-invoice', keywords: 'invoice bill', label: t('cmdk.a.invoice'), icon: 'request_quote', href: '/operations?tab=finance&new=invoice' },
+        { id: 'a-invite', keywords: 'invite member', label: t('cmdk.a.invite'), icon: 'person_add', href: '/settings?section=members' },
       ] : []),
-      { id: 'a-profile', label: t('cmdk.a.profile'), icon: 'person', href: '/profile' },
-      { id: 'a-notifications', label: t('cmdk.a.notifications'), icon: 'notifications', href: '/notifications' },
-      { id: 'a-shortcuts', label: t('cmdk.a.shortcuts'), icon: 'keyboard', run: () => { setOpen(false); setHelp(true); } },
-      { id: 'a-help', label: t('cmdk.a.help'), icon: 'help', href: '/help' },
-      ...(founder ? [{ id: 'a-demo', label: t('cmdk.a.demo'), icon: 'record_voice_over', run: () => { setOpen(false); window.dispatchEvent(new Event('orbit:demo')); } }] : []),
-      { id: 'a-tour', label: t('cmdk.a.tour'), icon: 'tour', run: () => { setOpen(false); window.dispatchEvent(new Event('orbit:tour')); } },
+      { id: 'a-profile', keywords: 'profile account', label: t('cmdk.a.profile'), icon: 'person', href: '/profile' },
+      { id: 'a-notifications', keywords: 'notifications', label: t('cmdk.a.notifications'), icon: 'notifications', href: '/notifications' },
+      { id: 'a-shortcuts', keywords: 'keyboard shortcuts', label: t('cmdk.a.shortcuts'), icon: 'keyboard', run: () => { setOpen(false); setHelp(true); } },
+      { id: 'a-help', keywords: 'help support', label: t('cmdk.a.help'), icon: 'help', href: '/help' },
+      ...(founder ? [{ id: 'a-demo', keywords: 'demo presentation narrate voice', label: t('cmdk.a.demo'), icon: 'record_voice_over', run: () => { setOpen(false); window.dispatchEvent(new Event('orbit:demo')); } }] : []),
+      { id: 'a-tour', keywords: 'tour guide', label: t('cmdk.a.tour'), icon: 'tour', run: () => { setOpen(false); window.dispatchEvent(new Event('orbit:tour')); } },
     ];
-    const pages: Item[] = NAV.map((n) => ({ id: `p-${n.href}`, label: t(n.labelKey), icon: n.icon, href: n.href }));
+    const pages: Item[] = NAV.map((n) => ({ id: `p-${n.href}`, label: t(n.labelKey), keywords: n.label, icon: n.icon, href: n.href }));
     return [{ key: 'actions', label: t('cmdk.actions'), items: actions }, { key: 'pages', label: t('cmdk.pages'), items: pages }];
   }, [role, t, founder]);
 
@@ -80,8 +82,8 @@ export function QuickActions({ role, founder = false }: { role: Role; founder?: 
   }, [q, open]);
 
   const groups = useMemo<Group[]>(() => {
-    const term = q.trim().toLocaleLowerCase();
-    const filtered = statics.map((g) => ({ ...g, items: term ? g.items.filter((i) => i.label.toLocaleLowerCase().includes(term)) : g.items }));
+    const term = fold(q.trim());
+    const filtered = statics.map((g) => ({ ...g, items: term ? g.items.filter((i) => fold(`${i.label} ${i.keywords ?? ''}`).includes(term)) : g.items }));
     const sub = (h: Hit) => h.type === 'task' && h.sub ? t(`task.st.${h.sub}` as MessageKey)
       : h.type === 'meeting' && h.sub ? fmt.date(h.sub, 'datetime')
       : h.type === 'invoice' && h.sub ? t(`inv.st.${h.sub}` as MessageKey)
