@@ -15,6 +15,7 @@ import { NetworkStatus } from './NetworkStatus';
 import { NavProgress } from './NavProgress';
 import { QuickActions } from './QuickActions';
 import { ProductTour } from './ProductTour';
+import { DemoNarrator } from './DemoNarrator';
 import { brandCss } from '@/lib/brand';
 import type { Role } from '@/lib/types';
 import { useFormat } from '@/lib/locale/client';
@@ -57,6 +58,7 @@ export function AppShell({ user, org, role, workspaces, children }: ShellProps) 
       {/* Desktop sidebar */}
       {org.brandColor && <style dangerouslySetInnerHTML={{ __html: brandCss(org.brandColor) }} />}
       <ProductTour userId={user.id} done={!!user.tourDone} />
+      {user.founder && <Suspense fallback={null}><DemoNarrator /></Suspense>}
       <aside data-tour="nav" className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-outline-variant bg-surface-container-lowest lg:flex" aria-label={t('nav.primary')}>
         <div className="flex h-16 items-center px-5">{org.logoUrl ? <OrgLogo url={org.logoUrl} name={org.name} /> : <Logo href="/dashboard" />}</div>
         <nav aria-label={t('nav.main')} className="flex-1 overflow-y-auto px-3 py-2">
@@ -90,7 +92,7 @@ export function AppShell({ user, org, role, workspaces, children }: ShellProps) 
           <span className="hidden sm:inline">OrbitOS · </span><span className="text-on-surface">{section}</span>
         </p>
         <div className="ml-auto flex items-center gap-1">
-          <QuickActions role={role} />
+          <QuickActions role={role} founder={!!user.founder} />
           <OrgSwitcher current={org} workspaces={workspaces} />
           <span data-tour="bell" className="flex"><NotificationsBell userId={user.id} /></span>
           <span data-tour="profile" className="flex"><ProfileMenu user={user} /></span>

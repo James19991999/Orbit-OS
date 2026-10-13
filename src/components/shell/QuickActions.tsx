@@ -25,7 +25,7 @@ const isTyping = (el: EventTarget | null) => {
  * Search everything (Ctrl/⌘+K or /) and keyboard shortcuts for the whole app.
  * Results come from /api/search, which runs as the signed-in person: they only find what they could open anyway.
  */
-export function QuickActions({ role }: { role: Role }) {
+export function QuickActions({ role, founder = false }: { role: Role; founder?: boolean }) {
   const t = useT();
   const fmt = useFormat();
   const router = useRouter();
@@ -57,11 +57,12 @@ export function QuickActions({ role }: { role: Role }) {
       { id: 'a-notifications', label: t('cmdk.a.notifications'), icon: 'notifications', href: '/notifications' },
       { id: 'a-shortcuts', label: t('cmdk.a.shortcuts'), icon: 'keyboard', run: () => { setOpen(false); setHelp(true); } },
       { id: 'a-help', label: t('cmdk.a.help'), icon: 'help', href: '/help' },
+      ...(founder ? [{ id: 'a-demo', label: t('cmdk.a.demo'), icon: 'record_voice_over', run: () => { setOpen(false); window.dispatchEvent(new Event('orbit:demo')); } }] : []),
       { id: 'a-tour', label: t('cmdk.a.tour'), icon: 'tour', run: () => { setOpen(false); window.dispatchEvent(new Event('orbit:tour')); } },
     ];
     const pages: Item[] = NAV.map((n) => ({ id: `p-${n.href}`, label: t(n.labelKey), icon: n.icon, href: n.href }));
     return [{ key: 'actions', label: t('cmdk.actions'), items: actions }, { key: 'pages', label: t('cmdk.pages'), items: pages }];
-  }, [role, t]);
+  }, [role, t, founder]);
 
   // Live results, slightly debounced; an older request never overwrites a newer one.
   useEffect(() => {
