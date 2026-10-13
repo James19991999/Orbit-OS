@@ -13,6 +13,7 @@ export const NAV: NavItem[] = [
   { href: '/reports', label: 'Reports', labelKey: 'nav.reports', icon: 'analytics' },
   { href: '/people', label: 'People', labelKey: 'nav.people', icon: 'groups' },
   { href: '/settings', label: 'Settings', labelKey: 'nav.settings', icon: 'settings' },
+  { href: '/help', label: 'Help', labelKey: 'nav.help', icon: 'help' },
 ];
 
 export function isActive(pathname: string, href: string) {

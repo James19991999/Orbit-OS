@@ -16,7 +16,7 @@ function setProfileLang(l) {
 }
 setProfileLang(LANG);
 const APP = ['/dashboard', '/operations', '/operations?tab=finance', '/operations?tab=activity', '/scheduling', '/culture', '/culture?tab=channels',
-  '/culture?tab=kudos', '/culture/channels/general', '/compliance', '/reports', '/people', '/people?tab=leave', '/my-day', '/settings', '/settings/billing', '/settings/audit-log',
+  '/culture?tab=kudos', '/culture/channels/general', '/compliance', '/reports', '/people', '/people?tab=leave', '/my-day', '/help', '/settings', '/settings/billing', '/settings/audit-log',
   '/profile', '/notifications'];
 const withApp = process.env.A11Y_APP !== '0';
 const browser = await chromium.launch({ executablePath: process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });

@@ -60,6 +60,15 @@ select 'Founder Console data (October 11 update)',
            and not has_function_privilege('authenticated', to_regprocedure('public.platform_metrics()')::oid, 'execute'), false),
        case when to_regclass('public.user_activity') is null then 'missing — run supabase/update_founder_console.sql' else 'tables present; metrics service-role only' end
 union all
+select 'Customer emails and help centre (October 13 update)',
+       to_regclass('public.lifecycle_log') is not null and to_regclass('public.help_questions') is not null
+         and coalesce(to_regprocedure('public.platform_at_risk()') is not null
+           and not has_function_privilege('authenticated', to_regprocedure('public.platform_at_risk()')::oid, 'execute'), false)
+         and not has_table_privilege('authenticated', 'public.help_questions', 'SELECT')
+         and not has_table_privilege('authenticated', 'public.lifecycle_log', 'SELECT'),
+       case when to_regclass('public.lifecycle_log') is null then 'missing — run supabase/update_growth.sql'
+            else 'customer emails, at-risk list and help questions are server-only' end
+union all
 select 'Automations (October 13 update)',
        to_regclass('public.automation_settings') is not null and to_regclass('public.automation_log') is not null
          and coalesce(to_regprocedure('public.set_leave_cover(uuid,uuid,boolean)') is not null, false)

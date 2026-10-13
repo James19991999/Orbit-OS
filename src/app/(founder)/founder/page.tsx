@@ -4,11 +4,13 @@ import Link from '@/components/ui/SmartLink';
 import { Card, CardHeader, Icon, Pill, Stat, Banner, EmptyState } from '@/components/ui';
 import { requireFounder } from '@/lib/founder/access';
 import { loadFounderData, logConsoleView, configChecklist, JOBS, type Metrics } from '@/lib/founder/metrics';
+import { RISK_LABEL } from '@/lib/growth/labels';
 import { hasServiceRole } from '@/lib/supabase/admin';
 import { getFormat } from '@/lib/locale/server';
 import { formatMoney, type Currency } from '@/lib/format';
 import { PLANS, type PlanId } from '@/lib/billing/plans';
 import { AutoRefresh } from '@/components/founder/AutoRefresh';
+import { WeeklyEmailButton } from '@/components/founder/WeeklyEmailButton';
 import { RevenueChart } from '@/components/founder/RevenueChart';
 
 export const dynamic = 'force-dynamic';
@@ -134,6 +136,45 @@ export default async function FounderConsole(props: { searchParams: Promise<{ q?
             rows={m.failed_payments_7d.map((p) => [fmt.relative(p.created_at), p.workspace, p.method === 'MPESA' ? 'M-Pesa' : 'Card', money(p.amount_minor, p.currency)])} />
         </div>
       </Card>
+
+      {/* ───────── Customers ───────── */}
+      <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
+        <Card aria-labelledby="risk-h" className="min-w-0">
+          <CardHeader title={<span id="risk-h">Customers to call</span>} icon="support_agent" action={<WeeklyEmailButton />}
+            subtitle="Failed payments, plans that ran out, workspaces nobody has used for a week, and trials with no teammates. Your own workspaces are left out." />
+          {data.atRisk === null ? <p className="text-body-md text-on-surface-variant">Run supabase/update_growth.sql to see this.</p>
+            : data.atRisk.length === 0 ? <p className="text-body-md text-on-surface-variant">Nobody at risk right now.</p> : (
+              <ul className="divide-y divide-outline-variant" data-testid="at-risk">
+                {data.atRisk.slice(0, 20).map((r) => (
+                  <li key={r.id} className="flex flex-wrap items-start justify-between gap-2 py-2">
+                    <div className="min-w-0">
+                      <p className="text-label-md">{r.name} <span className="font-mono text-body-sm text-on-surface-variant">{r.slug}</span></p>
+                      <p className="text-body-sm text-on-surface-variant">
+                        {planName(r.plan)} {r.plan_period} · {r.members} {r.members === 1 ? 'person' : 'people'} · last active {r.last_active ? fmt.relative(r.last_active) : 'never'}
+                      </p>
+                      {r.owner_email && <p className="text-body-sm"><a className="text-primary hover:underline" href={`mailto:${r.owner_email}`}>{r.owner_name || r.owner_email}</a></p>}
+                    </div>
+                    <Pill tone={r.reason === 'payment_failed' || r.reason === 'lapsed' ? 'alert' : 'warning'}>{RISK_LABEL[r.reason]}</Pill>
+                  </li>
+                ))}
+              </ul>
+            )}
+        </Card>
+        <Card aria-labelledby="ask-h" className="min-w-0">
+          <CardHeader title={<span id="ask-h">What customers ask</span>} icon="help" subtitle="Latest questions in the help centre. Unanswered ones show what to explain better." />
+          {data.questions === null ? <p className="text-body-md text-on-surface-variant">Run supabase/update_growth.sql to see this.</p>
+            : data.questions.length === 0 ? <p className="text-body-md text-on-surface-variant">No questions yet.</p> : (
+              <ul className="divide-y divide-outline-variant" data-testid="help-questions">
+                {data.questions.map((q, i) => (
+                  <li key={i} className="flex items-start justify-between gap-3 py-2">
+                    <span className="min-w-0 text-body-md">“{q.question}” <span className="text-body-sm text-on-surface-variant">· {q.language} · {fmt.relative(q.created_at)}</span></span>
+                    <Pill tone={q.answered ? 'healthy' : 'warning'}>{q.answered ? 'Answered' : 'Not covered'}</Pill>
+                  </li>
+                ))}
+              </ul>
+            )}
+        </Card>
+      </div>
 
       {/* ───────── Health ───────── */}
       <div className="grid gap-4 xl:grid-cols-2 xl:items-start">

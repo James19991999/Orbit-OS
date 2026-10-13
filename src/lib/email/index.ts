@@ -31,13 +31,14 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 
 /** Plain, accessible transactional layout. */
 /** footer: the translated footer line (t('email.footer')); English when omitted. */
-export function emailLayout(title: string, bodyHtml: string, cta?: { label: string; url: string }, footer = 'Sent by OrbitOS · You can change email preferences in your profile.') {
+/** footerLinkHtml: optional trusted HTML (e.g. an unsubscribe link) shown after the footer line. */
+export function emailLayout(title: string, bodyHtml: string, cta?: { label: string; url: string }, footer = 'Sent by OrbitOS · You can change email preferences in your profile.', footerLinkHtml = '') {
   return `<!doctype html><html><body style="margin:0;background:#f8fafc;font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#0f172a">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
   <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border:1px solid #e2e8f0;border-radius:8px">
   <tr><td style="padding:24px 28px;border-bottom:1px solid #e2e8f0;font-weight:600;font-size:16px">OrbitOS</td></tr>
   <tr><td style="padding:28px"><h1 style="margin:0 0 12px;font-size:20px">${esc(title)}</h1><div style="font-size:14px;line-height:22px;color:#334155">${bodyHtml}</div>
   ${cta ? `<p style="margin:24px 0 0"><a href="${esc(cta.url)}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;padding:10px 18px;border-radius:4px;font-weight:600">${esc(cta.label)}</a></p>` : ''}
-  </td></tr></table><p style="font-size:12px;color:#64748b;margin-top:16px">${esc(footer)}</p></td></tr></table></body></html>`;
+  </td></tr></table><p style="font-size:12px;color:#64748b;margin-top:16px">${esc(footer)}${footerLinkHtml ? ` · ${footerLinkHtml}` : ''}</p></td></tr></table></body></html>`;
 }
 export { esc as escapeHtml };

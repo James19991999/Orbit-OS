@@ -56,6 +56,7 @@ export function QuickActions({ role }: { role: Role }) {
       { id: 'a-profile', label: t('cmdk.a.profile'), icon: 'person', href: '/profile' },
       { id: 'a-notifications', label: t('cmdk.a.notifications'), icon: 'notifications', href: '/notifications' },
       { id: 'a-shortcuts', label: t('cmdk.a.shortcuts'), icon: 'keyboard', run: () => { setOpen(false); setHelp(true); } },
+      { id: 'a-help', label: t('cmdk.a.help'), icon: 'help', href: '/help' },
       { id: 'a-tour', label: t('cmdk.a.tour'), icon: 'tour', run: () => { setOpen(false); window.dispatchEvent(new Event('orbit:tour')); } },
     ];
     const pages: Item[] = NAV.map((n) => ({ id: `p-${n.href}`, label: t(n.labelKey), icon: n.icon, href: n.href }));

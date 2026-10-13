@@ -5,6 +5,7 @@ import { isIntaSendConfigured } from '@/lib/intasend/client';
 import { isWhatsAppConfigured } from '@/lib/whatsapp/client';
 import { isEncryptionConfigured } from '@/lib/crypto/secrets';
 import { isProviderConfigured } from '@/lib/calendar/providers';
+import { atRisk } from '@/lib/growth';
 
 export interface Money { currency: string; amount_minor: number }
 export interface Metrics {
@@ -41,6 +42,8 @@ export const JOBS: { job: string; label: string; everyHours: number }[] = [
   { job: 'etims', label: 'KRA eTIMS retries', everyHours: 1 },
   { job: 'calendar', label: 'Calendar busy times', everyHours: 1 },
   { job: 'push', label: 'Phone notifications (catch-up)', everyHours: 1 },
+  { job: 'automations', label: 'Automations (checklists, reminders, nudges, handover)', everyHours: 1 },
+  { job: 'lifecycle', label: 'Customer emails (trial, payments, weekly founder email)', everyHours: 1 },
   { job: 'health-snapshot', label: 'Team-health snapshot', everyHours: 24 },
   { job: 'retention', label: 'Retention clean-up', everyHours: 24 },
 ];
@@ -83,11 +86,15 @@ async function sentryIssues(): Promise<{ status: 'off' | 'ok' | 'error'; issues:
 export async function loadFounderData(search: string | null) {
   const admin = getAdminClient();
   const pingStart = Date.now();
-  const [ping, metricsRes, workspacesRes, sentry] = await Promise.all([
+  const [ping, metricsRes, workspacesRes, sentry, risk, questions] = await Promise.all([
     admin.from('organizations').select('id', { count: 'exact', head: true }).then((r) => ({ ok: !r.error, ms: Date.now() - pingStart, error: r.error?.message })),
     admin.rpc('platform_metrics'),
     admin.rpc('platform_workspaces', { p_search: search?.trim() || null }),
     sentryIssues(),
+    // Present once supabase/update_growth.sql has run.
+    atRisk(admin).catch(() => null),
+    admin.from('help_questions').select('created_at, question, answered, language').order('created_at', { ascending: false }).limit(15)
+      .then((r) => (r.error ? null : (r.data as { created_at: string; question: string; answered: boolean; language: string }[]))),
   ]);
   if (metricsRes.error) throw new Error(`Founder metrics unavailable: ${metricsRes.error.message}. Run supabase/update_founder_console.sql.`);
   return {
@@ -95,6 +102,8 @@ export async function loadFounderData(search: string | null) {
     metrics: metricsRes.data as Metrics,
     workspaces: (workspacesRes.data ?? []) as WorkspaceRow[],
     sentry,
+    atRisk: risk,
+    questions,
   };
 }
 

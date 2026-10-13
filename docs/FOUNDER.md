@@ -44,3 +44,17 @@ Every visit is written to the `platform_audit` table (at most once per 10 minute
 ## Privacy
 
 The tables behind the console (`user_activity`, `job_runs`, `delivery_failures`, `platform_audit`) and the two summary functions can only be read with the server's service key. No signed-in user, including the founder's own browser, can query them directly. The console shows names and workspace names, never the contents of anyone's workspace.
+
+## Customers to call, what customers ask, and the weekly email (October 13, 2026)
+
+- **Customers to call** lists workspaces worth a phone call, with the reason: a failed payment not yet fixed, a plan that ran
+  out (the workspace is read-only), nobody active for 7+ days, or a trial with no teammates after 3 days. The owner's
+  name links to an email. Your own workspaces (FOUNDER_EMAILS) are left out.
+- **What customers ask** shows the latest help-centre questions and whether the guides covered them. Unanswered ones are
+  a to-do list for better guides or product fixes. Questions are deleted after 180 days.
+- **Weekly email**: every Monday from 08:00 (FOUNDER_TIMEZONE, default Africa/Nairobi) the addresses in FOUNDER_EMAILS get
+  new sign-ups, money in, trials ending, customers to call, unanswered questions and platform health. "Email me this
+  week's summary" sends it any time (3 per hour).
+- Customers also get automatic emails, each at most once: trial day 1, 3 and 7 and 2 days before the end; the day after,
+  7 and 30 days after a plan runs out; and after a failed payment. Tips can be switched off with the link in each email
+  or in Profile; account and payment emails always go. All of this needs email (Resend) to be set up.

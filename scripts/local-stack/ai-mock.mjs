@@ -18,6 +18,18 @@ http.createServer(async (req, res) => {
     if (failing) return send(res, 529, { type: 'error', error: { type: 'overloaded_error', message: 'Overloaded' } });
     if (!b.model || !b.max_tokens || !Array.isArray(b.messages)) return send(res, 400, { type: 'error', error: { type: 'invalid_request_error', message: 'model, max_tokens and messages are required' } });
     const prompt = String(b.messages[0]?.content ?? '');
+    // Help centre: answer from the best-matching article, or say it isn't covered (questions about "pizza").
+    const help = prompt.match(/<help_articles>\n([\s\S]*?)\n<\/help_articles>[\s\S]*<question>\n([\s\S]*?)\n<\/question>/);
+    if (help) {
+      let arts = []; try { arts = JSON.parse(help[1]); } catch { /* ignore */ }
+      const q = help[2].toLowerCase();
+      const lang = /Write in (\w+)/.exec(String(b.system ?? ''))?.[1] ?? 'English';
+      const words = q.split(/[^\p{L}\p{N}-]+/u).filter((w) => w.length > 3);
+      const best = arts.map((a) => ({ a, n: words.filter((w) => `${a.title} ${a.body}`.toLowerCase().includes(w)).length })).sort((x, y) => y.n - x.n)[0];
+      const text = /pizza/.test(q) || !best?.n ? 'NOT_COVERED'
+        : `Mock answer (${lang}): ${best.a.body.split('\n')[0]}\nSOURCES: ${best.a.id}`;
+      return send(res, 200, { id: `msg_mock_${calls}`, type: 'message', role: 'assistant', model: b.model, content: [{ type: 'text', text }], stop_reason: 'end_turn', usage: { input_tokens: 100, output_tokens: 50 } });
+    }
     const m = prompt.match(/<workspace_data>\n([\s\S]*?)\n<\/workspace_data>/);
     let f = {}; try { f = JSON.parse(m?.[1] ?? '{}'); } catch { /* ignore */ }
     const lang = /Write in (\w+)/.exec(String(b.system ?? ''))?.[1] ?? 'English';

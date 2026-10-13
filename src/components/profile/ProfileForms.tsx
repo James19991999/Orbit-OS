@@ -74,6 +74,7 @@ export function NotificationPrefs({ profile }: { profile: Profile }) {
     <div className="flex flex-col gap-4">
       <Switch label={t('pf.email')} description={t('pf.email_desc')} checked={profile.email_notifications} onChange={async (v) => { if (await save.run({ email_notifications: v })) router.refresh(); }} />
       <Switch label={t('pf.reminder')} description={t('pf.reminder_desc')} checked={profile.checkin_reminders} onChange={async (v) => { if (await save.run({ checkin_reminders: v })) router.refresh(); }} />
+      <Switch label={t('pf.product_emails')} description={t('pf.product_emails_desc')} checked={profile.product_emails !== false} onChange={async (v) => { if (await save.run({ product_emails: v })) router.refresh(); }} />
       <InlineError message={save.error} />
     </div>
   );

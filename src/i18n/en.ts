@@ -1,4 +1,5 @@
 import { common } from './modules/common';
+import { growth } from './modules/growth';
 import { automations } from './modules/automations';
 import { polish } from './modules/polish';
 import { work } from './modules/work';
@@ -192,6 +193,7 @@ export const en = {
   'pay.sent_all': 'Payout sent — everyone was paid', 'pay.sent_processing': 'Payout released — M-Pesa is processing it',
   'pay.cancelled_toast': 'Draft cancelled', 'pay.status_toast': 'Status: {status}',
   ...common.en,
+  ...growth.en,
   ...automations.en,
   ...polish.en,
   ...work.en,

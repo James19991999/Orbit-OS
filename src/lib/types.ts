@@ -19,7 +19,7 @@ export interface Profile {
   id: string; email: string | null; full_name: string; avatar_url: string | null; timezone: string;
   work_start: string; work_end: string; city: string | null; country_code: string | null;
   theme: 'system' | 'dark' | 'light'; email_notifications: boolean; checkin_reminders: boolean;
-  language: 'en' | 'sw' | 'fr'; data_saver: boolean; whatsapp_checkins: boolean; whatsapp_approvals: boolean; tour_done_at?: string | null;
+  language: 'en' | 'sw' | 'fr'; data_saver: boolean; whatsapp_checkins: boolean; whatsapp_approvals: boolean; tour_done_at?: string | null; product_emails?: boolean;
 }
 
 export interface Member {

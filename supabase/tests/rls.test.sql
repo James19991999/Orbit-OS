@@ -573,6 +573,20 @@ set role authenticated;
 select tests.eq((select cover_id::text from public.team_away(current_setting('tests.org_a')::uuid, '2027-01-04', '2027-01-08') limit 1), '00000000-0000-0000-0000-00000000000a', 'teammates see who is covering');
 reset role;
 
+-- ── 9l. Growth: emails, help questions, at-risk ──
+select tests.login('00000000-0000-0000-0000-00000000000b');
+set role authenticated;
+update public.profiles set product_emails = false where id = auth.uid();
+select tests.pass('people can turn off tips and follow-up emails');
+select tests.expect_error($$select * from public.lifecycle_log$$, 'the email send log is server-only');
+select tests.expect_error($$insert into public.help_questions (question) values ('how do I?')$$, 'help questions cannot be written from the browser');
+select tests.expect_error($$select * from public.help_questions$$, 'help questions cannot be read from the browser');
+select tests.expect_error($$select * from public.platform_at_risk()$$, 'only the server can list at-risk customers');
+reset role;
+update public.organizations set plan_expires_at = now() - interval '2 days' where slug = 'beta-ltd';
+select tests.eq((select reason from public.platform_at_risk() where slug = 'beta-ltd'), 'lapsed', 'a workspace whose plan ran out is flagged');
+update public.organizations set plan_expires_at = now() + interval '30 days' where slug = 'beta-ltd';
+
 -- ── 10. Anonymous ──
 set role anon;
 select set_config('request.jwt.claims', '', false);
