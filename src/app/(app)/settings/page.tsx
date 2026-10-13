@@ -20,6 +20,8 @@ import { isEncryptionConfigured } from '@/lib/crypto/secrets';
 import { isProviderConfigured } from '@/lib/calendar/providers';
 import { EtimsSettings } from '@/components/settings/EtimsSettings';
 import { BrandingSettings } from '@/components/settings/BrandingSettings';
+import { AutomationSettings, type ActivityRow } from '@/components/settings/AutomationSettings';
+import { withDefaults } from '@/lib/automations/rules';
 import { getT } from '@/i18n/server';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -28,11 +30,13 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function SettingsPage() {
   const [fmt, t, { supabase, org, role, user, aal }] = await Promise.all([getFormat(), getT(), requireAppContext()]);
-  const [members, entRes, invRes, integRes] = await Promise.all([
+  const [members, entRes, invRes, integRes, autoRes, logRes] = await Promise.all([
     loadMembers(supabase, org.id),
     supabase.from('legal_entities').select('*').eq('org_id', org.id).order('is_primary', { ascending: false }),
     can.manage(role) ? supabase.from('invites').select('id, email, role, expires_at, code').eq('org_id', org.id).is('accepted_at', null).gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }) : Promise.resolve({ data: [], error: null }),
     can.manage(role) ? supabase.from('integrations').select('kind, enabled').eq('org_id', org.id) : Promise.resolve({ data: [], error: null }),
+    supabase.from('automation_settings').select('onboarding, invoice_reminders, overdue_nudges, nudge_after_days, escalate_after_days, leave_handover').eq('org_id', org.id).maybeSingle(),
+    can.manage(role) ? supabase.from('automation_log').select('id, kind, step, created_at').eq('org_id', org.id).order('created_at', { ascending: false }).limit(15) : Promise.resolve({ data: null, error: null }),
   ]);
   const integ = must(integRes, 'integrations') as { kind: string; enabled: boolean }[];
   // KRA eTIMS: config and document counts are server-only tables (the communication key never leaves the server).
@@ -79,6 +83,9 @@ export default async function SettingsPage() {
         <div className="mt-4 grid gap-4 xl:grid-cols-2 xl:items-start">
           <Section id="organization" title={t('p.set.s.org')} icon="apartment" keywords="name legal currency threshold approval cost">
             <OrgForm org={org} canEdit={can.manage(role)} />
+          </Section>
+          <Section id="automations" title={t('auto.title')} icon="bolt" keywords="automation automations reminders nudges overdue onboarding invoice handover cover schedule">
+            <AutomationSettings orgId={org.id} initial={withDefaults(autoRes.data)} canEdit={can.manage(role) && org.status === 'active'} activity={(logRes.data ?? null) as ActivityRow[] | null} />
           </Section>
           <Section id="branding" title={t('brand.title')} icon="palette" keywords="branding brand logo colour color accent theme white label">
             <BrandingSettings orgId={org.id} orgName={org.name} color={org.brand_color ?? null} logoUrl={brandLogoUrl(org.brand_logo_path)} canEdit={role === 'owner'} />

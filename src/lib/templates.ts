@@ -103,3 +103,20 @@ export function templateRows(tpl: Template, lang: Language, start: string, opts:
     points: x.points, tags: x.tags, due_on: addDays(start, x.offset), status: 'todo' as const,
   }));
 }
+
+/**
+ * Automatic first-week checklist when someone joins through an invite. "member" tasks go to the new person,
+ * "manager" tasks to whoever invited them (or the owner). Due dates count from the day they join.
+ */
+export interface MemberTask extends TemplateTask { who: 'member' | 'manager' }
+export const NEW_MEMBER_TASKS: MemberTask[] = [
+  { who: 'member', title: t('Complete your profile: photo, job title, time zone and working hours', 'Kamilisha wasifu wako: picha, cheo, saa za kanda na saa za kazi', 'Compléter votre profil : photo, poste, fuseau horaire et heures de travail'), offset: 0, priority: 'high', points: 1, tags: ['onboarding'] },
+  { who: 'member', title: t('Turn on two-factor sign-in', 'Washa uthibitishaji wa hatua mbili', 'Activer la double authentification'), offset: 1, priority: 'high', points: 1, tags: ['onboarding', 'security'] },
+  { who: 'member', title: t('Read the team handbook and policies', 'Soma mwongozo na sera za timu', 'Lire le guide et les politiques de l’équipe'), offset: 2, priority: 'medium', points: 1, tags: ['onboarding'] },
+  { who: 'member', title: t('Post your first daily check-in', 'Tuma ripoti yako ya kwanza ya kila siku', 'Publier votre premier point quotidien'), offset: 1, priority: 'medium', points: 1, tags: ['onboarding'] },
+  { who: 'member', title: t('Complete security awareness training', 'Kamilisha mafunzo ya uelewa wa usalama', 'Suivre la formation de sensibilisation à la sécurité'), offset: 5, priority: 'medium', points: 1, tags: ['onboarding', 'compliance'] },
+  { who: 'manager', title: t('Welcome call with {name}', 'Simu ya kumkaribisha {name}', 'Appel de bienvenue avec {name}'), offset: 0, priority: 'high', points: 1, tags: ['onboarding'] },
+  { who: 'manager', title: t('Assign {name} an onboarding buddy', 'Mpe {name} mwenzake wa kumwongoza', 'Désigner un parrain d’intégration pour {name}'), offset: 1, priority: 'medium', points: 1, tags: ['onboarding'] },
+  { who: 'manager', title: t('Set {name}’s first-month goals', 'Weka malengo ya mwezi wa kwanza ya {name}', 'Fixer les objectifs du premier mois de {name}'), offset: 3, priority: 'medium', points: 1, tags: ['onboarding'] },
+  { who: 'manager', title: t('30-day check-in conversation with {name}', 'Mazungumzo ya siku 30 na {name}', 'Point d’étape à 30 jours avec {name}'), offset: 30, priority: 'medium', points: 1, tags: ['onboarding'] },
+];

@@ -4,9 +4,9 @@ export type LeaveKind = (typeof LEAVE_KINDS)[number];
 export type LeaveStatus = 'pending' | 'approved' | 'declined' | 'cancelled';
 export interface LeaveRequest {
   id: string; created_at: string; org_id: string; user_id: string; kind: LeaveKind; starts_on: string; ends_on: string; days: number;
-  note: string | null; status: LeaveStatus; decided_by: string | null; decided_at: string | null; decision_note: string | null;
+  note: string | null; status: LeaveStatus; decided_by: string | null; decided_at: string | null; decision_note: string | null; cover_id?: string | null;
 }
-export interface AwayRow { user_id: string; starts_on: string; ends_on: string }
+export interface AwayRow { user_id: string; starts_on: string; ends_on: string; cover_id?: string | null }
 
 /** Kenya's Employment Act: at least 21 working days of annual leave a year. */
 export const DEFAULT_ANNUAL_DAYS = 21;

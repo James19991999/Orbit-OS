@@ -147,7 +147,7 @@ export default async function MyDayPage() {
             {away.length === 0 ? <p className="text-body-md text-on-surface-variant">{t('md.away_empty')}</p> : (
               <ul className="flex flex-wrap gap-3">
                 {away.map((a) => (
-                  <li key={a.user_id} className="flex items-center gap-2"><Avatar name={people[a.user_id]?.name ?? '—'} src={people[a.user_id]?.avatar} size={28} /><span className="text-body-md">{people[a.user_id]?.name ?? '—'}</span></li>
+                  <li key={a.user_id} className="flex items-center gap-2"><Avatar name={people[a.user_id]?.name ?? '—'} src={people[a.user_id]?.avatar} size={28} /><span className="text-body-md">{people[a.user_id]?.name ?? '—'}{a.cover_id && <span className="text-body-sm text-on-surface-variant"> · {t('ho.covered_by', { name: people[a.cover_id]?.name ?? '—' })}</span>}</span></li>
                 ))}
               </ul>
             )}

@@ -36,7 +36,7 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           failed=0
-          for job in digests checkin-reminders renewals payouts ai-briefs etims calendar push; do
+          for job in digests checkin-reminders renewals payouts ai-briefs etims calendar push automations; do
             code=$(curl -sS -o body.txt -w '%{http_code}' --max-time 300 \
               -H "Authorization: Bearer $CRON_SECRET" "$ORBITOS_URL/api/cron/$job" || echo 000)
             echo "$job -> HTTP $code: $(head -c 300 body.txt)"

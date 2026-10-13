@@ -110,3 +110,59 @@ export function LeaveAllowance({ orgId, value }: { orgId: string; value: number 
     </form>
   );
 }
+
+/**
+ * Handover: pick who covers while someone is away, and (optionally) move the tasks due during the time off to them.
+ * Open to the person on leave and to managers.
+ */
+export function Handover({ leaveId, personId, personName, from, to, coverId, options }: {
+  leaveId: string; personId: string; personName: string; from: string; to: string; coverId: string | null;
+  options: { id: string; name: string }[];
+}) {
+  const t = useT();
+  const router = useRouter();
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [cover, setCover] = useState(coverId ?? '');
+  const [move, setMove] = useState(true);
+  const [tasks, setTasks] = useState<{ id: string; title: string; due_on: string }[] | null>(null);
+  const load = async () => {
+    setTasks(null);
+    const r = await requireBrowserClient().from('tasks').select('id, title, due_on').eq('assignee_id', personId).neq('status', 'done')
+      .gte('due_on', from).lte('due_on', to).order('due_on').limit(100);
+    setTasks((r.data ?? []) as { id: string; title: string; due_on: string }[]);
+  };
+  const save = useAction(async () => {
+    const moved = unwrap(await requireBrowserClient().rpc('set_leave_cover', { p_id: leaveId, p_cover: cover || null, p_reassign: move && !!cover })) as number;
+    toast(moved ? t('ho.moved', { count: moved }) : t('ho.saved'), 'success');
+    return true;
+  });
+  return (
+    <>
+      <Button size="sm" variant="secondary" icon="swap_horiz" onClick={() => { setOpen(true); void load(); }}>{t('ho.button')}</Button>
+      <Dialog open={open} onClose={() => setOpen(false)} title={t('ho.title', { name: personName })} description={t('ho.sub', { from, to })}
+        footer={<><Button variant="ghost" onClick={() => setOpen(false)}>{t('common.cancel')}</Button>
+          <Button icon="swap_horiz" loading={save.pending} onClick={async () => { if ((await save.run()) !== undefined) { setOpen(false); router.refresh(); } }}>{t('ho.save')}</Button></>}>
+        <div className="flex flex-col gap-4">
+          <Select label={t('ho.cover')} value={cover} onChange={(e) => setCover(e.target.value)}
+            options={[{ value: '', label: t('ho.nobody') }, ...options.filter((o) => o.id !== personId).map((o) => ({ value: o.id, label: o.name }))]} />
+          <div>
+            <h3 className="mb-1 text-label-md">{t('ho.tasks')}</h3>
+            {tasks === null ? <p className="text-body-sm text-on-surface-variant" aria-busy="true">…</p>
+              : tasks.length === 0 ? <p className="text-body-sm text-on-surface-variant">{t('ho.tasks_none')}</p> : (
+                <ul className="divide-y divide-outline-variant rounded border border-outline-variant">
+                  {tasks.map((x) => <li key={x.id} className="flex gap-3 px-3 py-2 text-body-sm"><span className="w-24 shrink-0 text-on-surface-variant tnum">{x.due_on}</span><span className="min-w-0 flex-1 truncate">{x.title}</span></li>)}
+                </ul>
+              )}
+          </div>
+          {!!tasks?.length && !!cover && (
+            <label className="flex items-center gap-2 text-body-md">
+              <input type="checkbox" checked={move} onChange={(e) => setMove(e.target.checked)} className="h-4 w-4 accent-[rgb(var(--c-primary-container))]" />
+              {t('ho.move')}
+            </label>
+          )}
+        </div>
+      </Dialog>
+    </>
+  );
+}

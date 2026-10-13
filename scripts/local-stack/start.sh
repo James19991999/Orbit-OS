@@ -40,6 +40,11 @@ INTASEND_TEST_MODE=true
 WEBAUTHN_RP_ID=localhost
 FOUNDER_EMAILS=priya@acme-global.demo
 ENV
+if [ "${WITH_EMAIL_MOCK:-1}" = "1" ]; then
+  pkill -f "local-stack/email-mock.mjs" 2>/dev/null || true
+  setsid nohup node "$DIR/email-mock.mjs" < /dev/null > /tmp/email-mock.log 2>&1 &
+  printf 'RESEND_API_KEY=re_test_mock\nRESEND_BASE_URL=http://localhost:54460\nEMAIL_FROM=OrbitOS <hello@orbitos.local>\n' >> "$ROOT/.env.local"
+fi
 if [ "${WITH_INTASEND_MOCK:-1}" = "1" ]; then
   pkill -f "local-stack/intasend-mock.mjs" 2>/dev/null || true
   INTASEND_MOCK_FAIL_PHONE="${INTASEND_MOCK_FAIL_PHONE:-254700000000}" setsid nohup node "$DIR/intasend-mock.mjs" < /dev/null > /tmp/intasend-mock.log 2>&1 &

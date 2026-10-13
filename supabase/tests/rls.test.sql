@@ -532,6 +532,47 @@ select tests.expect_error($$update public.organizations set brand_color = 'red' 
 select tests.expect_error($$update public.organizations set brand_logo_path = '../../etc/passwd' where slug = 'alpha-co'$$, 'logo paths are restricted to the workspace folder pattern');
 select tests.eq((select allowed_mime_types::text from storage.buckets where id = 'branding'), '{image/png,image/jpeg,image/webp}', 'logos must be PNG, JPEG or WebP (no SVG)');
 
+-- ── 9k. Automations ──
+select tests.login('00000000-0000-0000-0000-00000000000b');
+set role authenticated;
+select tests.expect_error(format($q$insert into public.automation_settings (org_id, overdue_nudges) values (%L, false)$q$, current_setting('tests.org_a')), 'contributors cannot change automations');
+select tests.expect_error($$select public.automation_insert_tasks('[]'::jsonb)$$, 'the bulk task insert is server-only');
+select tests.expect_error(format($q$insert into public.automation_log (org_id, kind, ref_id, step) values (%L, 'onboarding', gen_random_uuid(), 'x')$q$, current_setting('tests.org_a')), 'nobody can write the automation log from the browser');
+insert into public.leave_requests (org_id, starts_on, ends_on, note) values (current_setting('tests.org_a')::uuid, '2027-01-04', '2027-01-08', 'new year');
+reset role;
+select tests.login('00000000-0000-0000-0000-00000000000a');
+set role authenticated;
+insert into public.automation_settings (org_id, nudge_after_days, escalate_after_days) values (current_setting('tests.org_a')::uuid, 3, 6);
+select tests.eq((select invoice_reminders::text from public.automation_settings where org_id = current_setting('tests.org_a')::uuid), 'false', 'invoice reminders to clients start switched off');
+select tests.expect_error(format($q$update public.automation_settings set escalate_after_days = 2 where org_id = %L$q$, current_setting('tests.org_a')), 'escalation must come after the first nudge');
+select public.decide_leave((select id from public.leave_requests where note = 'new year'), true);
+reset role;
+insert into public.automation_log (org_id, kind, ref_id, step) values (current_setting('tests.org_a')::uuid, 'onboarding', gen_random_uuid(), 'tasks');
+select tests.expect_error(format($q$insert into public.automation_log (org_id, kind, ref_id, step) select org_id, kind, ref_id, step from public.automation_log where org_id = %L$q$, current_setting('tests.org_a')), 'each automation step runs only once');
+insert into public.tasks (org_id, title, assignee_id, due_on) values
+  (current_setting('tests.org_a')::uuid, 'Due during leave', '00000000-0000-0000-0000-00000000000b', '2027-01-05'),
+  (current_setting('tests.org_a')::uuid, 'Due after leave', '00000000-0000-0000-0000-00000000000b', '2027-01-12');
+select tests.login('00000000-0000-0000-0000-00000000000b');
+set role authenticated;
+select tests.eq((select count(*)::text from public.automation_log), '0', 'contributors cannot read the automation log');
+select tests.expect_error($$select public.set_leave_cover((select id from public.leave_requests where note = 'new year'), '00000000-0000-0000-0000-00000000000c')$$, 'an auditor cannot be asked to cover');
+select tests.expect_error($$select public.set_leave_cover((select id from public.leave_requests where note = 'new year'), '00000000-0000-0000-0000-00000000000d')$$, 'someone from another workspace cannot cover');
+select tests.expect_error($$select public.set_leave_cover((select id from public.leave_requests where note = 'new year'), '00000000-0000-0000-0000-00000000000b')$$, 'you cannot cover yourself');
+select tests.eq((select public.set_leave_cover((select id from public.leave_requests where note = 'new year'), '00000000-0000-0000-0000-00000000000a'))::text, '1', 'handover moves only the tasks due while you are away');
+reset role;
+select tests.eq((select string_agg(title || '=' || (assignee_id = '00000000-0000-0000-0000-00000000000a')::text, ',' order by title) from public.tasks where title like 'Due % leave'),
+  'Due after leave=false,Due during leave=true', 'tasks after the leave stay with the person');
+select tests.eq((select count(*)::text from public.notifications where user_id = '00000000-0000-0000-0000-00000000000a' and kind = 'task_assigned' and body = 'Due during leave'), '0', 'handover sends one summary, not one notification per task');
+select tests.eq((select count(*)::text from public.notifications where user_id = '00000000-0000-0000-0000-00000000000a' and kind = 'leave_cover'), '1', 'the cover person is told');
+select tests.login('00000000-0000-0000-0000-00000000000d');
+set role authenticated;
+select tests.expect_error($$select public.set_leave_cover((select id from public.leave_requests where note = 'new year'), null)$$, 'another workspace cannot change a handover');
+reset role;
+select tests.login('00000000-0000-0000-0000-00000000000c');
+set role authenticated;
+select tests.eq((select cover_id::text from public.team_away(current_setting('tests.org_a')::uuid, '2027-01-04', '2027-01-08') limit 1), '00000000-0000-0000-0000-00000000000a', 'teammates see who is covering');
+reset role;
+
 -- ── 10. Anonymous ──
 set role anon;
 select set_config('request.jwt.claims', '', false);

@@ -20,6 +20,8 @@ export function AcceptInvite({ code, signedInAs }: { code: string; signedInAs: s
       if (e) throw e;
       const { data: org } = await supabase.from('organizations').select('slug').eq('id', orgId as string).single();
       if (org) await postJson('/api/org/switch', { slug: org.slug });
+      // First-week checklist; if this fails the hourly job creates it instead, so joining never waits on it.
+      await postJson('/api/automations/onboarding', {}).catch(() => undefined);
       router.replace('/dashboard?welcome=1');
       router.refresh();
     } catch (err) {

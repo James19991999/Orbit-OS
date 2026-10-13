@@ -60,6 +60,15 @@ select 'Founder Console data (October 11 update)',
            and not has_function_privilege('authenticated', to_regprocedure('public.platform_metrics()')::oid, 'execute'), false),
        case when to_regclass('public.user_activity') is null then 'missing — run supabase/update_founder_console.sql' else 'tables present; metrics service-role only' end
 union all
+select 'Automations (October 13 update)',
+       to_regclass('public.automation_settings') is not null and to_regclass('public.automation_log') is not null
+         and coalesce(to_regprocedure('public.set_leave_cover(uuid,uuid,boolean)') is not null, false)
+         and coalesce(to_regprocedure('public.automation_insert_tasks(jsonb)') is not null
+           and not has_function_privilege('authenticated', to_regprocedure('public.automation_insert_tasks(jsonb)')::oid, 'execute'), false)
+         and not has_table_privilege('authenticated', 'public.automation_log', 'INSERT'),
+       case when to_regclass('public.automation_settings') is null then 'missing — run supabase/update_automations.sql'
+            else 'automations on; the log and bulk task insert are server-only' end
+union all
 select 'Tour and branding (October 12 update)',
        exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'profiles' and column_name = 'tour_done_at')
          and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'organizations' and column_name = 'brand_color')

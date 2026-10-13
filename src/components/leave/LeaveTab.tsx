@@ -6,7 +6,7 @@ import { getFormat } from '@/lib/locale/server';
 import { annualBalance, DEFAULT_ANNUAL_DAYS, type AwayRow, type LeaveRequest } from '@/lib/leave';
 import { can } from '@/lib/roles';
 import type { Role } from '@/lib/types';
-import { CancelLeave, DecideLeave, LeaveAllowance, RequestLeave } from './LeaveActions';
+import { CancelLeave, DecideLeave, Handover, LeaveAllowance, RequestLeave } from './LeaveActions';
 
 const TONE = { pending: 'warning', approved: 'healthy', declined: 'alert', cancelled: 'neutral' } as const;
 
@@ -20,12 +20,17 @@ export async function LeaveTab({ supabase, orgId, userId, role, people }: {
   const todayIso = now.toISOString().slice(0, 10);
   const in60 = new Date(now.getTime() + 60 * 86_400_000).toISOString().slice(0, 10);
   const manager = can.manage(role);
-  const [mineR, pendingR, awayR, settingsR] = await Promise.all([
+  const [mineR, pendingR, awayR, settingsR, coverR, upcomingR] = await Promise.all([
     supabase.from('leave_requests').select('*').eq('org_id', orgId).eq('user_id', userId).gte('ends_on', `${year - 1}-12-01`).order('starts_on', { ascending: false }).limit(100),
     manager ? supabase.from('leave_requests').select('*').eq('org_id', orgId).eq('status', 'pending').neq('user_id', userId).order('starts_on').limit(100) : Promise.resolve({ data: [] }),
     supabase.rpc('team_away', { p_org: orgId, p_from: todayIso, p_to: in60 }),
     supabase.from('leave_settings').select('annual_days').eq('org_id', orgId).maybeSingle(),
+    supabase.from('memberships').select('user_id').eq('org_id', orgId).eq('status', 'active').in('role', ['owner', 'director', 'contributor']),
+    // Managers can arrange handover for anyone's approved time off.
+    manager ? supabase.from('leave_requests').select('id, user_id, starts_on, ends_on, cover_id').eq('org_id', orgId).eq('status', 'approved').gte('ends_on', todayIso).lte('starts_on', in60) : Promise.resolve({ data: [] }),
   ]);
+  const coverOptions = ((coverR.data ?? []) as { user_id: string }[]).map((m) => ({ id: m.user_id, name: people[m.user_id]?.name ?? '—' })).sort((a, b) => a.name.localeCompare(b.name));
+  const upcoming = (upcomingR.data ?? []) as { id: string; user_id: string; starts_on: string; ends_on: string; cover_id: string | null }[];
   const mine = (mineR.data ?? []) as LeaveRequest[];
   const pending = (pendingR.data ?? []) as LeaveRequest[];
   const away = (awayR.data ?? []) as AwayRow[];
@@ -86,9 +91,15 @@ export async function LeaveTab({ supabase, orgId, userId, role, people }: {
                       {r.decided_by && r.status !== 'cancelled' ? ` · ${t('lv.decided', { status: t(`lv.st.${r.status}` as MessageKey), name: nameOf(r.decided_by) })}` : ''}
                     </p>
                     {r.decision_note && <p className="mt-0.5 text-body-sm text-on-surface-variant">“{r.decision_note}”</p>}
+                    {(r.status === 'pending' || r.status === 'approved') && r.ends_on >= todayIso && (
+                      <p className="mt-0.5 text-body-sm text-on-surface-variant">{r.cover_id ? t('ho.covered_by', { name: nameOf(r.cover_id) }) : t('ho.no_cover')}</p>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Pill tone={TONE[r.status]}>{t(`lv.st.${r.status}` as MessageKey)}</Pill>
+                    {(r.status === 'pending' || r.status === 'approved') && r.ends_on >= todayIso && can.write(role) && (
+                      <Handover leaveId={r.id} personId={userId} personName={nameOf(userId)} from={r.starts_on} to={r.ends_on} coverId={r.cover_id ?? null} options={coverOptions} />
+                    )}
                     {(r.status === 'pending' || r.status === 'approved') && r.ends_on >= todayIso && <CancelLeave id={r.id} />}
                   </div>
                 </li>
@@ -109,8 +120,15 @@ export async function LeaveTab({ supabase, orgId, userId, role, people }: {
                   <div className="min-w-0">
                     <p className="text-label-md">{nameOf(a.user_id)}</p>
                     <p className="text-body-sm text-on-surface-variant tnum">{range(a)}</p>
+                    {a.cover_id && <p className="text-body-sm text-on-surface-variant">{t('ho.covered_by', { name: nameOf(a.cover_id) })}</p>}
                   </div>
-                  {a.starts_on <= todayIso && <Pill tone="info" className="ml-auto">{t('lv.on_leave')}</Pill>}
+                  <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+                    {a.starts_on <= todayIso && <Pill tone="info">{t('lv.on_leave')}</Pill>}
+                    {(() => {
+                      const lv = manager && a.user_id !== userId ? upcoming.find((u) => u.user_id === a.user_id && u.starts_on === a.starts_on) : undefined;
+                      return lv ? <Handover leaveId={lv.id} personId={lv.user_id} personName={nameOf(lv.user_id)} from={lv.starts_on} to={lv.ends_on} coverId={lv.cover_id} options={coverOptions} /> : null;
+                    })()}
+                  </div>
                 </li>
               ))}
             </ul>

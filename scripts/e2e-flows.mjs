@@ -121,7 +121,8 @@ await step('send training reminders for an open campaign (loads assignees + prof
   const body = await r.json();
   if (r.status() !== 200) throw new Error(`remind returned ${r.status()}: ${JSON.stringify(body)}`);
   if (!(body.pending > 0)) throw new Error(`expected incomplete assignees, got ${JSON.stringify(body)}`);
-  return `${body.pending} assignee(s) pending`;
+  if (!body.notConfigured && body.emailed + body.skipped !== body.pending) throw new Error(`emailed ${body.emailed} + skipped ${body.skipped} ≠ ${body.pending}`);
+  return `${body.pending} assignee(s) pending, ${body.emailed} emailed`;
 });
 
 let invoiceUrl = '';
@@ -206,7 +207,7 @@ await step('export the executive report as PDF and CSV', async () => {
 
 let inviteLink = '';
 const inviteEmail = `new.hire.${stamp}@example.com`;
-await step('invite a teammate (email not configured → shareable link shown)', async () => {
+await step('invite a teammate (invite emailed, and a link shown to share)', async () => {
   await page.goto(`${base}/settings#members`, { waitUntil: 'networkidle' });
   await page.getByRole('button', { name: 'Invite', exact: true }).click();
   const d = dialog(page);

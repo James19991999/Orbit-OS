@@ -40,5 +40,5 @@ export const POST = handler(async (req) => {
     }
   }
   await audit(req, ctx.org.id, ctx.user.id, 'compliance.training_reminders', { type: 'training_campaign', id: campaignId }, { emailed, skipped });
-  return json({ emailed, skipped, notConfigured: false });
+  return json({ emailed, skipped, pending: rows.length, notConfigured: false });
 });

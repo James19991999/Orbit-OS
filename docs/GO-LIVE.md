@@ -52,8 +52,9 @@ This step leaves you with an empty production database that has the full schema,
 5. `supabase/update_comments_undo.sql` (October 12, 2026: comments with @mentions on tasks, and Undo for deleted tasks).
 6. `supabase/update_leave_push.sql` (October 12, 2026: leave and time off, phone notifications, job title and department on imported invites).
 7. `supabase/update_polish.sql` (October 12, 2026: the product tour, and workspace branding — logo and accent colour, with a `branding` storage bucket only owners can write to).
+8. `supabase/update_automations.sql` (October 13, 2026: automations — new-member checklist, invoice reminders, overdue nudges and escalation, time-off handover).
 
-Each file refuses to run twice or out of order, and changes nothing if it stops. Then run `verify_setup.sql` again: all 18 rows `ok = true`. (With the CLI, `npx supabase db push` applies only the new migrations.)
+Each file refuses to run twice or out of order, and changes nothing if it stops. Then run `verify_setup.sql` again: all 19 rows `ok = true`. (With the CLI, `npx supabase db push` applies only the new migrations.)
 
 **Push the schema (from your computer, inside the OrbitOS folder)**
 
@@ -182,6 +183,7 @@ On Vercel Pro you can instead put all the jobs back in `vercel.json` and delete 
 | `/api/cron/ai-briefs` | hourly | Monday 08:00 local: the AI chief-of-staff brief |
 | `/api/cron/etims` | hourly | Re-sends invoices and receipts KRA hasn't confirmed yet |
 | `/api/cron/calendar` | hourly | Refreshes busy times from connected Google/Outlook calendars |
+| `/api/cron/automations` | hourly | New-member checklists (safety net), invoice reminders to clients, overdue nudges and escalation, time-off handover reminders — weekdays in working hours, each person's time zone. Invoice reminders need email (Resend) set up |
 | `/api/cron/health-snapshot` | daily 00:05 | Records the team-health trend |
 | `/api/cron/retention` | daily 01:30 | Deletes data past each workspace's retention setting |
 

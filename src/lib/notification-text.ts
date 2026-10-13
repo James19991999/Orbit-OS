@@ -1,6 +1,6 @@
 // Notifications are stored with English text (some are written by database triggers). This turns the known
 // shapes into the reader's language at display time; anything unrecognised is shown as stored.
-import type { T } from '@/i18n/shared';
+import type { MessageKey, T } from '@/i18n/shared';
 
 const PLAN: Record<string, string> = { starter: 'Starter', pro: 'Pro', enterprise: 'Enterprise' };
 
@@ -47,9 +47,42 @@ export function localizeNotification(n: { kind: string; title: string; body: str
     case 'etims':
       m = n.title.match(/^KRA rejected (the credit note for|invoice) (.+)$/);
       return { title: m ? t(m[1] === 'invoice' ? 'notif.k.etims_invoice' : 'notif.k.etims_credit', { number: m[2]! }) : n.title, body: n.body };
+    case 'onboarding':
+      if (n.title === 'Your first-week checklist is ready') return { title: t('notif.k.onb_member'), body: countBody(n.body, /^(\d+) tasks$/, 'notif.k.n_tasks', t) };
+      m = n.title.match(/^Onboarding started for (.+)$/);
+      return { title: m ? t('notif.k.onb_manager', { name: m[1]! }) : n.title, body: countBody(n.body, /^(\d+) tasks for you$/, 'notif.k.n_tasks_you', t) };
+    case 'overdue': {
+      const c = n.title === 'A task of yours is overdue' ? 1 : Number(n.title.match(/^(\d+) of your tasks are overdue$/)?.[1] ?? NaN);
+      return { title: Number.isNaN(c) ? n.title : t('notif.k.overdue', { count: c }), body: n.body };
+    }
+    case 'escalation':
+      m = n.title.match(/^(.*) has (\d+) tasks? over (\d+) days late$/);
+      return { title: m ? t('notif.k.escalation', { name: m[1] === 'A teammate' ? t('notif.k.teammate') : m[1]!, count: Number(m[2]), days: m[3]! }) : n.title, body: n.body };
+    case 'invoice_reminder': {
+      m = n.title.match(/^Reminder sent for invoice (.+)$/);
+      const b = n.body?.match(/^(.*) · (before3|due|after3|after7)$/);
+      return { title: m ? t('notif.k.inv_rem', { number: m[1]! }) : n.title, body: b ? `${b[1]} · ${t(`auto.step.${b[2]}` as MessageKey)}` : n.body };
+    }
+    case 'handover':
+    case 'leave_cover': {
+      const b = n.body?.match(/^(\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2}) · (\d+) tasks$/);
+      const body = b ? t('notif.k.ho_body', { from: b[1]!, to: b[2]!, count: Number(b[3]) }) : n.body;
+      if (n.kind === 'leave_cover') {
+        m = n.title.match(/^(.*) asked you to cover$/);
+        return { title: m ? t('notif.k.cover', { name: m[1] === 'A teammate' ? t('notif.k.teammate') : m[1]! }) : n.title, body };
+      }
+      if (n.title === 'Choose who covers while you’re away') return { title: t('notif.k.ho_self'), body };
+      m = n.title.match(/^(.*) needs cover while away$/);
+      return { title: m ? t('notif.k.ho_manager', { name: m[1] === 'A teammate' ? t('notif.k.teammate') : m[1]! }) : n.title, body };
+    }
     default:
       return n;
   }
+}
+
+function countBody(body: string | null, re: RegExp, key: MessageKey, t: T): string | null {
+  const c = body?.match(re);
+  return c ? t(key, { count: Number(c[1]) }) : body;
 }
 
 /** Activity-stream titles (written in English by database triggers and the GitHub webhook). */
