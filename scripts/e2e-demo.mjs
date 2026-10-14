@@ -37,8 +37,14 @@ const FAKE_SPEECH = () => {
     get speaking() { return !!current; },
     getVoices: () => voices,
     speak(u) {
-      spoken.push({ text: u.text, lang: u.lang, voice: u.voice?.name ?? null, rate: u.rate });
+      // Like Safari on iPhone: until something has been spoken from inside a tap, speech is silently ignored.
+      if (sessionStorage.getItem('fake_require_gesture') === '1' && !window.__unlocked) {
+        if (navigator.userActivation?.isActive) window.__unlocked = true; else { window.__ignored = (window.__ignored || 0) + 1; return; }
+      }
+      window.__unlocked = true;
+      if (u.text.trim()) spoken.push({ text: u.text, lang: u.lang, voice: u.voice?.name ?? null, rate: u.rate });
       current = u;
+      setTimeout(() => { if (current === u) u.onstart?.({}); }, 20);
       setTimeout(() => { if (current === u && !paused) { current = null; u.onend?.({}); } }, window.__speechMs);
     },
     cancel() { if (current) { const u = current; current = null; u.onerror?.({ error: 'interrupted' }); } },
@@ -233,6 +239,51 @@ await step('typing “demo” finds it in Kiswahili and French too (accents igno
     } finally { sql(`update profiles set language = 'en' where id = (select id from auth.users where email = '${FOUNDER}')`); }
   }
   return out.join(', ');
+});
+await step('on a phone: if the page opens straight into the demo, “Tap to hear the voice” appears and one tap brings the voice', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  await ctx.addInitScript(FAKE_SPEECH);
+  await ctx.addInitScript(() => sessionStorage.setItem('fake_require_gesture', '1'));
+  const m = await ctx.newPage();
+  m.on('pageerror', (e) => errors.push(e.message));
+  await m.goto(`${base}/login`, { waitUntil: 'networkidle' });
+  await m.getByLabel('Work email').fill('sam@acme-global.demo');
+  await m.getByLabel('Password', { exact: true }).fill(PW);
+  await m.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await m.waitForURL((u) => u.pathname !== '/login', { timeout: 30000 });
+  // Arriving from a link: no tap has happened on this page yet, so the phone refuses to speak.
+  await m.goto(`${base}/my-day?demo=1`, { waitUntil: 'networkidle' });
+  const tap = m.getByRole('button', { name: 'Tap to hear the voice' });
+  await tap.waitFor({ timeout: 8000 });
+  const before = (await spoken(m)).length;
+  const caption1 = await caption(m);
+  await tap.tap();
+  await m.waitForFunction((n) => window.__spoken.length > n, before, { timeout: 8000 });
+  const said = (await spoken(m)).at(-1).text;
+  if (said !== caption1) fail(`spoke “${said}” but caption says “${caption1}”`);
+  await axe(m, 'phone demo panel', '[data-testid="demo"]');
+  await m.keyboard.press('Shift+Escape').catch(() => {});
+  await ctx.close();
+  return 'one tap, then the voice';
+});
+await step('on a phone: starting from the Help centre button speaks straight away (no extra tap)', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  await ctx.addInitScript(FAKE_SPEECH);
+  await ctx.addInitScript(() => sessionStorage.setItem('fake_require_gesture', '1'));
+  const m = await ctx.newPage();
+  await m.goto(`${base}/login`, { waitUntil: 'networkidle' });
+  await m.getByLabel('Work email').fill('sam@acme-global.demo');
+  await m.getByLabel('Password', { exact: true }).fill(PW);
+  await m.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await m.waitForURL((u) => u.pathname !== '/login', { timeout: 30000 });
+  await m.goto(`${base}/help`, { waitUntil: 'networkidle' });
+  await m.evaluate(() => { window.__unlocked = false; });
+  await m.getByRole('button', { name: 'Play the guided demo' }).tap();
+  await m.waitForURL((u) => u.pathname === '/dashboard');
+  await m.waitForFunction(() => window.__spoken.some((x) => x.text.startsWith('Welcome to OrbitOS')), null, { timeout: 8000 });
+  const tapShown = await m.getByRole('button', { name: 'Tap to hear the voice' }).count();
+  await ctx.close();
+  return tapShown === 0 || fail('asked for an extra tap');
 });
 await step('no JavaScript errors', async () => (errors.length ? fail(errors.slice(0, 3).join(' | ')) : true));
 

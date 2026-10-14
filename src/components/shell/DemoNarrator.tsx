@@ -14,6 +14,19 @@ const load = (fallback: Language): Saved => {
   try { const v = JSON.parse(sessionStorage.getItem(KEY) || 'null'); if (v && typeof v === 'object') return { on: false, lang: fallback, rate: 1, voice: '', muted: false, hidden: false, ...v }; } catch { /* private mode */ }
   return { on: false, lang: fallback, rate: 1, voice: '', muted: false, hidden: false };
 };
+/**
+ * Phones only let a page start speaking from inside a tap. Speaking a silent sound during the tap "unlocks" the voice
+ * for the rest of the demo (Safari on iPhone and Chrome on Android both need this; desktop browsers usually don't).
+ */
+function primeSpeech() {
+  try {
+    const synth = window.speechSynthesis;
+    if (!synth || typeof SpeechSynthesisUtterance === 'undefined') return;
+    const u = new SpeechSynthesisUtterance(' ');
+    u.volume = 0;
+    synth.speak(u);
+  } catch { /* ignore */ }
+}
 const editable = (el: EventTarget | null) => el instanceof HTMLElement && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName));
 
 /** Pick the most natural voice for a language: the one chosen before, else "Natural/Online/Neural" voices, else Kenya, else any. */
@@ -41,6 +54,9 @@ export function DemoNarrator({ role, founder }: { role: Role; founder: boolean }
   const [playing, setPlaying] = useState(true);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [box, setBox] = useState<DOMRect | null>(null);
+  const [blocked, setBlocked] = useState(false);   // the phone refused to speak until tapped
+  const [retry, setRetry] = useState(0);
+  const [canSpeak, setCanSpeak] = useState(true);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const run = useRef(0);   // bumps on every new line, so late events from an old line are ignored
 
@@ -49,7 +65,9 @@ export function DemoNarrator({ role, founder }: { role: Role; founder: boolean }
     const saved = load(uiLang);
     if (new URLSearchParams(window.location.search).get('demo') === '1') saved.on = true;
     setS(saved);
-    const start = () => setS((x) => ({ ...x, on: true }));
+    setCanSpeak(typeof window !== 'undefined' && 'speechSynthesis' in window);
+    // The start buttons fire this event inside the tap, so the voice can be unlocked right here.
+    const start = () => { primeSpeech(); setS((x) => ({ ...x, on: true })); };
     window.addEventListener('orbit:demo', start);
     return () => window.removeEventListener('orbit:demo', start);
   }, [uiLang]);
@@ -71,9 +89,10 @@ export function DemoNarrator({ role, founder }: { role: Role; founder: boolean }
   const line = lines[i];
   const done = !!screen && i >= lines.length;
 
+  const speakingLine = useRef(false);   // only our own sentences are cancelled, never the silent unlock sound
   const stop = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
-    try { window.speechSynthesis?.cancel(); } catch { /* ignore */ }
+    if (speakingLine.current) { speakingLine.current = false; try { window.speechSynthesis?.cancel(); } catch { /* ignore */ } }
   }, []);
 
   // A new screen starts from its first point.
@@ -97,13 +116,24 @@ export function DemoNarrator({ role, founder }: { role: Role; founder: boolean }
     u.lang = voice?.lang ?? SPEECH_LANG[s.lang];
     if (voice) u.voice = voice;
     u.rate = s.rate;
-    u.onend = advance;
-    u.onerror = (e) => { if (e.error !== 'interrupted' && e.error !== 'canceled') timer.current = setTimeout(advance, 3000); };
-    // Some browsers never fire "end" (no voices installed): fall back to a reading-time timer.
-    const safety = setTimeout(() => { if (run.current === id && !synth.speaking) advance(); }, Math.max(6000, text.length * 120) / s.rate);
+    let started = false;
+    let safety: ReturnType<typeof setTimeout> | undefined;
+    u.onstart = () => { started = true; setBlocked(false); };
+    u.onend = () => { speakingLine.current = false; advance(); };
+    u.onerror = (e) => {
+      if (e.error === 'not-allowed') { clearTimeout(safety); setBlocked(true); return; }   // needs a tap first
+      if (e.error !== 'interrupted' && e.error !== 'canceled') timer.current = setTimeout(advance, 3000);
+    };
+    // A phone that silently refuses never starts: ask for a tap instead of skipping ahead without sound.
+    const check = setTimeout(() => { if (run.current === id && !started && !synth.speaking) { clearTimeout(safety); setBlocked(true); } }, 2500);
+    // Some browsers never fire "end": fall back to a reading-time timer once speech has started.
+    safety = setTimeout(() => { if (run.current === id && started && !synth.speaking) advance(); }, Math.max(6000, text.length * 120) / s.rate);
+    speakingLine.current = true;
     synth.speak(u);
-    return () => clearTimeout(safety);
-  }, [s.on, s.lang, s.muted, s.rate, s.voice, screen, line, playing, voices, stop]);
+    return () => { clearTimeout(safety); clearTimeout(check); };
+  }, [s.on, s.lang, s.muted, s.rate, s.voice, screen, line, playing, voices, stop, retry]);
+
+  const tapForSound = () => { primeSpeech(); setBlocked(false); setPlaying(true); setRetry((x) => x + 1); };
 
   // Highlight what the voice is talking about (never blocks clicks), and bring it into view.
   useEffect(() => {
@@ -155,6 +185,12 @@ export function DemoNarrator({ role, founder }: { role: Role; founder: boolean }
         <div className="w-full max-w-3xl rounded-xl bg-slate-950/90 px-5 py-4 text-white shadow-l2 backdrop-blur" lang={s.lang}>
           {screen && <p className="text-label-xs uppercase tracking-wide text-white/60">{screen.title[s.lang]}{!done && ` · ${Math.min(i + 1, lines.length)}/${lines.length}`}</p>}
           {caption && <p className="mt-1 text-[1.15rem] leading-snug md:text-[1.3rem]" data-testid="demo-caption">{caption}</p>}
+          {blocked && !s.muted && (
+            <button type="button" onClick={tapForSound} className="mt-3 inline-flex items-center gap-2 rounded bg-white px-4 py-3 text-label-md text-slate-950 hover:bg-white/90">
+              <Icon name="volume_up" />{t('demo.tap_sound')}
+            </button>
+          )}
+          {!canSpeak && <p className="mt-2 text-body-sm text-amber-200">{t('demo.no_speech')}</p>}
           {done && (
             nextScreen
               ? <button type="button" className="mt-2 inline-flex items-center gap-2 rounded bg-white px-3 py-2 text-label-md text-slate-950 hover:bg-white/90"
@@ -165,10 +201,10 @@ export function DemoNarrator({ role, founder }: { role: Role; founder: boolean }
           )}
           {!s.hidden && (
             <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-white/15 pt-3">
-              <button type="button" className={btn} onClick={() => { setPlaying(true); setI((x) => Math.max(x - 1, 0)); }} aria-label={t('demo.prev')}><Icon name="skip_previous" /></button>
-              <button type="button" className={btn} onClick={() => setPlaying((p) => !p)} aria-label={playing ? t('demo.pause') : t('demo.play')} aria-pressed={!playing}><Icon name={playing ? 'pause' : 'play_arrow'} /></button>
-              <button type="button" className={btn} onClick={() => { setPlaying(true); setI((x) => Math.min(x + 1, lines.length)); }} aria-label={t('demo.next')}><Icon name="skip_next" /></button>
-              <button type="button" className={btn} onClick={() => setS((x) => ({ ...x, muted: !x.muted }))} aria-label={s.muted ? t('demo.unmute') : t('demo.mute')} aria-pressed={s.muted}><Icon name={s.muted ? 'volume_off' : 'volume_up'} /></button>
+              <button type="button" className={btn} onClick={() => { primeSpeech(); setPlaying(true); setI((x) => Math.max(x - 1, 0)); }} aria-label={t('demo.prev')}><Icon name="skip_previous" /></button>
+              <button type="button" className={btn} onClick={() => { primeSpeech(); setPlaying((p) => !p); }} aria-label={playing ? t('demo.pause') : t('demo.play')} aria-pressed={!playing}><Icon name={playing ? 'pause' : 'play_arrow'} /></button>
+              <button type="button" className={btn} onClick={() => { primeSpeech(); setPlaying(true); setI((x) => Math.min(x + 1, lines.length)); }} aria-label={t('demo.next')}><Icon name="skip_next" /></button>
+              <button type="button" className={btn} onClick={() => { primeSpeech(); setS((x) => ({ ...x, muted: !x.muted })); }} aria-label={s.muted ? t('demo.unmute') : t('demo.mute')} aria-pressed={s.muted}><Icon name={s.muted ? 'volume_off' : 'volume_up'} /></button>
               <label className="ml-1 flex items-center gap-1 text-body-sm text-white/80">
                 <span className="sr-only">{t('demo.chapters')}</span>
                 <select value={screen?.tour ? screen.id : ''} onChange={(e) => { const c = chapters.find((x) => x.id === e.target.value); if (c?.href) router.push(c.href); }}

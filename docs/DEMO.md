@@ -41,3 +41,12 @@ Keys never interfere while you type in a field.
 ## Changing what it says
 The script is in `src/lib/demo/script.ts`: one short entry per screen, in English, Kiswahili and French. Keep each line to one
 or two sentences, and only describe what is really on the screen. A line can highlight part of the page with a CSS selector.
+
+## On a phone
+
+Phones only allow a page to speak after a tap. Start the demo with a tap (search → “Play the guided demo”, or the Help centre button) and the voice starts at once. If the demo opened on its own (for example after a reload or from a link), a **Tap to hear the voice** button appears under the caption — one tap and the voice starts.
+
+If it is still silent:
+- iPhone: turn off the silent switch on the side, and turn the volume up while the demo is playing.
+- Open OrbitOS in Chrome or Safari, not inside the WhatsApp, LinkedIn or Instagram in-app browser — those often have no voice.
+- Kiswahili voices aren’t installed on every phone; the captions still work, or switch the app to English.
