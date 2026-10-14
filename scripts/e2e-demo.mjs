@@ -75,18 +75,35 @@ sql(`update memberships set role = 'director' where user_id = (select id from au
 const browser = await chromium.launch({ executablePath: process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
 const errors = [];
 
-await step('only founders have demo mode: customers see no command and ?demo=1 does nothing', async () => {
-  const s = await login(browser, 'elena@acme-global.demo');
-  await openSearch(s.page, 'demo');
-  await s.page.waitForTimeout(600);
-  const cmd = await s.page.getByRole('option', { name: /demo mode/i }).count();
-  await s.page.keyboard.press('Escape');
-  await s.page.goto(`${base}/dashboard?demo=1`, { waitUntil: 'networkidle' });
-  await s.page.waitForTimeout(800);
-  const region = await s.page.getByTestId('demo').count();
-  const said = (await spoken(s.page)).length;
-  await s.ctx.close();
-  return (cmd === 0 && region === 0 && said === 0) || fail(`command ${cmd}, region ${region}, spoken ${said}`);
+await step('every user can play it: a contributor starts it from search, gets only their chapters, and no sales line', async () => {
+  const c = await login(browser, 'sam@acme-global.demo');
+  c.page.on('pageerror', (e) => errors.push(e.message));
+  await c.page.evaluate(() => { window.__speechMs = 80; });
+  await openSearch(c.page, 'demo');
+  await c.page.getByRole('option', { name: 'Play the guided demo' }).click();
+  await c.page.getByTestId('demo').waitFor();
+  await c.page.waitForFunction(() => window.__spoken.some((x) => x.text.startsWith('Welcome to OrbitOS')), null, { timeout: 8000 });
+  const chapters = await c.page.getByLabel('Chapters').locator('option').allTextContents();
+  for (const no of ['Finance & Runway', 'Billing', 'Audit log']) if (chapters.some((x) => x.includes(no))) fail(`contributor offered “${no}”`);
+  if (!chapters.some((x) => x.includes('Help centre')) || chapters.length < 12) fail(`chapters: ${chapters.join(', ')}`);
+  await c.page.getByLabel('Chapters').selectOption({ label: chapters.find((x) => x.includes('Help centre')) });
+  await c.page.waitForURL((u) => u.pathname === '/help');
+  await c.page.getByText('That’s the tour. Thank you for watching!').waitFor({ timeout: 10000 });
+  const said = (await spoken(c.page)).map((x) => x.text);
+  await c.page.keyboard.press('Shift+Escape');
+  await c.ctx.close();
+  if (said.some((x) => /comments/.test(x))) fail('a customer heard the founder’s sales line');
+  return `${chapters.length} chapters for a contributor`;
+});
+await step('the help centre has a “Play the guided demo” button', async () => {
+  const c = await login(browser, 'sam@acme-global.demo');
+  await c.page.goto(`${base}/help`, { waitUntil: 'networkidle' });
+  await c.page.getByRole('button', { name: 'Play the guided demo' }).click();
+  await c.page.waitForURL((u) => u.pathname === '/dashboard');
+  await c.page.getByTestId('demo').waitFor();
+  await axe(c.page, 'help with demo card');
+  await c.ctx.close();
+  return true;
 });
 
 const f = await login(browser, FOUNDER);
@@ -94,9 +111,9 @@ const p = f.page;
 p.on('pageerror', (e) => errors.push(e.message));
 await p.goto(`${base}/dashboard`, { waitUntil: 'networkidle' });
 
-await step('“Start demo mode” from search: the voice introduces OrbitOS and the caption matches what is said', async () => {
+await step('“Play the guided demo” from search: the voice introduces OrbitOS and the caption matches what is said', async () => {
   await openSearch(p, 'demo');
-  await p.getByRole('option', { name: 'Start demo mode' }).click();
+  await p.getByRole('option', { name: 'Play the guided demo' }).click();
   await p.getByTestId('demo').waitFor();
   const first = await caption(p);
   if (!/^Welcome to OrbitOS/.test(first)) fail(`caption: ${first}`);
@@ -156,6 +173,18 @@ await step('the narration follows you to the next screen, and offers the next on
   await p.waitForFunction(() => window.__spoken.some((x) => x.text.startsWith('Culture keeps a remote team connected')), null, { timeout: 8000 });
   return 'Scheduling → Culture';
 });
+await step('Chapters jumps anywhere; opening a task explains it; the founder hears the sales line at the end', async () => {
+  await p.getByLabel('Chapters').selectOption({ label: '9. Reports' });
+  await p.waitForURL((u) => u.pathname === '/reports');
+  await p.waitForFunction(() => window.__spoken.some((x) => x.text.startsWith('Reports turn it all into numbers')), null, { timeout: 8000 });
+  await p.goto(`${base}/operations`, { waitUntil: 'networkidle' });
+  const taskHref = await p.locator('a[href^="/operations/tasks/"]').first().getAttribute('href');
+  await p.goto(`${base}${taskHref}`, { waitUntil: 'networkidle' });
+  await p.waitForFunction(() => window.__spoken.some((x) => x.text.startsWith('Each task has an owner')), null, { timeout: 8000 });
+  await p.goto(`${base}/help`, { waitUntil: 'networkidle' });
+  await p.waitForFunction(() => window.__spoken.some((x) => /link is in the comments/.test(x.text)), null, { timeout: 10000 });
+  return 'Reports, a task, and the closing line';
+});
 await step('M mutes the voice but captions keep going; H hides the controls for a clean recording', async () => {
   await p.goto(`${base}/dashboard`, { waitUntil: 'networkidle' });
   await p.getByTestId('demo-caption').first().waitFor();
@@ -192,7 +221,7 @@ await step('typing in a field is never hijacked by the demo keys', async () => {
 });
 await step('typing “demo” finds it in Kiswahili and French too (accents ignored)', async () => {
   const out = [];
-  for (const [lang, label] of [['sw', 'Anza hali ya maonyesho'], ['fr', 'Lancer le mode démo']]) {
+  for (const [lang, label] of [['sw', 'Cheza maonyesho yenye sauti'], ['fr', 'Lancer la démo guidée']]) {
     sql(`update profiles set language = '${lang}' where id = (select id from auth.users where email = '${FOUNDER}')`);
     try {
       const x = await login(browser, FOUNDER);

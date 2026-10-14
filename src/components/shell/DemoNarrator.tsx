@@ -2,7 +2,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Icon, cn } from '@/components/ui';
-import { DEMO, screenFor, type DemoScreen } from '@/lib/demo/script';
+import { chaptersFor, linesFor, nextFor, screenFor, type DemoScreen } from '@/lib/demo/script';
+import type { Role } from '@/lib/types';
 import { useLang, useT } from '@/i18n/client';
 import type { Language } from '@/i18n/shared';
 
@@ -29,14 +30,13 @@ function pickVoice(voices: SpeechSynthesisVoice[], lang: Language, preferred: st
  * soft highlight on what it's talking about. Space pauses, → / ← move between points, M mutes, H hides the controls,
  * Shift+Esc ends the demo. Uses the browser's own voices, so it works offline and costs nothing.
  */
-export function DemoNarrator() {
+export function DemoNarrator({ role, founder }: { role: Role; founder: boolean }) {
   const t = useT();
   const uiLang = useLang();
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams();
   const [s, setS] = useState<Saved>(() => ({ on: false, lang: uiLang, rate: 1, voice: '', muted: false, hidden: false }));
-  const [hash, setHash] = useState('');
   const [i, setI] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -49,12 +49,9 @@ export function DemoNarrator() {
     const saved = load(uiLang);
     if (new URLSearchParams(window.location.search).get('demo') === '1') saved.on = true;
     setS(saved);
-    setHash(window.location.hash);
     const start = () => setS((x) => ({ ...x, on: true }));
-    const onHash = () => setHash(window.location.hash);
     window.addEventListener('orbit:demo', start);
-    window.addEventListener('hashchange', onHash);
-    return () => { window.removeEventListener('orbit:demo', start); window.removeEventListener('hashchange', onHash); };
+    return () => window.removeEventListener('orbit:demo', start);
   }, [uiLang]);
   useEffect(() => { try { sessionStorage.setItem(KEY, JSON.stringify(s)); } catch { /* ignore */ } }, [s]);
 
@@ -67,10 +64,12 @@ export function DemoNarrator() {
     return () => synth.removeEventListener?.('voiceschanged', update);
   }, []);
 
-  const screen: DemoScreen | undefined = useMemo(() => (s.on ? screenFor(pathname, search.toString(), hash) : undefined), [s.on, pathname, search, hash]);
-  const nextScreen = screen?.next ? DEMO.find((d) => d.id === screen.next) : undefined;
-  const line = screen?.lines[i];
-  const done = !!screen && i >= screen.lines.length;
+  const screen: DemoScreen | undefined = useMemo(() => (s.on ? screenFor(pathname, search.toString()) : undefined), [s.on, pathname, search]);
+  const lines = useMemo(() => (screen ? linesFor(screen, founder) : []), [screen, founder]);
+  const chapters = useMemo(() => chaptersFor(role), [role]);
+  const nextScreen = screen ? nextFor(screen.id, role) : undefined;
+  const line = lines[i];
+  const done = !!screen && i >= lines.length;
 
   const stop = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
@@ -129,14 +128,14 @@ export function DemoNarrator() {
       if (document.querySelector('dialog[open]')) return;
       const k = e.key.toLowerCase();
       if (e.key === ' ') { e.preventDefault(); setPlaying((p) => !p); }
-      else if (e.key === 'ArrowRight') { e.preventDefault(); setPlaying(true); setI((x) => Math.min(x + 1, screen?.lines.length ?? 0)); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); setPlaying(true); setI((x) => Math.min(x + 1, lines.length)); }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); setPlaying(true); setI((x) => Math.max(x - 1, 0)); }
       else if (k === 'm') setS((x) => ({ ...x, muted: !x.muted }));
       else if (k === 'h') setS((x) => ({ ...x, hidden: !x.hidden }));
     };
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [s.on, screen, end]);
+  }, [s.on, lines.length, end]);
 
   useEffect(() => () => stop(), [stop]);
   if (!s.on) return null;
@@ -154,12 +153,12 @@ export function DemoNarrator() {
       )}
       <div role="region" aria-label={t('demo.region')} data-testid="demo" className="fixed inset-x-0 bottom-20 z-[65] flex justify-center px-3 lg:bottom-6 lg:pl-64">
         <div className="w-full max-w-3xl rounded-xl bg-slate-950/90 px-5 py-4 text-white shadow-l2 backdrop-blur" lang={s.lang}>
-          {screen && <p className="text-label-xs uppercase tracking-wide text-white/60">{screen.title[s.lang]}{!done && ` · ${Math.min(i + 1, screen.lines.length)}/${screen.lines.length}`}</p>}
+          {screen && <p className="text-label-xs uppercase tracking-wide text-white/60">{screen.title[s.lang]}{!done && ` · ${Math.min(i + 1, lines.length)}/${lines.length}`}</p>}
           {caption && <p className="mt-1 text-[1.15rem] leading-snug md:text-[1.3rem]" data-testid="demo-caption">{caption}</p>}
           {done && (
             nextScreen
               ? <button type="button" className="mt-2 inline-flex items-center gap-2 rounded bg-white px-3 py-2 text-label-md text-slate-950 hover:bg-white/90"
-                  onClick={() => { const h = nextScreen.href; if (h.includes('#')) setHash(`#${h.split('#')[1]}`); router.push(h); }}>
+                  onClick={() => router.push(nextScreen.href!)}>
                   {t('demo.next_screen', { screen: nextScreen.title[s.lang] })}<Icon name="arrow_forward" />
                 </button>
               : <p className="mt-1 text-[1.15rem]" data-testid="demo-caption">{t('demo.the_end')}</p>
@@ -168,9 +167,17 @@ export function DemoNarrator() {
             <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-white/15 pt-3">
               <button type="button" className={btn} onClick={() => { setPlaying(true); setI((x) => Math.max(x - 1, 0)); }} aria-label={t('demo.prev')}><Icon name="skip_previous" /></button>
               <button type="button" className={btn} onClick={() => setPlaying((p) => !p)} aria-label={playing ? t('demo.pause') : t('demo.play')} aria-pressed={!playing}><Icon name={playing ? 'pause' : 'play_arrow'} /></button>
-              <button type="button" className={btn} onClick={() => { setPlaying(true); setI((x) => Math.min(x + 1, screen?.lines.length ?? 0)); }} aria-label={t('demo.next')}><Icon name="skip_next" /></button>
+              <button type="button" className={btn} onClick={() => { setPlaying(true); setI((x) => Math.min(x + 1, lines.length)); }} aria-label={t('demo.next')}><Icon name="skip_next" /></button>
               <button type="button" className={btn} onClick={() => setS((x) => ({ ...x, muted: !x.muted }))} aria-label={s.muted ? t('demo.unmute') : t('demo.mute')} aria-pressed={s.muted}><Icon name={s.muted ? 'volume_off' : 'volume_up'} /></button>
               <label className="ml-1 flex items-center gap-1 text-body-sm text-white/80">
+                <span className="sr-only">{t('demo.chapters')}</span>
+                <select value={screen?.tour ? screen.id : ''} onChange={(e) => { const c = chapters.find((x) => x.id === e.target.value); if (c?.href) router.push(c.href); }}
+                  className="h-9 max-w-[11rem] rounded bg-white/10 px-2 text-white [&>option]:text-slate-950">
+                  {!screen?.tour && <option value="">{t('demo.chapters')}</option>}
+                  {chapters.map((c, n) => <option key={c.id} value={c.id}>{n + 1}. {c.title[s.lang]}</option>)}
+                </select>
+              </label>
+              <label className="flex items-center gap-1 text-body-sm text-white/80">
                 <span className="sr-only">{t('demo.language')}</span>
                 <select value={s.lang} onChange={(e) => setS((x) => ({ ...x, lang: e.target.value as Language, voice: '' }))} className="h-9 rounded bg-white/10 px-2 text-white [&>option]:text-slate-950">
                   <option value="en">English</option><option value="sw">Kiswahili</option><option value="fr">Français</option>

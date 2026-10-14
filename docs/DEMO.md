@@ -1,12 +1,18 @@
-# Demo mode — a voice that explains OrbitOS while you share your screen
+# Guided demo — a voice that explains OrbitOS
 
-Only accounts listed in `FOUNDER_EMAILS` can use it. Customers never see it.
+Every signed-in person can play it, to learn the product at their own pace; you can use the same thing for live demos and
+LinkedIn videos. Each person only gets the chapters their role can open (for example, contributors skip Finance, Billing and
+the Audit log). The closing sales line (“from KES 4,900 a month… the link is in the comments”) plays only for founders
+(`FOUNDER_EMAILS`).
 
 ## Start
-- Press **Ctrl+K** (or click the search box), type **demo**, choose **Start demo mode** — or open any page with `?demo=1`.
-- Open the screens in this order and the voice explains each one; at the end of each screen a **Next** button takes you on:
-  Dashboard → My day → Projects & Sprints → Finance & Runway → Scheduling → Culture → Time off → Settings (Automations) → Help.
-- The last line gives the price (from KES 4,900 a month), the 14-day free trial and “the link is in the comments”.
+- Press **Ctrl+K** (or click the search box), type **demo**, choose **Play the guided demo**; or choose **Play the guided demo**
+  in the Help centre; or open any page with `?demo=1`.
+- 17 chapters, in order (use **Next**, or jump with the **Chapters** menu): Dashboard → My day → Projects & Sprints → Team Activity →
+  Finance & Runway → Scheduling → Culture → Compliance → Reports → People → Time off → Notifications → Profile → Settings
+  (organization, automations, branding, sign-in security, time zones, integrations and eTIMS, data governance, members and roles)
+  → Billing → Audit log → Help.
+- Open a single **task, invoice, meeting, compliance framework or channel** and the voice explains that page too, then carries on.
 
 ## Controls
 | Key | Does |

@@ -1,5 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button, Card, CardHeader, Icon, InlineError, Input, Textarea } from '@/components/ui';
 import { errorMessage, postJson } from '@/hooks/useAction';
 import { useT } from '@/i18n/client';
@@ -9,6 +10,7 @@ interface A { id: string; icon: string; title: string; body: string[]; keywords:
 /** Search the articles, open one, or ask a question the assistant answers from them. */
 export function HelpCenter({ articles, contact }: { articles: A[]; contact: string | null }) {
   const t = useT();
+  const router = useRouter();
   const [q, setQ] = useState('');
   const [open, setOpen] = useState<string | null>(null);
   const [question, setQuestion] = useState('');
@@ -39,7 +41,13 @@ export function HelpCenter({ articles, contact }: { articles: A[]; contact: stri
 
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-12 xl:items-start">
-      <Card className="xl:col-span-5" aria-labelledby="help-ask-h">
+      <div className="flex flex-col gap-4 xl:col-span-5">
+      <Card aria-labelledby="help-demo-h">
+        <CardHeader title={<span id="help-demo-h">{t('help.demo_t')}</span>} icon="record_voice_over" />
+        <p className="text-body-md text-on-surface-variant">{t('help.demo_b')}</p>
+        <div className="mt-3"><Button icon="play_arrow" variant="secondary" onClick={() => { window.dispatchEvent(new Event('orbit:demo')); router.push('/dashboard'); }}>{t('help.demo_go')}</Button></div>
+      </Card>
+      <Card aria-labelledby="help-ask-h">
         <CardHeader title={<span id="help-ask-h">{t('help.ask_t')}</span>} icon="support_agent" />
         <form onSubmit={ask} className="flex flex-col gap-3">
           <Textarea label={t('help.ask_t')} hideLabel placeholder={t('help.ask_ph')} value={question} maxLength={500} rows={3} onChange={(e) => setQuestion(e.target.value)} />
@@ -69,6 +77,7 @@ export function HelpCenter({ articles, contact }: { articles: A[]; contact: stri
           )}
         </div>
       </Card>
+      </div>
 
       <div className="flex flex-col gap-3 xl:col-span-7">
         <Input label={t('help.search')} hideLabel type="search" placeholder={t('help.search')} value={q} onChange={(e) => setQ(e.target.value)} />

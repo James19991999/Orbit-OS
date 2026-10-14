@@ -10,18 +10,21 @@ const p = (en: string[], sw: string[], fr: string[]): LP => ({ en, sw, fr });
 
 export const ARTICLES: Article[] = [
   {
-    id: 'getting-started', icon: 'rocket_launch', keywords: 'start setup invite team roles owner director contributor auditor seats join',
+    id: 'getting-started', icon: 'rocket_launch', keywords: 'start setup invite team roles owner director contributor auditor seats join demo guided tour voice',
     title: l('Getting started: invite your team', 'Kuanza: alika timu yako', 'Bien démarrer : invitez votre équipe'),
     body: p(
       ['Go to Settings → Role-based access & members and choose Invite. Enter the person’s work email and a role. They get an email and a link you can also share on WhatsApp.',
         'Roles: Owner (everything, including billing), Director (manages people, approvals and settings), Contributor (does the work), Auditor (read-only for compliance reviews).',
-        'You can import many people at once from Excel or CSV with Import people. Each plan has a number of seats; you can add seats under Settings → Billing.'],
+        'You can import many people at once from Excel or CSV with Import people. Each plan has a number of seats; you can add seats under Settings → Billing.',
+        'New to OrbitOS? Choose Play the guided demo here in the help centre, or search for “demo”: a voice with captions walks you through every part of the product, chapter by chapter.'],
       ['Nenda Mipangilio → Ufikiaji kwa majukumu na wanachama na uchague Alika. Weka barua pepe ya kazi ya mtu na wadhifa. Atapokea barua pepe na kiungo ambacho unaweza pia kutuma kwa WhatsApp.',
         'Wadhifa: Mmiliki (kila kitu, ikiwemo malipo), Mkurugenzi (husimamia watu, idhini na mipangilio), Mchangiaji (hufanya kazi), Mkaguzi (kusoma tu kwa ukaguzi wa utiifu).',
-        'Unaweza kuingiza watu wengi kwa pamoja kutoka Excel au CSV kwa Leta watu. Kila mpango una idadi ya nafasi; unaweza kuongeza nafasi chini ya Mipangilio → Malipo.'],
+        'Unaweza kuingiza watu wengi kwa pamoja kutoka Excel au CSV kwa Leta watu. Kila mpango una idadi ya nafasi; unaweza kuongeza nafasi chini ya Mipangilio → Malipo.',
+        'Mgeni katika OrbitOS? Chagua Cheza maonyesho hapa kwenye kituo cha msaada, au tafuta “demo”: sauti yenye manukuu inakuongoza katika kila sehemu ya bidhaa, sura kwa sura.'],
       ['Allez dans Paramètres → Accès par rôle et membres et choisissez Inviter. Saisissez l’e-mail professionnel et un rôle. La personne reçoit un e-mail et un lien que vous pouvez aussi partager sur WhatsApp.',
         'Rôles : Propriétaire (tout, y compris la facturation), Directeur (gère les personnes, approbations et paramètres), Contributeur (réalise le travail), Auditeur (lecture seule pour les contrôles de conformité).',
-        'Vous pouvez importer plusieurs personnes depuis Excel ou CSV avec Importer des personnes. Chaque formule inclut un nombre de sièges ; ajoutez-en dans Paramètres → Facturation.']),
+        'Vous pouvez importer plusieurs personnes depuis Excel ou CSV avec Importer des personnes. Chaque formule inclut un nombre de sièges ; ajoutez-en dans Paramètres → Facturation.',
+        'Nouveau sur OrbitOS ? Choisissez Lancer la démo guidée ici dans le centre d’aide, ou cherchez « démo » : une voix sous-titrée vous présente chaque partie du produit, chapitre par chapitre.']),
   },
   {
     id: 'tasks', icon: 'view_kanban', keywords: 'task tasks sprint board kanban template import excel csv comment mention undo delete due date',
